@@ -89,6 +89,30 @@ export const LayoutAutoIcon = ({ size, color, stroke }: P) => (
     <path d="M3 9h18M9 9v11" />
   </svg>
 );
+export const DocIcon = ({ size, color, stroke }: P) => (
+  <svg {...base(size, color, stroke)}>
+    <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" />
+    <path d="M14 3v5h5M8.5 13h7M8.5 16.5h7" />
+  </svg>
+);
+export const BookIcon = ({ size, color, stroke }: P) => (
+  <svg {...base(size, color, stroke)}>
+    <path d="M4 5a2 2 0 0 1 2-2h6v18H6a2 2 0 0 1-2-2z" />
+    <path d="M12 3h6a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-6" />
+  </svg>
+);
+export const MegaphoneIcon = ({ size, color, stroke }: P) => (
+  <svg {...base(size, color, stroke)}>
+    <path d="M3 11v2a1 1 0 0 0 1 1h2l4 4V6L6 10H4a1 1 0 0 0-1 1Z" />
+    <path d="M14 8a4 4 0 0 1 0 8M10 18l1 3" />
+  </svg>
+);
+export const CalendarIcon = ({ size, color, stroke }: P) => (
+  <svg {...base(size, color, stroke)}>
+    <rect x="3.5" y="5" width="17" height="16" rx="2.5" />
+    <path d="M3.5 10h17M8 3v4M16 3v4" />
+  </svg>
+);
 export const StarIcon = ({ size = 14, color = "#0b1416" }: P) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill={color}>
     <path d="m12 2 2.9 6.1 6.6.9-4.8 4.6 1.2 6.6L12 17.8 6.1 20.2l1.2-6.6L2.5 9l6.6-.9z" />

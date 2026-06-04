@@ -8,11 +8,14 @@ const pool = new Pool({ connectionString: process.env.DATABASE_URI });
 const AI = process.env.AI_SERVICE_URL || "http://localhost:4000";
 
 async function audit(tool: string, args: unknown, count: number) {
-  await pool.query(
-    `INSERT INTO audit_log(actor, action, entity, diff, ts)
-     VALUES('mcp-agent', $1, 'mcp', $2, now())`,
-    [tool, JSON.stringify({ args, count })]
-  ).catch(() => {});
+  // Matches the Payload AuditLog collection schema (apps/cms/collections/AuditLog.ts).
+  await pool
+    .query(
+      `INSERT INTO audit_log(summary, action, collection_slug, document_id, "user", diff, created_at, updated_at)
+       VALUES($1, 'update', 'mcp', '-', 'mcp-agent', $2, now(), now())`,
+      [`mcp:${tool} (${count} result${count === 1 ? "" : "s"})`, JSON.stringify({ args, count })],
+    )
+    .catch(() => {});
 }
 
 async function embedQuery(text: string): Promise<number[]> {

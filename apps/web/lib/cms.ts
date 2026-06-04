@@ -9,3 +9,15 @@ export async function getPage(slug: string, locale: string) {
   const data = await res.json();
   return data.docs?.[0] ?? null;
 }
+
+export async function getSettings(locale: string) {
+  try {
+    const res = await fetch(`${BASE}/api/globals/settings?locale=${locale}&depth=1`, {
+      next: { revalidate: 300, tags: ["settings"] },
+    });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}

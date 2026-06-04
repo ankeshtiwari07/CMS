@@ -19,7 +19,7 @@ function initials(name?: string, email?: string) {
 
 const items = [
   { key: "create", Icon: PlusIcon, href: "/studio", label: "Create" },
-  { key: "search", Icon: SearchIcon, href: "/studio?panel=search", label: "Search" },
+  { key: "search", Icon: SearchIcon, href: "/search", label: "Search" },
   { key: "projects", Icon: FolderIcon, href: "/studio?panel=projects", label: "Projects" },
   { key: "cms", Icon: GridIcon, href: "/cms", label: "Content Management" },
   { key: "brand", Icon: PaletteIcon, href: "/studio?panel=brand", label: "Brand" },

@@ -15,7 +15,7 @@ async function ensureSchema() {
       id bigserial PRIMARY KEY,
       entity text NOT NULL, entity_id text NOT NULL,
       locale text NOT NULL, chunk_idx int NOT NULL,
-      content text NOT NULL, vector vector(${process.env.PGVECTOR_DIM || 1024}) NOT NULL,
+      content text NOT NULL, vector vector(${process.env.PGVECTOR_DIM || 384}) NOT NULL,
       UNIQUE(entity, entity_id, locale, chunk_idx)
     );
     CREATE INDEX IF NOT EXISTS embeddings_vec ON embeddings USING hnsw (vector vector_cosine_ops);

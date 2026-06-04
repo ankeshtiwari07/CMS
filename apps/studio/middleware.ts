@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { TOKEN_COOKIE } from "@/lib/env";
 
-const PROTECTED = ["/studio", "/cms"];
+const PROTECTED = ["/studio", "/cms", "/search"];
 
 export function middleware(req: NextRequest) {
   const token = req.cookies.get(TOKEN_COOKIE)?.value;
@@ -23,5 +23,5 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/", "/studio/:path*", "/cms/:path*", "/login"],
+  matcher: ["/", "/studio/:path*", "/cms/:path*", "/search/:path*", "/login"],
 };

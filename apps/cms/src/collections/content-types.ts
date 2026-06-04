@@ -1,7 +1,16 @@
 import type { CollectionConfig, Field } from "payload";
-import { isEditor, readPublishedOrEditor, canReview } from "../access/roles";
+import { isEditor, readPublishedOrEditor, canReview, editorSiteScoped, departmentOnly } from "../access/roles";
 import { emitContentEvent, onDelete, enforcePublishPermission } from "../hooks/events";
 import { seoField } from "../fields/seo";
+
+// ABAC anchor: the site a document belongs to. Editors with a site scope can
+// only create/read/update/delete content whose `site` is in their set.
+const siteField: Field = {
+  name: "site",
+  type: "relationship",
+  relationTo: "sites",
+  admin: { position: "sidebar" },
+};
 
 // Editorial workflow gate (separate from Payload's draft/published _status):
 // author -> in_review -> approved. Only reviewer+ may move it past "draft".
@@ -22,7 +31,13 @@ const base = (slug: string, title: string, extra: Field[]): CollectionConfig => 
   slug,
   versions: { drafts: { autosave: { interval: 2000 } }, maxPerDoc: 50 },
   admin: { useAsTitle: title },
-  access: { read: readPublishedOrEditor, create: isEditor, update: isEditor, delete: isEditor, readVersions: isEditor },
+  access: {
+    read: readPublishedOrEditor,
+    create: isEditor,
+    update: isEditor,
+    delete: isEditor,
+    readVersions: isEditor,
+  },
   fields: [...extra, workflowField, seoField()],
   hooks: {
     beforeChange: [enforcePublishPermission],
@@ -132,16 +147,26 @@ export const CampaignMicrosites = base("campaignMicrosites", "title", [
   { name: "theme", type: "select", defaultValue: "studio", options: ["studio", "cms", "neutral"] },
 ]);
 
-export const Careers = base("careers", "title", [
-  { name: "title", type: "text", localized: true, required: true },
-  { name: "department", type: "text", localized: true },
-  { name: "location", type: "text", localized: true },
-  { name: "employmentType", type: "select", options: ["full-time", "part-time", "contract", "internship"] },
-  { name: "description", type: "richText", localized: true },
-  { name: "responsibilities", type: "textarea", localized: true },
-  { name: "requirements", type: "textarea", localized: true },
-  { name: "applyUrl", type: "text" },
-]);
+export const Careers: CollectionConfig = {
+  ...base("careers", "title", [
+    { name: "title", type: "text", localized: true, required: true },
+    { name: "department", type: "text", localized: true },
+    { name: "location", type: "text", localized: true },
+    { name: "employmentType", type: "select", options: ["full-time", "part-time", "contract", "internship"] },
+    { name: "description", type: "richText", localized: true },
+    { name: "responsibilities", type: "textarea", localized: true },
+    { name: "requirements", type: "textarea", localized: true },
+    { name: "applyUrl", type: "text" },
+  ]),
+  // ABAC: only HR/Communications editors (or admins) may author job posts.
+  access: {
+    read: readPublishedOrEditor,
+    create: departmentOnly("hr", "communications"),
+    update: departmentOnly("hr", "communications"),
+    delete: departmentOnly("hr", "communications"),
+    readVersions: isEditor,
+  },
+};
 
 export const Tags: CollectionConfig = {
   slug: "tags",

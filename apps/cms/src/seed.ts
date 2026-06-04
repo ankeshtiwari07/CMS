@@ -36,6 +36,34 @@ const run = async () => {
     data: { name: "HUMAIN", domain: "humain.sa", defaultLocale: "en" },
   }));
 
+  // ---- Persona users (RBAC + ABAC) ----
+  // Password is supplied via env (never hardcoded). Falls back to the admin
+  // seed password, else a clearly-non-production dev value.
+  const PERSONA_PW = process.env.PERSONA_PASSWORD || process.env.SEED_ADMIN_PASSWORD || "ChangeMe_dev_only_2026";
+  const personas = [
+    { email: "viewer@humain.sa", name: "Vera Viewer", jobTitle: "Stakeholder", roles: ["viewer"], department: "executive" },
+    { email: "author.en@humain.sa", name: "Adam Author", jobTitle: "Content Author", roles: ["author"], department: "marketing", sites: [site.id], locales: ["en"] },
+    { email: "author.ar@humain.sa", name: "ليلى الكاتبة", jobTitle: "Arabic Author", roles: ["author"], department: "communications", sites: [site.id], locales: ["ar"] },
+    { email: "reviewer@humain.sa", name: "Rana Reviewer", jobTitle: "Editor", roles: ["reviewer"], department: "editorial" },
+    { email: "publisher@humain.sa", name: "Pavan Publisher", jobTitle: "Managing Editor", roles: ["publisher"], department: "editorial" },
+    { email: "brand@humain.sa", name: "Bushra Brand", jobTitle: "Brand Lead", roles: ["brand"], department: "marketing" },
+    { email: "hr@humain.sa", name: "Hana HR", jobTitle: "Talent Partner", roles: ["author"], department: "hr" },
+    { email: "siteadmin@humain.sa", name: "Sam Admin", jobTitle: "Platform Admin", roles: ["admin"], department: "product" },
+  ] as const;
+
+  for (const p of personas) {
+    const exists = await payload.find({ collection: "users", where: { email: { equals: p.email } }, limit: 1 });
+    if (exists.docs.length) {
+      console.log("[seed] persona exists:", p.email);
+      continue;
+    }
+    await payload.create({
+      collection: "users",
+      data: { ...p, password: PERSONA_PW, active: true } as any,
+    });
+    console.log("[seed] created persona:", p.email, `(${p.roles.join("/")})`);
+  }
+
   const pageRes = await payload.find({ collection: "pages", where: { slug: { equals: "home" } }, limit: 1 });
   let pageId: string | number;
   if (pageRes.docs.length) {

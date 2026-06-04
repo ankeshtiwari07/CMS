@@ -1,6 +1,6 @@
 import type { CollectionConfig } from "payload";
 import { allBlocks } from "@humain/blocks";
-import { isEditor, canPublish, readPublishedOrEditor } from "../access/roles";
+import { isEditor, canPublish, readPublishedOrEditor, editorSiteScoped } from "../access/roles";
 import { emitContentEvent, onDelete } from "../hooks/events";
 import { seoField } from "../fields/seo";
 
@@ -11,8 +11,8 @@ export const Pages: CollectionConfig = {
   access: {
     read: readPublishedOrEditor,
     create: isEditor,
-    update: isEditor,
-    delete: isEditor,
+    update: editorSiteScoped, // ABAC: editors limited to their assigned sites
+    delete: editorSiteScoped,
     readVersions: isEditor,
   },
   fields: [

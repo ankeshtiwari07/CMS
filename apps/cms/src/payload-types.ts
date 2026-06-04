@@ -162,8 +162,32 @@ export interface UserAuthOperations {
 export interface User {
   id: number;
   name?: string | null;
+  jobTitle?: string | null;
   roles: ('viewer' | 'author' | 'reviewer' | 'publisher' | 'brand' | 'admin')[];
+  /**
+   * Site scope — editors are limited to content in these sites (empty = all).
+   */
   sites?: (number | Site)[] | null;
+  /**
+   * Used for attribute-based access (e.g. HR owns Careers).
+   */
+  department?: ('marketing' | 'editorial' | 'communications' | 'hr' | 'product' | 'executive') | null;
+  /**
+   * Locale scope (array, empty = all locales).
+   */
+  locales?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * Deactivated users cannot sign in.
+   */
+  active?: boolean | null;
   updatedAt: string;
   createdAt: string;
   email: string;
@@ -1285,8 +1309,12 @@ export interface PayloadMigration {
  */
 export interface UsersSelect<T extends boolean = true> {
   name?: T;
+  jobTitle?: T;
   roles?: T;
   sites?: T;
+  department?: T;
+  locales?: T;
+  active?: T;
   updatedAt?: T;
   createdAt?: T;
   email?: T;

@@ -27,18 +27,19 @@ export default function LoginPage() {
           padding: "38px 34px 34px",
         }}
       >
-        <div style={{ textAlign: "center" }}>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
           <HumainWordmark size={30} />
           <div
             style={{
-              marginTop: 10,
+              marginTop: 12,
               fontSize: 11.5,
               fontWeight: 700,
               letterSpacing: "0.14em",
               color: "var(--studio-primary)",
+              textAlign: "center",
             }}
           >
-            PAYLOAD CMS · AI-NATIVE EXPERIENCE PLATFORM
+            AI-NATIVE EXPERIENCE PLATFORM
           </div>
         </div>
 

@@ -108,7 +108,70 @@ export const EmbedBlock: Block = {
   ],
 };
 
+export const FeaturesBlock: Block = {
+  slug: "features",
+  interfaceName: "FeaturesBlock",
+  fields: [
+    { name: "title", type: "text", localized: true },
+    { name: "features", type: "array", fields: [
+      { name: "title", type: "text", localized: true, required: true },
+      { name: "description", type: "textarea", localized: true },
+      { name: "icon", type: "text" },
+    ] },
+  ],
+};
+
+export const StepsBlock: Block = {
+  slug: "steps",
+  interfaceName: "StepsBlock",
+  fields: [
+    { name: "title", type: "text", localized: true },
+    { name: "steps", type: "array", fields: [
+      { name: "title", type: "text", localized: true, required: true },
+      { name: "body", type: "textarea", localized: true },
+    ] },
+  ],
+};
+
+export const LogosBlock: Block = {
+  slug: "logos",
+  interfaceName: "LogosBlock",
+  fields: [
+    { name: "title", type: "text", localized: true },
+    { name: "logos", type: "array", fields: [
+      { name: "name", type: "text", required: true },
+      { name: "media", type: "upload", relationTo: "media" },
+    ] },
+  ],
+};
+
+export const BannerBlock: Block = {
+  slug: "banner",
+  interfaceName: "BannerBlock",
+  fields: [
+    { name: "text", type: "text", localized: true, required: true },
+    { name: "cta", type: "group", fields: [
+      { name: "label", type: "text", localized: true },
+      { name: "href", type: "text" },
+    ] },
+  ],
+};
+
+export const PricingBlock: Block = {
+  slug: "pricing",
+  interfaceName: "PricingBlock",
+  fields: [
+    { name: "title", type: "text", localized: true },
+    { name: "plans", type: "array", fields: [
+      { name: "name", type: "text", localized: true, required: true },
+      { name: "price", type: "text", required: true },
+      { name: "features", type: "array", fields: [{ name: "label", type: "text", localized: true }] },
+    ] },
+  ],
+};
+
 export const allBlocks: Block[] = [
   HeroBlock, RichTextBlock, MediaBlock, CtaBlock, CardsBlock,
   FaqBlock, StatsBlock, QuoteBlock, GalleryBlock, EmbedBlock,
+  FeaturesBlock, StepsBlock, LogosBlock, BannerBlock, PricingBlock,
 ];

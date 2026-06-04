@@ -1,0 +1,62 @@
+/* HUMAIN console — exact Figma tokens for both surfaces. */
+:root {
+  /* Studio (light) */
+  --studio-primary: #00a18b;
+  --studio-teal-dark: #0e7c6b;
+  --mint-tint: #ceebe7;
+  --mint-pill: #e4f4f0;
+  --canvas: #ffffff;
+  --ink: #1a1a1a;
+  --muted: #6b7280;
+  --hairline: #e6e8eb;
+
+  /* CMS (dark) */
+  --cms-bg: #0b1416;
+  --deep-teal: #0e2a2e;
+  --teal-accent: #11515a;
+  --lime: #c2e54b;
+  --lime-dark: #9dbf2d;
+  --publish-blue: #103b47;
+  --card-mint: #bfebc8;
+  --surface: #ffffff;
+  --label: #0e4049;
+
+  /* scale */
+  --r-input: 10px;
+  --r-card: 18px;
+  --r-pill: 999px;
+  --shadow-card: 0 8px 24px rgba(0, 0, 0, 0.12);
+  --font-ui: var(--font-inter), "Inter", system-ui, sans-serif;
+  --font-ar: var(--font-plex-ar), "IBM Plex Sans Arabic", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-ui);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+[dir="rtl"] body,
+[dir="rtl"] {
+  font-family: var(--font-ar);
+}
+a {
+  color: inherit;
+}
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+input,
+textarea,
+select {
+  font-family: inherit;
+}
+::placeholder {
+  color: var(--muted);
+}

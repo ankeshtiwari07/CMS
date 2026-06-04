@@ -1,0 +1,36 @@
+name: CI
+on: { push: { branches: [main] }, pull_request: {} }
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env: { POSTGRES_USER: humain, POSTGRES_PASSWORD: humain, POSTGRES_DB: humain }
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U humain" --health-interval 5s --health-timeout 3s --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 9 }
+      - uses: actions/setup-node@v4
+        with: { node-version: "20.11.0", cache: "pnpm" }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm e2e
+        env: { DATABASE_URI: postgres://humain:humain@localhost:5432/humain, REDIS_URL: redis://localhost:6379 }
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Trivy FS scan
+        uses: aquasecurity/trivy-action@0.24.0
+        with: { scan-type: fs, scan-ref: ., severity: "CRITICAL,HIGH" }
+      - name: Semgrep
+        uses: returntocorp/semgrep-action@v1

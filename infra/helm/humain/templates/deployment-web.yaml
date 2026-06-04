@@ -1,0 +1,16 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: humain-web, namespace: humain }
+spec:
+  replicas: {{ .Values.replicaCount.web }}
+  selector: { matchLabels: { app: humain-web } }
+  template:
+    metadata: { labels: { app: humain-web } }
+    spec:
+      containers:
+        - name: web
+          image: "{{ .Values.image.registry }}/web:{{ .Values.image.tag }}"
+          ports: [{ containerPort: 3000 }]
+          envFrom: [{ secretRef: { name: humain-secrets } }]
+          readinessProbe: { httpGet: { path: /api/health, port: 3000 }, initialDelaySeconds: 10 }
+          livenessProbe:  { httpGet: { path: /api/health, port: 3000 }, initialDelaySeconds: 20 }

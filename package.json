@@ -1,0 +1,28 @@
+{
+  "name": "humain-payload",
+  "version": "1.0.0",
+  "private": true,
+  "packageManager": "pnpm@9.7.0",
+  "engines": { "node": ">=20.11.0" },
+  "scripts": {
+    "dev": "pnpm -r --parallel dev",
+    "build": "pnpm -r build",
+    "lint": "eslint . --ext .ts,.tsx",
+    "typecheck": "tsc -b --pretty",
+    "test": "vitest run",
+    "e2e": "playwright test",
+    "format": "prettier --write .",
+    "db:migrate": "pnpm --filter @humain/cms payload migrate",
+    "db:seed": "pnpm --filter @humain/cms payload run src/seed.ts"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.47.0",
+    "@typescript-eslint/eslint-plugin": "^8.7.0",
+    "@typescript-eslint/parser": "^8.7.0",
+    "eslint": "^8.57.0",
+    "prettier": "^3.3.3",
+    "tsx": "^4.19.1",
+    "typescript": "^5.6.2",
+    "vitest": "^2.1.1"
+  }
+}

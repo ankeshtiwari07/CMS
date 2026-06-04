@@ -1,0 +1,18 @@
+node_modules
+.env
+.env.local
+.env.*.local
+dist
+.next
+out
+*.log
+*.tsbuildinfo
+next-env.d.ts
+# Payload local-disk uploads (object storage in prod)
+apps/cms/media
+apps/cms/public/media
+# OS / editor
+.DS_Store
+coverage
+playwright-report
+test-results

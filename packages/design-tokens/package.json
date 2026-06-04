@@ -1,0 +1,7 @@
+{
+  "name": "@humain/design-tokens",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "index.ts",
+  "scripts": { "build": "tsc -p tsconfig.json" }
+}

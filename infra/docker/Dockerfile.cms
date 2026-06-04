@@ -1,0 +1,15 @@
+# Multi-stage build for the CMS (repeat pattern for web/studio/ai-service/mcp-server)
+FROM node:20.11.0-slim AS base
+RUN corepack enable
+WORKDIR /app
+COPY pnpm-workspace.yaml package.json tsconfig.base.json ./
+COPY packages ./packages
+COPY apps/cms ./apps/cms
+RUN pnpm install --frozen-lockfile --filter @humain/cms...
+RUN pnpm --filter @humain/cms build
+FROM node:20.11.0-slim AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+COPY --from=base /app ./
+EXPOSE 3001
+CMD ["pnpm","--filter","@humain/cms","start"]

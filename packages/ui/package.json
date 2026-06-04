@@ -1,0 +1,12 @@
+{
+  "name": "@humain/ui",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "index.tsx",
+  "peerDependencies": { "react": "^19", "react-dom": "^19" },
+  "dependencies": { "@humain/design-tokens": "workspace:*" },
+  "devDependencies": {
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0"
+  }
+}

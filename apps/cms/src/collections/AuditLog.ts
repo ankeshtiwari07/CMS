@@ -1,5 +1,5 @@
 import type { CollectionConfig } from "payload";
-import { isAdmin } from "../access/roles.js";
+import { isAdmin } from "../access/roles";
 
 // Append-only audit trail of content mutations. Readable by admins only; writes
 // happen exclusively via the afterChange/afterDelete hooks (no UI create/update).

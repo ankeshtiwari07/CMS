@@ -1,8 +1,8 @@
 import type { CollectionConfig } from "payload";
 import { allBlocks } from "@humain/blocks";
-import { isEditor, canPublish, readPublishedOrEditor } from "../access/roles.js";
-import { emitContentEvent, onDelete } from "../hooks/events.js";
-import { seoField } from "../fields/seo.js";
+import { isEditor, canPublish, readPublishedOrEditor } from "../access/roles";
+import { emitContentEvent, onDelete } from "../hooks/events";
+import { seoField } from "../fields/seo";
 
 export const Pages: CollectionConfig = {
   slug: "pages",

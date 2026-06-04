@@ -1,6 +1,6 @@
 import type { CollectionConfig } from "payload";
-import { isEditor, readPublishedOrEditor } from "../access/roles.js";
-import { ragQueue } from "../hooks/events.js";
+import { isEditor, readPublishedOrEditor } from "../access/roles";
+import { ragQueue } from "../hooks/events";
 
 export const Media: CollectionConfig = {
   slug: "media",

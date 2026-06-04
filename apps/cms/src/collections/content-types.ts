@@ -1,7 +1,7 @@
 import type { CollectionConfig, Field } from "payload";
-import { isEditor, readPublishedOrEditor } from "../access/roles.js";
-import { emitContentEvent, onDelete } from "../hooks/events.js";
-import { seoField } from "../fields/seo.js";
+import { isEditor, readPublishedOrEditor } from "../access/roles";
+import { emitContentEvent, onDelete } from "../hooks/events";
+import { seoField } from "../fields/seo";
 
 const base = (slug: string, title: string, extra: Field[]): CollectionConfig => ({
   slug,

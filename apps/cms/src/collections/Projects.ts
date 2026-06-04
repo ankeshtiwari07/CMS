@@ -1,5 +1,5 @@
 import type { CollectionConfig } from "payload";
-import { isEditor } from "../access/roles.js";
+import { isEditor } from "../access/roles";
 
 // Create Studio output: typed project assets that can be promoted into CMS collections.
 export const Projects: CollectionConfig = {

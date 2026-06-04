@@ -6,13 +6,13 @@ import sharp from "sharp";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { Users } from "./collections/Users.js";
-import { Sites } from "./collections/Sites.js";
-import { Media } from "./collections/Media.js";
-import { Pages } from "./collections/Pages.js";
-import { Projects } from "./collections/Projects.js";
-import { AuditLog } from "./collections/AuditLog.js";
-import { contentCollections } from "./collections/content-types.js";
+import { Users } from "./collections/Users";
+import { Sites } from "./collections/Sites";
+import { Media } from "./collections/Media";
+import { Pages } from "./collections/Pages";
+import { Projects } from "./collections/Projects";
+import { AuditLog } from "./collections/AuditLog";
+import { contentCollections } from "./collections/content-types";
 
 const dirname = path.dirname(fileURLToPath(import.meta.url));
 

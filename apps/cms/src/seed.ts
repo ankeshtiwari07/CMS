@@ -1,7 +1,7 @@
 // Real seed: creates an admin, a site, and a bilingual published page.
 // Idempotent-ish: skips creation if the admin / site / page already exist.
 import { getPayload } from "payload";
-import config from "./payload.config.js";
+import config from "./payload.config";
 
 const run = async () => {
   console.log("[seed] booting payload…");

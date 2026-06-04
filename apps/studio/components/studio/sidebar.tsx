@@ -24,7 +24,7 @@ const NAV = [
   { key: "search", Icon: SearchIcon, label: "Search", href: "/search" },
   { key: "projects", Icon: FolderIcon, label: "Projects", href: "/projects" },
   { key: "templates", Icon: GridIcon, label: "Templates", href: "/cms" },
-  { key: "design", Icon: PaletteIcon, label: "Design", href: "/settings/general" },
+  { key: "design", Icon: PaletteIcon, label: "Design", href: "/design" },
 ];
 
 const ROLE_LABEL: Record<string, string> = {

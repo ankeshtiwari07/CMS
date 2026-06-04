@@ -19,7 +19,7 @@ export async function POST(req: Request) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { mode, prompt, options } = await req.json();
+  const { mode, prompt, options, fast } = await req.json();
   if (!prompt) return NextResponse.json({ error: "Prompt is required" }, { status: 400 });
 
   let gen: Response;
@@ -27,7 +27,7 @@ export async function POST(req: Request) {
     gen = await fetch(`${AI_URL}/studio/generate`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ mode, prompt, options }),
+      body: JSON.stringify({ mode, prompt, options, fast }),
     });
   } catch {
     return NextResponse.json({ error: "generation_unavailable" }, { status: 502 });

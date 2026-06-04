@@ -22,9 +22,9 @@ function initials(name?: string, email?: string) {
 const NAV = [
   { key: "create", Icon: PlusIcon, label: "Create new", href: "/studio" },
   { key: "search", Icon: SearchIcon, label: "Search", href: "/search" },
-  { key: "projects", Icon: FolderIcon, label: "Projects", href: "/studio?panel=projects" },
-  { key: "templates", Icon: GridIcon, label: "Templates", href: "/studio?panel=templates" },
-  { key: "design", Icon: PaletteIcon, label: "Design", href: "/studio?panel=design" },
+  { key: "projects", Icon: FolderIcon, label: "Projects", href: "/projects" },
+  { key: "templates", Icon: GridIcon, label: "Templates", href: "/cms" },
+  { key: "design", Icon: PaletteIcon, label: "Design", href: "/settings/general" },
 ];
 
 const ROLE_LABEL: Record<string, string> = {
@@ -126,7 +126,14 @@ export default function Sidebar({
             <button
               key={key}
               title={collapsed ? label : undefined}
-              onClick={() => router.push(href)}
+              onClick={() => {
+                if (key === "create") {
+                  router.push("/studio");
+                  setTimeout(() => globalThis.dispatchEvent(new CustomEvent("humain:newchat")), 60);
+                } else {
+                  router.push(href);
+                }
+              }}
               onMouseEnter={() => setHover(key)}
               onMouseLeave={() => setHover(null)}
               style={row(key === active || (hover === key && key !== active))}

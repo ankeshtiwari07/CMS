@@ -18,6 +18,10 @@ const RATIOS = [
   { key: "widescreen", label: "Widescreen", hint: "16:9" },
 ];
 const STYLES = ["No style", "Abstract", "Risograph", "Vector Art", "Photorealistic"];
+const MODELS = [
+  { label: "Claude Opus 4.8", fast: false },
+  { label: "Claude Haiku 4.5", fast: true },
+];
 
 function fmtSize(n: number) {
   if (n < 1024) return `${n} B`;
@@ -35,20 +39,40 @@ export default function PromptBox() {
   const [busy, setBusy] = useState(false);
   const [out, setOut] = useState<{ text: string; preview?: boolean } | null>(null);
   const [listening, setListening] = useState(false);
+  const [model, setModel] = useState(0);
   const [open, setOpen] = useState<null | "plus" | "ratio" | "style" | "model" | "suggest">(null);
 
   const recRef = useRef<any>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  function focusPrompt() {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    setTimeout(() => document.querySelector<HTMLTextAreaElement>("#studio-prompt")?.focus(), 50);
+  }
+
   useEffect(() => {
-    const handler = (e: Event) => {
+    // Quick-create / "+" menu prefill the prompt and focus it.
+    const prefill = (e: Event) => {
       const d = (e as CustomEvent).detail as { prompt?: string; mode?: Mode };
-      if (d.prompt) setPrompt(d.prompt);
+      if (d.prompt !== undefined) setPrompt(d.prompt);
       if (d.mode) setMode(d.mode);
-      document.querySelector<HTMLTextAreaElement>("#studio-prompt")?.focus();
+      setOut(null);
+      focusPrompt();
     };
-    globalThis.addEventListener("humain:prefill", handler);
-    return () => globalThis.removeEventListener("humain:prefill", handler);
+    // "Create new" in the sidebar resets to a blank prompt.
+    const newChat = () => {
+      setPrompt("");
+      setOut(null);
+      setFiles([]);
+      setMode("auto");
+      focusPrompt();
+    };
+    globalThis.addEventListener("humain:prefill", prefill);
+    globalThis.addEventListener("humain:newchat", newChat);
+    return () => {
+      globalThis.removeEventListener("humain:prefill", prefill);
+      globalThis.removeEventListener("humain:newchat", newChat);
+    };
   }, []);
 
   const suggestions =
@@ -83,7 +107,8 @@ export default function PromptBox() {
         body: JSON.stringify({
           mode: aiMode,
           prompt,
-          options: { ratio, style, deckFormat, files: files.map((f) => f.name), attachments },
+          fast: MODELS[model].fast,
+          options: { ratio, style, deckFormat, model: MODELS[model].label, files: files.map((f) => f.name), attachments },
         }),
       });
       const data = await res.json();
@@ -241,10 +266,25 @@ export default function PromptBox() {
 
           <span style={{ flex: 1 }} />
 
-          {/* model pill */}
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 6, height: 34, padding: "0 12px", borderRadius: 999, background: "var(--mint-pill)", color: "var(--studio-teal-dark)", fontSize: 13.5, fontWeight: 700 }}>
-            GPT-5.5 Instant <ChevronDownIcon size={15} />
-          </span>
+          {/* model selector (Claude) */}
+          <div style={{ position: "relative" }}>
+            <button
+              onClick={() => setOpen(open === "model" ? null : "model")}
+              style={{ display: "inline-flex", alignItems: "center", gap: 6, height: 34, padding: "0 12px", border: "none", borderRadius: 999, background: "var(--mint-pill)", color: "var(--studio-teal-dark)", fontSize: 13.5, fontWeight: 700, cursor: "pointer" }}
+            >
+              {MODELS[model].label} <ChevronDownIcon size={15} />
+            </button>
+            {open === "model" && (
+              <div style={{ ...menuWrap, bottom: 40, right: 0, minWidth: 200 }}>
+                <div style={{ padding: "6px 10px", fontSize: 12, color: "var(--muted)", fontWeight: 600 }}>Model</div>
+                {MODELS.map((m, i) => (
+                  <button key={m.label} style={{ ...item, justifyContent: "space-between" }} onClick={() => { setModel(i); setOpen(null); }}>
+                    <span>{m.label}</span>{model === i && <CheckIcon size={15} color="var(--studio-primary)" />}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
 
           {/* mic when empty, send-arrow when text */}
           <button
@@ -274,9 +314,24 @@ export default function PromptBox() {
         </div>
       )}
 
-      {out && (
+      {busy && (
+        <div style={{ marginTop: 18, background: "#fff", border: "1px solid var(--hairline)", borderRadius: 18, padding: 18, display: "flex", alignItems: "center", gap: 12, color: "var(--studio-teal-dark)" }}>
+          <span className="humain-spin" style={{ width: 18, height: 18, border: "2.5px solid var(--mint-pill)", borderTopColor: "var(--studio-primary)", borderRadius: "50%", display: "inline-block" }} />
+          <span style={{ fontWeight: 600 }}>Generating with {MODELS[model].label}…</span>
+          <style>{`@keyframes humain-spin{to{transform:rotate(360deg)}}.humain-spin{animation:humain-spin .7s linear infinite}`}</style>
+        </div>
+      )}
+
+      {!busy && out && (
         <div style={{ marginTop: 18, background: "#fff", border: "1px solid var(--hairline)", borderRadius: 18, padding: 18 }}>
-          {out.preview && <div style={{ display: "inline-block", marginBottom: 10, fontSize: 11.5, fontWeight: 700, letterSpacing: "0.06em", color: "var(--studio-teal-dark)", background: "var(--mint-pill)", padding: "4px 10px", borderRadius: 999 }}>CONCEPT PREVIEW</div>}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+            {out.preview ? (
+              <span style={{ display: "inline-block", fontSize: 11.5, fontWeight: 700, letterSpacing: "0.06em", color: "var(--studio-teal-dark)", background: "var(--mint-pill)", padding: "4px 10px", borderRadius: 999 }}>CONCEPT PREVIEW</span>
+            ) : (
+              <span style={{ fontSize: 12, color: "var(--muted)", fontWeight: 600 }}>{MODELS[model].label}</span>
+            )}
+            <button onClick={() => navigator.clipboard?.writeText(out.text)} style={{ border: "1px solid var(--hairline)", background: "#fff", borderRadius: 8, padding: "5px 10px", fontSize: 12.5, color: "var(--ink)", cursor: "pointer" }}>Copy</button>
+          </div>
           <div style={{ whiteSpace: "pre-wrap", color: "var(--ink)", lineHeight: 1.6, fontSize: 15 }}>{out.text}</div>
         </div>
       )}

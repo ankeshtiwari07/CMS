@@ -64,6 +64,7 @@ app.post("/studio/generate", async (req) => {
       mode: z.enum([...TEXT_MODES, ...PREVIEW_MODES] as [string, ...string[]]),
       prompt: z.string().min(1).max(8000),
       options: z.record(z.unknown()).optional(),
+      fast: z.boolean().optional(),
     })
     .parse(req.body);
 
@@ -88,6 +89,7 @@ app.post("/studio/generate", async (req) => {
       system,
       messages: [{ role: "user", content: body.prompt }],
       maxTokens: preview ? 1500 : 2048,
+      fast: body.fast,
     });
     return { ok: true, mode: body.mode, preview, artifact: out };
   } catch (e: any) {

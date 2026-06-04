@@ -1,13 +1,17 @@
 const BASE = process.env.CMS_BASE_URL || "http://localhost:3001";
 
 export async function getPage(slug: string, locale: string) {
-  const res = await fetch(
-    `${BASE}/api/pages?where[slug][equals]=${slug}&where[_status][equals]=published&locale=${locale}&depth=2`,
-    { next: { revalidate: 60, tags: [`page:${slug}`] } }
-  );
-  if (!res.ok) return null;
-  const data = await res.json();
-  return data.docs?.[0] ?? null;
+  try {
+    const res = await fetch(
+      `${BASE}/api/pages?where[slug][equals]=${slug}&where[_status][equals]=published&locale=${locale}&depth=2`,
+      { next: { revalidate: 60, tags: [`page:${slug}`] } },
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data.docs?.[0] ?? null;
+  } catch {
+    return null;
+  }
 }
 
 export async function getSettings(locale: string) {

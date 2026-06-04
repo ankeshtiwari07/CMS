@@ -36,7 +36,8 @@ export async function POST(req: Request) {
   response.cookies.set(TOKEN_COOKIE, data.token, {
     httpOnly: true,
     sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    // Only require HTTPS once TLS is terminated (set COOKIE_SECURE=true then).
+    secure: process.env.COOKIE_SECURE === "true",
     path: "/",
     maxAge: MAX_AGE,
   });

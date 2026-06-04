@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+# Deploy the HUMAIN CMS stack to the GCP `haow` VM (dedicated, /opt/haow-cms).
+# Port 22 is firewalled — all access goes through IAP. Run from the repo root:
+#
+#   ./scripts/deploy-haow.sh            # core profile
+#   PROFILE=full ./scripts/deploy-haow.sh
+#
+# Prereqs on your machine: gcloud authed. On the VM: docker + compose plugin.
+# You must place a filled .env.production locally (gitignored) — it is copied up.
+set -euo pipefail
+
+VM="${VM:-haow}"
+ZONE="${ZONE:-asia-south1-a}"
+APP_DIR="${APP_DIR:-/opt/haow-cms}"
+REPO="${REPO:-https://github.com/ankeshtiwari07/CMS.git}"
+BRANCH="${BRANCH:-main}"
+PROFILE="${PROFILE:-}"
+SSH=(gcloud compute ssh "$VM" --zone="$ZONE" --tunnel-through-iap --command)
+
+if [[ ! -f .env.production ]]; then
+  echo "ERROR: .env.production not found. Copy .env.production.example and fill it in." >&2
+  exit 1
+fi
+
+echo "==> Ensuring app dir + repo on $VM"
+"${SSH[@]}" "sudo mkdir -p $APP_DIR && sudo chown \$(whoami) $APP_DIR && \
+  if [ -d $APP_DIR/.git ]; then cd $APP_DIR && git fetch --depth 1 origin $BRANCH && git reset --hard origin/$BRANCH; \
+  else git clone --depth 1 -b $BRANCH $REPO $APP_DIR; fi"
+
+echo "==> Copying .env.production"
+gcloud compute scp --zone="$ZONE" --tunnel-through-iap .env.production "$VM:$APP_DIR/.env.production"
+
+COMPOSE="docker compose -f docker-compose.prod.yml"
+[[ -n "$PROFILE" ]] && COMPOSE="$COMPOSE --profile $PROFILE"
+
+echo "==> Building + starting stack ($COMPOSE)"
+"${SSH[@]}" "cd $APP_DIR && $COMPOSE up -d --build"
+
+echo "==> Waiting for cms, then seeding admin (idempotent)"
+"${SSH[@]}" "cd $APP_DIR && sleep 15 && $COMPOSE exec -T cms pnpm --filter @humain/cms payload run src/seed.ts || true"
+
+echo "==> Health check"
+PORT="$(grep -E '^HUMAIN_HTTP_PORT=' .env.production | cut -d= -f2 || echo 8020)"
+"${SSH[@]}" "curl -s -o /dev/null -w 'nginx /healthz -> %{http_code}\n' http://localhost:${PORT:-8020}/healthz"
+
+echo "==> Docker prune (reclaim disk)"
+"${SSH[@]}" "docker image prune -f >/dev/null 2>&1 || true"
+
+echo "Done. Console: http://<haow-host>:${PORT:-8020}/login"

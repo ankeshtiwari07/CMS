@@ -1,8 +1,8 @@
 // OpenSearch indexer worker: syncs published content for lexical + faceted search.
 import { Worker } from "bullmq";
-import IORedis from "ioredis";
+import { Redis } from "ioredis";
 
-const connection = new IORedis(process.env.REDIS_URL || "redis://localhost:6379", { maxRetriesPerRequest: null });
+const connection = new Redis(process.env.REDIS_URL || "redis://localhost:6379", { maxRetriesPerRequest: null });
 const OS = process.env.OPENSEARCH_URL || "http://localhost:9200";
 const auth = "Basic " + Buffer.from(`${process.env.OPENSEARCH_USERNAME}:${process.env.OPENSEARCH_PASSWORD}`).toString("base64");
 
@@ -31,12 +31,12 @@ new Worker("index", async (job) => {
   for (const locale of (process.env.SUPPORTED_LOCALES || "en,ar").split(",")) {
     const res = await fetch(`${base}/api/${collection}/${id}?locale=${locale}`);
     if (!res.ok) continue;
-    const doc = await res.json();
+    const doc = (await res.json()) as any;
     await fetch(`${OS}/content/_doc/${collection}:${id}:${locale}`, {
       method: "PUT", headers: { "content-type": "application/json", authorization: auth },
       body: JSON.stringify({ entity: collection, locale, title: doc.title ?? doc.headline ?? doc.name, body: JSON.stringify(doc).slice(0, 8000) }),
     });
   }
-}, { connection });
+}, { connection: connection as any });
 
 console.log("indexer started");

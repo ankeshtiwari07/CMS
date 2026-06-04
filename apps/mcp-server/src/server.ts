@@ -64,7 +64,7 @@ server.tool("content_propose",
       headers: { "content-type": "application/json", authorization: `Bearer ${process.env.MCP_SERVICE_TOKEN}` },
       body: JSON.stringify({ ...draft, _status: "draft" }),
     });
-    const out = await res.json();
+    const out = (await res.json()) as any;
     await audit("content_propose", { collection }, 1);
     return { content: [{ type: "text", text: JSON.stringify({ proposedDraftId: out?.doc?.id }) }] };
   }

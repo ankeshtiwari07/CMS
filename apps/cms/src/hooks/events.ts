@@ -30,8 +30,10 @@ const connection = new IORedis(process.env.REDIS_URL || "redis://localhost:6379"
 });
 connection.on("error", () => {}); // swallow connection noise; adds are guarded below
 
-export const ragQueue = new Queue("rag", { connection });
-export const indexQueue = new Queue("index", { connection });
+// `connection as any`: bullmq bundles ioredis@5.10 types while we resolve 5.11;
+// the instances are runtime-compatible but the d.ts identities differ.
+export const ragQueue = new Queue("rag", { connection: connection as any });
+export const indexQueue = new Queue("index", { connection: connection as any });
 
 // Never let a down Redis hang or break a content mutation.
 async function safeAdd(queue: Queue, name: string, data: Record<string, unknown>) {

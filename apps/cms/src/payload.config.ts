@@ -62,8 +62,9 @@ export default buildConfig({
   globals,
   db: postgresAdapter({
     pool: { connectionString: process.env.DATABASE_URI },
-    // Dev: auto-sync schema (push). Prod: generated migrations run via `payload migrate`.
-    push: process.env.NODE_ENV !== "production",
+    // Dev: auto-sync schema (push). Prod: migrations, unless DB_PUSH=true is set
+    // to bootstrap a fresh database on first deploy.
+    push: process.env.DB_PUSH ? process.env.DB_PUSH === "true" : process.env.NODE_ENV !== "production",
   }),
   cors: (process.env.CORS_ORIGINS || "http://localhost:3000,http://localhost:3002").split(","),
   csrf: (process.env.CSRF_ORIGINS || "http://localhost:3000,http://localhost:3002").split(","),

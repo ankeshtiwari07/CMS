@@ -2,5 +2,7 @@
   "name": "@humain/blocks",
   "version": "1.0.0",
   "type": "module",
-  "main": "index.ts"
+  "main": "index.ts",
+  "peerDependencies": { "payload": "3.85.0" },
+  "devDependencies": { "payload": "3.85.0" }
 }

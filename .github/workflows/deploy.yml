@@ -1,18 +1,29 @@
 name: Deploy
-on: { push: { tags: ["v*"] } }
+on:
+  push: { tags: ["v*"] }
+  workflow_dispatch: {}
+
 jobs:
-  release:
+  image:
     runs-on: ubuntu-latest
     permissions: { contents: read, packages: write }
     steps:
       - uses: actions/checkout@v4
-      - name: Build & push images
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build & push single workspace image
         run: |
-          for app in cms web studio ai-service mcp-server; do
-            docker build -f infra/docker/Dockerfile.$app -t ghcr.io/humain/$app:${GITHUB_REF_NAME} .
-            docker push ghcr.io/humain/$app:${GITHUB_REF_NAME}
-          done
+          TAG="${GITHUB_REF_NAME:-latest}"
+          IMG="ghcr.io/${GITHUB_REPOSITORY,,}/stack"
+          docker build -t "$IMG:$TAG" -t "$IMG:latest" .
+          docker push "$IMG:$TAG"
+          docker push "$IMG:latest"
       - name: Generate SBOM
         uses: anchore/sbom-action@v0
-      - name: Helm upgrade (KSA cluster)
-        run: helm upgrade --install humain infra/helm/humain --namespace humain --set image.tag=${GITHUB_REF_NAME} --wait --atomic
+        with: { image: "ghcr.io/${{ github.repository }}/stack:latest" }
+    # Roll out to the haow VM with scripts/deploy-haow.sh (IAP SSH; runs from an
+    # operator machine with gcloud auth — not in CI, since port 22 is IAP-only).

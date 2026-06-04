@@ -1,10 +1,10 @@
 // RAG/index worker: consumes BullMQ jobs, embeds content to pgvector, generates alt-text.
 import { Worker } from "bullmq";
-import IORedis from "ioredis";
+import { Redis } from "ioredis";
 import { Pool } from "pg";
 import { getProvider } from "./providers/index.js";
 
-const connection = new IORedis(process.env.REDIS_URL || "redis://localhost:6379", { maxRetriesPerRequest: null });
+const connection = new Redis(process.env.REDIS_URL || "redis://localhost:6379", { maxRetriesPerRequest: null });
 const pool = new Pool({ connectionString: process.env.DATABASE_URI });
 const provider = getProvider();
 
@@ -67,6 +67,6 @@ new Worker("rag", async (job) => {
       );
     }
   }
-}, { connection });
+}, { connection: connection as any });
 
 console.log("rag worker started");

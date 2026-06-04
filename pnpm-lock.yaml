@@ -239,7 +239,11 @@ importers:
         specifier: ^5.6.2
         version: 5.9.3
 
-  packages/blocks: {}
+  packages/blocks:
+    devDependencies:
+      payload:
+        specifier: 3.85.0
+        version: 3.85.0(graphql@16.14.1)(typescript@5.9.3)
 
   packages/design-tokens: {}
 
@@ -9408,7 +9412,7 @@ snapshots:
   tsx@4.21.0:
     dependencies:
       esbuild: 0.27.7
-      get-tsconfig: 4.8.1
+      get-tsconfig: 4.14.0
     optionalDependencies:
       fsevents: 2.3.3
 

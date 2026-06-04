@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { getPage } from "../../lib/cms";
 import { RenderBlocks } from "@humain/ui";
 
-export const revalidate = 60;
+export const dynamic = "force-dynamic";
 
 type Params = Promise<{ locale: string }>;
 

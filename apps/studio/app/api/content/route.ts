@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { payloadFetch, getCurrentUser } from "@/lib/payload";
-import { TABS } from "@/lib/content-types";
+import { ALL_TABS } from "@/lib/content-types";
 
 // Minimal valid Lexical editor state from plain text (paragraph per blank line).
 function toLexical(text: string, dir: "ltr" | "rtl" = "ltr") {
@@ -24,11 +24,12 @@ export async function POST(req: Request) {
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { slug, status, template, locale, data } = await req.json();
-  const tab = TABS.find((t) => t.slug === slug);
+  const tab = ALL_TABS.find((t) => t.slug === slug);
   if (!tab) return NextResponse.json({ error: "Unknown content type" }, { status: 400 });
 
   const dir = locale === "ar" ? "rtl" : "ltr";
-  const body: Record<string, unknown> = { template };
+  const body: Record<string, unknown> = {};
+  if (template && tab.templates.length) body.template = template;
   for (const f of tab.fields) {
     const v = data?.[f.name];
     if (v === undefined || v === null || v === "") continue;

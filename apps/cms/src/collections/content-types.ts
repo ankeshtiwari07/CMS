@@ -100,10 +100,8 @@ export const Events = base("events", "title", [
   { name: "details", type: "richText", localized: true },
   { name: "objectives", type: "textarea", localized: true },
   { name: "targetAudience", type: "textarea", localized: true },
-  { name: "agenda", type: "array", localized: true, fields: [
-    { name: "time", type: "text" }, { name: "item", type: "text", localized: true } ] },
-  { name: "speakers", type: "array", localized: true, fields: [
-    { name: "name", type: "text" }, { name: "title", type: "text", localized: true } ] },
+  { name: "agenda", type: "textarea", localized: true },
+  { name: "speakers", type: "textarea", localized: true },
 ]);
 
 export const Products = base("products", "name", [

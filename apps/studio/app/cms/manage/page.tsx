@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/payload";
 import TopBar from "@/components/cms/topbar";
-import Launcher from "@/components/cms/launcher";
+import ContentManager from "@/components/cms/content-manager";
 
 export const metadata = { title: "Content Management · HUMAIN" };
 export const dynamic = "force-dynamic";
@@ -14,14 +14,19 @@ const CMS_BG = [
   "linear-gradient(180deg, #0e2a2e 0%, #0b1416 42%)",
 ].join(",");
 
-export default async function CmsPage() {
+export default async function ManagePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ type?: string }>;
+}) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
+  const { type } = await searchParams;
   return (
     <div style={{ minHeight: "100vh", background: "var(--cms-bg)" }}>
       <TopBar user={{ name: user.name, email: user.email }} />
       <div style={{ minHeight: "calc(100vh - 60px)", backgroundColor: "var(--cms-bg)", backgroundImage: CMS_BG, backgroundRepeat: "no-repeat" }}>
-        <Launcher />
+        <ContentManager initialType={type || "blog"} />
       </div>
     </div>
   );

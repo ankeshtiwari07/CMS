@@ -17,7 +17,7 @@ export type TabDef = {
   key: string;
   slug: string; // Payload collection slug
   label: string;
-  icon: "doc" | "book" | "megaphone" | "calendar";
+  icon: string;
   subtitle: string;
   formTitle: string;
   titleField: string; // field used as the doc title
@@ -25,7 +25,7 @@ export type TabDef = {
   fields: FieldDef[];
 };
 
-export const TABS: TabDef[] = [
+export const CORE_TABS: TabDef[] = [
   {
     key: "blog",
     slug: "blogPosts",
@@ -118,6 +118,77 @@ export const TABS: TabDef[] = [
       { name: "details", label: "Event Details", placeholder: "Detailed description...", type: "richtext", col: 12 },
       { name: "objectives", label: "Event Objectives", placeholder: "Key objectives...", type: "textarea", col: 6 },
       { name: "targetAudience", label: "Target Audience", placeholder: "Who should attend...", type: "textarea", col: 6 },
+      { name: "agenda", label: "Event Agenda", placeholder: "Schedule and topics...", type: "textarea", col: 6 },
+      { name: "speakers", label: "Speakers/Guests", placeholder: "Speaker names and titles...", type: "textarea", col: 6 },
     ],
   },
 ];
+
+// Additional content types (opened from the launcher; no templates).
+export const EXTRA_TABS: TabDef[] = [
+  {
+    key: "products", slug: "products", label: "Products", icon: "box",
+    subtitle: "Create and manage product entries", formTitle: "Create Product", titleField: "name", templates: [],
+    fields: [
+      { name: "name", label: "Name", placeholder: "Product name...", type: "text", col: 12 },
+      { name: "summary", label: "Summary", placeholder: "Short product summary...", type: "textarea", col: 12 },
+    ],
+  },
+  {
+    key: "caseStudies", slug: "caseStudies", label: "Case Studies", icon: "bookmark",
+    subtitle: "Create and manage case studies", formTitle: "Create Case Study", titleField: "title", templates: [],
+    fields: [
+      { name: "title", label: "Title", placeholder: "Case study title...", type: "text", col: 12 },
+      { name: "client", label: "Client", placeholder: "Client name...", type: "text", col: 6 },
+      { name: "challenge", label: "Challenge", placeholder: "The challenge...", type: "textarea", col: 6 },
+      { name: "solution", label: "Solution", placeholder: "The solution...", type: "richtext", col: 12 },
+      { name: "results", label: "Results", placeholder: "The results...", type: "textarea", col: 12 },
+    ],
+  },
+  {
+    key: "leadership", slug: "leadership", label: "Leadership Profiles", icon: "user",
+    subtitle: "Create and manage leadership profiles", formTitle: "Create Leadership Profile", titleField: "name", templates: [],
+    fields: [
+      { name: "name", label: "Name", placeholder: "Full name...", type: "text", col: 6 },
+      { name: "role", label: "Role", placeholder: "Job title...", type: "text", col: 6 },
+      { name: "bio", label: "Biography", placeholder: "Bio...", type: "richtext", col: 12 },
+    ],
+  },
+  {
+    key: "faqs", slug: "faqs", label: "FAQ", icon: "question",
+    subtitle: "Create and manage FAQs", formTitle: "Create FAQ", titleField: "question", templates: [],
+    fields: [
+      { name: "question", label: "Question", placeholder: "The question...", type: "text", col: 12 },
+      { name: "answer", label: "Answer", placeholder: "The answer...", type: "richtext", col: 12 },
+      { name: "category", label: "Category", placeholder: "Category...", type: "text", col: 6 },
+    ],
+  },
+  {
+    key: "careers", slug: "careers", label: "Careers", icon: "building",
+    subtitle: "Create and manage job openings", formTitle: "Create Job Opening", titleField: "title", templates: [],
+    fields: [
+      { name: "title", label: "Job Title", placeholder: "Job title...", type: "text", col: 8 },
+      { name: "department", label: "Department", placeholder: "Department...", type: "text", col: 4 },
+      { name: "location", label: "Location", placeholder: "Location...", type: "text", col: 6 },
+      { name: "employmentType", label: "Employment Type", placeholder: "Full-time...", type: "text", col: 6 },
+      { name: "description", label: "Description", placeholder: "Role description...", type: "richtext", col: 12 },
+      { name: "responsibilities", label: "Responsibilities", placeholder: "Key responsibilities...", type: "textarea", col: 6 },
+      { name: "requirements", label: "Requirements", placeholder: "Requirements...", type: "textarea", col: 6 },
+      { name: "applyUrl", label: "Apply URL", placeholder: "https://...", type: "text", col: 12 },
+    ],
+  },
+  {
+    key: "mediaGalleries", slug: "mediaGalleries", label: "Media Galleries", icon: "gallery",
+    subtitle: "Create and manage media galleries", formTitle: "Create Media Gallery", titleField: "title", templates: [],
+    fields: [{ name: "title", label: "Title", placeholder: "Gallery title...", type: "text", col: 12 }],
+  },
+  {
+    key: "campaignMicrosites", slug: "campaignMicrosites", label: "Campaign Microsites", icon: "mic",
+    subtitle: "Create and manage campaign microsites", formTitle: "Create Campaign Microsite", titleField: "title", templates: [],
+    fields: [{ name: "title", label: "Title", placeholder: "Microsite title...", type: "text", col: 12 }],
+  },
+];
+
+export const TABS = CORE_TABS; // back-compat
+export const ALL_TABS: TabDef[] = [...CORE_TABS, ...EXTRA_TABS];
+export const findTab = (key: string) => ALL_TABS.find((t) => t.key === key);

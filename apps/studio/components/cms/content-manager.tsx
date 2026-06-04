@@ -1,22 +1,25 @@
 "use client";
 import { useMemo, useState } from "react";
-import { TABS, type TabDef, type FieldDef } from "@/lib/content-types";
-import { DocIcon, BookIcon, MegaphoneIcon, CalendarIcon, StarIcon } from "@/components/icons";
+import { useRouter } from "next/navigation";
+import { CORE_TABS, ALL_TABS, findTab, type FieldDef } from "@/lib/content-types";
+import { DocIcon, BookIcon, MegaphoneIcon, CalendarIcon, StarIcon, ArrowUpRightIcon } from "@/components/icons";
 
-const ICONS = { doc: DocIcon, book: BookIcon, megaphone: MegaphoneIcon, calendar: CalendarIcon };
+const ICONS: Record<string, any> = { doc: DocIcon, book: BookIcon, megaphone: MegaphoneIcon, calendar: CalendarIcon };
 
 type Values = Record<string, string>;
 
-export default function ContentManager() {
-  const [activeKey, setActiveKey] = useState(TABS[0].key);
+export default function ContentManager({ initialType = "blog" }: { initialType?: string }) {
+  const router = useRouter();
+  const isCore = CORE_TABS.some((t) => t.key === initialType);
+  const [activeKey, setActiveKey] = useState(findTab(initialType) ? initialType : "blog");
   const [values, setValues] = useState<Record<string, Values>>({});
   const [templates, setTemplates] = useState<Record<string, string>>(
-    Object.fromEntries(TABS.map((t) => [t.key, t.templates[0].key])),
+    Object.fromEntries(ALL_TABS.filter((t) => t.templates.length).map((t) => [t.key, t.templates[0].key])),
   );
   const [busy, setBusy] = useState<null | "draft" | "published">(null);
   const [toast, setToast] = useState<{ kind: "ok" | "err"; msg: string } | null>(null);
 
-  const tab = useMemo(() => TABS.find((t) => t.key === activeKey)!, [activeKey]);
+  const tab = useMemo(() => findTab(activeKey)!, [activeKey]);
   const v = values[activeKey] || {};
   const setField = (name: string, val: string) =>
     setValues((s) => ({ ...s, [activeKey]: { ...(s[activeKey] || {}), [name]: val } }));
@@ -52,39 +55,41 @@ export default function ContentManager() {
 
   return (
     <div style={{ maxWidth: 1180, margin: "0 auto", padding: "26px 28px 60px" }}>
-      <h1 style={{ color: "#fff", fontSize: 24, fontWeight: 700, margin: 0 }}>Content Management</h1>
+      <button
+        onClick={() => router.push("/cms")}
+        style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "transparent", border: "none", color: "rgba(255,255,255,0.6)", fontSize: 13, marginBottom: 8, cursor: "pointer" }}
+      >
+        ← Content Management
+      </button>
+      <h1 style={{ color: "#fff", fontSize: 24, fontWeight: 700, margin: 0 }}>{isCore ? "Content Management" : tab.label}</h1>
       <p style={{ color: "rgba(255,255,255,0.72)", margin: "5px 0 20px", fontSize: 14.5 }}>{tab.subtitle}</p>
 
-      {/* Tabs */}
-      <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-        {TABS.map((t) => {
-          const Icon = ICONS[t.icon];
-          const active = t.key === activeKey;
-          return (
-            <button
-              key={t.key}
-              onClick={() => setActiveKey(t.key)}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 8,
-                height: 42,
-                padding: "0 18px",
-                borderRadius: "var(--r-pill)",
-                border: "none",
-                fontWeight: 600,
-                fontSize: 14.5,
-                background: active ? "var(--lime)" : "var(--deep-teal)",
-                color: active ? "#0b1416" : "rgba(255,255,255,0.86)",
-              }}
-            >
-              <Icon size={17} color={active ? "#0b1416" : "rgba(255,255,255,0.86)"} /> {t.label}
-            </button>
-          );
-        })}
-      </div>
+      {/* Tabs (core content types only) */}
+      {isCore && (
+        <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+          {CORE_TABS.map((t) => {
+            const Icon = ICONS[t.icon];
+            const active = t.key === activeKey;
+            return (
+              <button
+                key={t.key}
+                onClick={() => setActiveKey(t.key)}
+                style={{
+                  display: "inline-flex", alignItems: "center", gap: 8, height: 42, padding: "0 18px",
+                  borderRadius: "var(--r-pill)", border: "none", fontWeight: 600, fontSize: 14.5,
+                  background: active ? "var(--lime)" : "var(--deep-teal)",
+                  color: active ? "#0b1416" : "rgba(255,255,255,0.86)",
+                }}
+              >
+                <Icon size={17} color={active ? "#0b1416" : "rgba(255,255,255,0.86)"} /> {t.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {/* Templates */}
+      {tab.templates.length > 0 && (
       <div style={{ marginTop: 24 }}>
         <div style={{ color: "#fff", fontWeight: 600, fontSize: 14.5, marginBottom: 12 }}>Select Template</div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0,260px))", gap: 16 }}>
@@ -141,6 +146,7 @@ export default function ContentManager() {
           })}
         </div>
       </div>
+      )}
 
       {/* Form panel */}
       <div

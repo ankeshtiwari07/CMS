@@ -890,20 +890,8 @@ export interface Event {
   } | null;
   objectives?: string | null;
   targetAudience?: string | null;
-  agenda?:
-    | {
-        time?: string | null;
-        item?: string | null;
-        id?: string | null;
-      }[]
-    | null;
-  speakers?:
-    | {
-        name?: string | null;
-        title?: string | null;
-        id?: string | null;
-      }[]
-    | null;
+  agenda?: string | null;
+  speakers?: string | null;
   workflowState?: ('draft' | 'in_review' | 'approved') | null;
   seo?: {
     metaTitle?: string | null;
@@ -1798,20 +1786,8 @@ export interface EventsSelect<T extends boolean = true> {
   details?: T;
   objectives?: T;
   targetAudience?: T;
-  agenda?:
-    | T
-    | {
-        time?: T;
-        item?: T;
-        id?: T;
-      };
-  speakers?:
-    | T
-    | {
-        name?: T;
-        title?: T;
-        id?: T;
-      };
+  agenda?: T;
+  speakers?: T;
   workflowState?: T;
   seo?:
     | T

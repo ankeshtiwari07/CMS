@@ -1,7 +1,8 @@
 "use client";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { HumainWordmark } from "@/components/brand";
-import { BellIcon } from "@/components/icons";
+import { BellIcon, ChevronDownIcon } from "@/components/icons";
 
 function initials(name?: string, email?: string) {
   const src = (name || email || "U").trim();
@@ -11,6 +12,8 @@ function initials(name?: string, email?: string) {
 
 export default function TopBar({ user }: { user: { name?: string; email: string } }) {
   const router = useRouter();
+  const [menu, setMenu] = useState(false);
+
   return (
     <header
       style={{
@@ -22,32 +25,66 @@ export default function TopBar({ user }: { user: { name?: string; email: string 
         padding: "0 28px",
       }}
     >
-      <button
-        onClick={() => router.push("/studio")}
-        style={{ background: "none", border: "none", padding: 0 }}
-        aria-label="HUMAIN home"
-      >
-        <HumainWordmark size={22} onDark />
-      </button>
-      <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+      {/* Left: logo (home) + explicit Create Studio link back to the main landing */}
+      <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
+        <button onClick={() => router.push("/studio")} style={{ background: "none", border: "none", padding: 0, cursor: "pointer" }} aria-label="HUMAIN home">
+          <HumainWordmark size={22} onDark />
+        </button>
+        <span style={{ color: "rgba(255,255,255,0.22)" }}>|</span>
+        <button
+          onClick={() => router.push("/studio")}
+          style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "none", border: "none", color: "rgba(255,255,255,0.82)", fontSize: 14, fontWeight: 600, cursor: "pointer" }}
+        >
+          ← Create Studio
+        </button>
+      </div>
+
+      {/* Right: notifications + account menu */}
+      <div style={{ display: "flex", alignItems: "center", gap: 16, position: "relative" }}>
         <BellIcon size={21} color="#ffffff" />
         <span style={{ color: "rgba(255,255,255,0.3)" }}>|</span>
-        <div
-          style={{
-            width: 34,
-            height: 34,
-            borderRadius: "50%",
-            background: "linear-gradient(135deg, var(--studio-primary), var(--lime))",
-            color: "#fff",
-            fontWeight: 700,
-            fontSize: 12.5,
-            display: "grid",
-            placeItems: "center",
-          }}
+        <button
+          onClick={() => setMenu((m) => !m)}
+          style={{ display: "flex", alignItems: "center", gap: 8, background: "none", border: "none", cursor: "pointer" }}
           title={user.email}
         >
-          {initials(user.name, user.email)}
-        </div>
+          <span
+            style={{
+              width: 34, height: 34, borderRadius: "50%",
+              background: "linear-gradient(135deg, var(--studio-primary), var(--lime))",
+              color: "#fff", fontWeight: 700, fontSize: 12.5, display: "grid", placeItems: "center",
+            }}
+          >
+            {initials(user.name, user.email)}
+          </span>
+          <ChevronDownIcon size={16} color="rgba(255,255,255,0.7)" />
+        </button>
+        {menu && (
+          <div
+            style={{
+              position: "absolute", top: 46, right: 0, width: 200, background: "#fff",
+              border: "1px solid var(--hairline)", borderRadius: 12, boxShadow: "var(--shadow-card)", padding: 8, zIndex: 60,
+            }}
+          >
+            <div style={{ padding: "6px 10px 8px", fontSize: 12, color: "var(--muted)" }}>{user.email}</div>
+            {[
+              ["Create Studio", "/studio"],
+              ["Projects", "/projects"],
+              ["Search", "/search"],
+              ["Settings", "/settings"],
+            ].map(([label, href]) => (
+              <button key={href} onClick={() => router.push(href)} style={{ width: "100%", textAlign: "left", padding: "9px 10px", border: "none", borderRadius: 8, background: "transparent", color: "var(--ink)", fontSize: 13.5, fontWeight: 600, cursor: "pointer" }}>
+                {label}
+              </button>
+            ))}
+            <button
+              onClick={async () => { await fetch("/api/auth/logout", { method: "POST" }); router.replace("/login"); router.refresh(); }}
+              style={{ width: "100%", textAlign: "left", padding: "9px 10px", border: "none", borderRadius: 8, background: "transparent", color: "#b42318", fontSize: 13.5, fontWeight: 600, cursor: "pointer" }}
+            >
+              Sign out
+            </button>
+          </div>
+        )}
       </div>
     </header>
   );

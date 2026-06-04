@@ -78,21 +78,25 @@ app.post("/studio/generate", async (req) => {
     };
   }
 
-  if ((PREVIEW_MODES as readonly string[]).includes(body.mode)) {
-    const out = await provider.complete({
-      system: `You are HUMAIN Create Studio. The user wants to create a ${body.mode}. This build generates a detailed CONCEPT PREVIEW (layout, content, visual direction) — not a rendered ${body.mode}. Produce a structured brief.`,
-      messages: [{ role: "user", content: body.prompt }],
-      maxTokens: 1500,
-    });
-    return { ok: true, mode: body.mode, preview: true, artifact: out };
-  }
+  const preview = (PREVIEW_MODES as readonly string[]).includes(body.mode);
+  const system = preview
+    ? `You are HUMAIN Create Studio. The user wants to create a ${body.mode}. This build generates a detailed CONCEPT PREVIEW (layout, content, visual direction) — not a rendered ${body.mode}. Produce a structured brief.`
+    : systemFor[body.mode] ?? systemFor.writing;
 
-  const out = await provider.complete({
-    system: systemFor[body.mode] ?? systemFor.writing,
-    messages: [{ role: "user", content: body.prompt }],
-    maxTokens: 2048,
-  });
-  return { ok: true, mode: body.mode, preview: false, artifact: out };
+  try {
+    const out = await provider.complete({
+      system,
+      messages: [{ role: "user", content: body.prompt }],
+      maxTokens: preview ? 1500 : 2048,
+    });
+    return { ok: true, mode: body.mode, preview, artifact: out };
+  } catch (e: any) {
+    // Surface provider errors (e.g. billing/credit, rate limit) as a readable
+    // artifact rather than a generic failure, so the Studio UI can show it.
+    const msg = e?.error?.error?.message || e?.message || "Generation failed.";
+    req.log.warn({ err: msg }, "studio/generate provider error");
+    return { ok: true, mode: body.mode, preview, artifact: `⚠️ ${msg}` };
+  }
 });
 
 const port = Number(process.env.PORT || 4000);

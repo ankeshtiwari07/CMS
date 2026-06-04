@@ -36,7 +36,7 @@ export default function ContinueCreating({ projects }: { projects: Project[] }) 
           const m = META[p.type] ?? META.writing;
           const Icon = m.Icon;
           return (
-            <div key={p.id} style={{ border: "1px solid var(--hairline)", borderRadius: 14, overflow: "hidden", background: "#fff" }}>
+            <a key={p.id} href="/projects" style={{ textDecoration: "none", border: "1px solid var(--hairline)", borderRadius: 14, overflow: "hidden", background: "#fff", display: "block" }}>
               <div style={{ height: 92, background: m.grad, display: "grid", placeItems: "center", color: "var(--studio-teal-dark)" }}>
                 <Icon size={26} />
               </div>
@@ -45,7 +45,7 @@ export default function ContinueCreating({ projects }: { projects: Project[] }) 
                 <div style={{ fontSize: 14.5, fontWeight: 600, color: "var(--ink)", marginTop: 8, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.title}</div>
                 <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 2 }}>{ago(p.updatedAt)}</div>
               </div>
-            </div>
+            </a>
           );
         })}
       </div>

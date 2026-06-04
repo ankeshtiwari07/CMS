@@ -11,7 +11,27 @@ import {
   BellIcon,
   PanelLeftIcon,
   DotsVerticalIcon,
+  MonitorIcon,
+  ImageIcon,
+  GlobeIcon,
+  MailIcon,
+  TranslateIcon,
+  PaperclipIcon,
+  ClockIcon,
 } from "@/components/icons";
+
+// Create-new menu (mirrors the Figma "+" menu).
+const CREATE_OPTIONS: { label: string; Icon: any; mode?: string; href?: string; action?: string }[] = [
+  { label: "Add photos & files", Icon: PaperclipIcon, action: "addfiles" },
+  { label: "Recent projects", Icon: ClockIcon, href: "/projects" },
+  { label: "Create Deck", Icon: MonitorIcon, mode: "deck" },
+  { label: "Create Image", Icon: ImageIcon, mode: "image" },
+  { label: "Create Website", Icon: GlobeIcon, mode: "website" },
+  { label: "Create Email", Icon: MailIcon, mode: "email" },
+  { label: "Use template", Icon: GridIcon, href: "/cms" },
+  { label: "Design System", Icon: PaletteIcon, mode: "designSystem" },
+  { label: "Translate", Icon: TranslateIcon, mode: "translation" },
+];
 
 function initials(name?: string, email?: string) {
   const src = (name || email || "U").trim();
@@ -48,7 +68,18 @@ export default function Sidebar({
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
   const [menu, setMenu] = useState(false);
+  const [createMenu, setCreateMenu] = useState(false);
   const [hover, setHover] = useState<string | null>(null);
+
+  function runCreate(o: { mode?: string; href?: string; action?: string }) {
+    setCreateMenu(false);
+    if (o.href) return router.push(o.href);
+    router.push("/studio");
+    setTimeout(() => {
+      if (o.action === "addfiles") globalThis.dispatchEvent(new CustomEvent("humain:addfiles"));
+      else globalThis.dispatchEvent(new CustomEvent("humain:prefill", { detail: { mode: o.mode, prompt: "" } }));
+    }, 90);
+  }
 
   useEffect(() => {
     setCollapsed(localStorage.getItem("humain-sidebar") === "collapsed");
@@ -121,19 +152,56 @@ export default function Sidebar({
       {/* Nav */}
       <div style={{ display: "grid", gap: 4 }}>
         {NAV.map(({ key, Icon, label, href }) => {
-          const on = key === active || hover === key;
+          if (key === "create") {
+            return (
+              <div key={key} style={{ position: "relative" }}>
+                <button
+                  title={collapsed ? "Create new" : undefined}
+                  onClick={() => setCreateMenu((v) => !v)}
+                  onMouseEnter={() => setHover(key)}
+                  onMouseLeave={() => setHover(null)}
+                  style={row(createMenu || hover === key)}
+                >
+                  <Icon size={21} color={createMenu ? "var(--studio-teal-dark)" : "var(--ink)"} />
+                  {!collapsed && <span style={{ flex: 1, textAlign: "left" }}>{label}</span>}
+                  {!collapsed && <DotsVerticalIcon size={4} color="transparent" />}
+                </button>
+                {createMenu && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: collapsed ? 0 : 48,
+                      left: collapsed ? 60 : 0,
+                      zIndex: 70,
+                      width: 232,
+                      background: "#fff",
+                      border: "1px solid var(--hairline)",
+                      borderRadius: 12,
+                      boxShadow: "var(--shadow-card)",
+                      padding: 6,
+                    }}
+                  >
+                    {CREATE_OPTIONS.map((o, i) => (
+                      <div key={o.label}>
+                        {i === 2 && <div style={{ height: 1, background: "var(--hairline)", margin: "4px 6px" }} />}
+                        <button
+                          onClick={() => runCreate(o)}
+                          style={{ display: "flex", alignItems: "center", gap: 11, width: "100%", padding: "9px 10px", border: "none", background: "transparent", borderRadius: 8, fontSize: 14, color: "var(--ink)", cursor: "pointer", textAlign: "left" }}
+                        >
+                          <o.Icon size={17} color="var(--muted)" /> {o.label}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          }
           return (
             <button
               key={key}
               title={collapsed ? label : undefined}
-              onClick={() => {
-                if (key === "create") {
-                  router.push("/studio");
-                  setTimeout(() => globalThis.dispatchEvent(new CustomEvent("humain:newchat")), 60);
-                } else {
-                  router.push(href);
-                }
-              }}
+              onClick={() => router.push(href)}
               onMouseEnter={() => setHover(key)}
               onMouseLeave={() => setHover(null)}
               style={row(key === active || (hover === key && key !== active))}

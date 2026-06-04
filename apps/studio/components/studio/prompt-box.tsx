@@ -67,11 +67,15 @@ export default function PromptBox() {
       setMode("auto");
       focusPrompt();
     };
+    // "Add photos & files" from the Create-new menu opens the file picker.
+    const addFiles = () => { focusPrompt(); setTimeout(() => fileRef.current?.click(), 200); };
     globalThis.addEventListener("humain:prefill", prefill);
     globalThis.addEventListener("humain:newchat", newChat);
+    globalThis.addEventListener("humain:addfiles", addFiles);
     return () => {
       globalThis.removeEventListener("humain:prefill", prefill);
       globalThis.removeEventListener("humain:newchat", newChat);
+      globalThis.removeEventListener("humain:addfiles", addFiles);
     };
   }, []);
 

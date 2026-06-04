@@ -27,8 +27,11 @@ echo "==> Ensuring app dir + repo on $VM"
   if [ -d $APP_DIR/.git ]; then cd $APP_DIR && git fetch --depth 1 origin $BRANCH && git reset --hard origin/$BRANCH; \
   else git clone --depth 1 -b $BRANCH $REPO $APP_DIR; fi"
 
-echo "==> Copying .env.production"
+echo "==> Copying .env.production (also used as compose .env for interpolation)"
 gcloud compute scp --zone="$ZONE" --tunnel-through-iap .env.production "$VM:$APP_DIR/.env.production"
+# docker compose reads `.env` in the project dir for ${VAR} interpolation
+# (port, passwords). Keep it identical to the container env_file.
+"${SSH[@]}" "cp $APP_DIR/.env.production $APP_DIR/.env"
 
 COMPOSE="docker compose -f docker-compose.prod.yml"
 [[ -n "$PROFILE" ]] && COMPOSE="$COMPOSE --profile $PROFILE"
@@ -36,8 +39,13 @@ COMPOSE="docker compose -f docker-compose.prod.yml"
 echo "==> Building + starting stack ($COMPOSE)"
 "${SSH[@]}" "cd $APP_DIR && $COMPOSE up -d --build"
 
-echo "==> Waiting for cms, then seeding admin (idempotent)"
-"${SSH[@]}" "cd $APP_DIR && sleep 15 && $COMPOSE exec -T cms pnpm --filter @humain/cms payload run src/seed.ts || true"
+echo "==> Waiting for cms, then bootstrapping schema + seeding admin (idempotent)"
+# Payload's drizzle `push` is dev-gated, so the first run bootstraps the schema
+# with NODE_ENV=development; thereafter production cms uses the existing tables.
+# (`payload run` can hang in-container, so invoke via node --import tsx.)
+"${SSH[@]}" "cd $APP_DIR && sleep 15 && \
+  $COMPOSE exec -T -e NODE_ENV=development -e DB_PUSH=true -w /app/apps/cms cms \
+  node --import tsx src/seed.ts || true"
 
 echo "==> Health check"
 PORT="$(grep -E '^HUMAIN_HTTP_PORT=' .env.production | cut -d= -f2 || echo 8020)"

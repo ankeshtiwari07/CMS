@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/payload";
-import Rail from "@/components/studio/rail";
+import Sidebar from "@/components/studio/sidebar";
 import PromptBox from "@/components/studio/prompt-box";
 import QuickCreate from "@/components/studio/quick-create";
 
@@ -20,7 +20,7 @@ export default async function StudioHome() {
 
   return (
     <div style={{ display: "flex", minHeight: "100vh", background: "#eef4f3" }}>
-      <Rail user={{ name: user.name, email: user.email }} />
+      <Sidebar user={{ name: user.name, email: user.email, roles: user.roles }} active="create" />
 
       <main style={{ flex: 1, padding: "10px 10px 10px 0" }}>
         <div

@@ -45,7 +45,7 @@ echo "==> Waiting for cms, then bootstrapping schema + seeding admin (idempotent
 # (`payload run` can hang in-container, so invoke via node --import tsx.)
 "${SSH[@]}" "cd $APP_DIR && sleep 15 && \
   $COMPOSE exec -T -e NODE_ENV=development -e DB_PUSH=true -w /app/apps/cms cms \
-  node --import tsx src/seed.ts || true"
+  sh -lc 'yes | node --import tsx src/seed.ts' || true"
 
 echo "==> Health check"
 PORT="$(grep -E '^HUMAIN_HTTP_PORT=' .env.production | cut -d= -f2 || echo 8020)"

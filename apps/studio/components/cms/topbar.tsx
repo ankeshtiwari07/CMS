@@ -27,7 +27,7 @@ export default function TopBar({ user }: { user: { name?: string; email: string 
         style={{ background: "none", border: "none", padding: 0 }}
         aria-label="HUMAIN home"
       >
-        <HumainWordmark color="#ffffff" size={24} />
+        <HumainWordmark size={22} onDark />
       </button>
       <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
         <BellIcon size={21} color="#ffffff" />

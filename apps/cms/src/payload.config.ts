@@ -13,6 +13,7 @@ import { Pages } from "./collections/Pages";
 import { Projects } from "./collections/Projects";
 import { AuditLog } from "./collections/AuditLog";
 import { contentCollections } from "./collections/content-types";
+import { globals } from "./globals";
 
 const dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -58,6 +59,7 @@ export default buildConfig({
     fallback: true,
   },
   collections: [Users, Sites, Media, Pages, Projects, AuditLog, ...contentCollections],
+  globals,
   db: postgresAdapter({
     pool: { connectionString: process.env.DATABASE_URI },
     // Dev: auto-sync schema (push). Prod: generated migrations run via `payload migrate`.

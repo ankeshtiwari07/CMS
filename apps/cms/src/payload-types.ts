@@ -83,6 +83,7 @@ export interface Config {
     faqs: Faq;
     mediaGalleries: MediaGallery;
     campaignMicrosites: CampaignMicrosite;
+    careers: Career;
     tags: Tag;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
@@ -107,6 +108,7 @@ export interface Config {
     faqs: FaqsSelect<false> | FaqsSelect<true>;
     mediaGalleries: MediaGalleriesSelect<false> | MediaGalleriesSelect<true>;
     campaignMicrosites: CampaignMicrositesSelect<false> | CampaignMicrositesSelect<true>;
+    careers: CareersSelect<false> | CareersSelect<true>;
     tags: TagsSelect<false> | TagsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
@@ -117,8 +119,14 @@ export interface Config {
     defaultIDType: number;
   };
   fallbackLocale: ('false' | 'none' | 'null') | false | null | ('en' | 'ar') | ('en' | 'ar')[];
-  globals: {};
-  globalsSelect: {};
+  globals: {
+    navigation: Navigation;
+    settings: Setting;
+  };
+  globalsSelect: {
+    navigation: NavigationSelect<false> | NavigationSelect<true>;
+    settings: SettingsSelect<false> | SettingsSelect<true>;
+  };
   locale: 'en' | 'ar';
   widgets: {
     collections: CollectionsWidget;
@@ -649,6 +657,7 @@ export interface Article {
   conclusion?: string | null;
   author?: (number | null) | Leadership;
   tags?: (number | Tag)[] | null;
+  workflowState?: ('draft' | 'in_review' | 'approved') | null;
   seo?: {
     metaTitle?: string | null;
     metaDescription?: string | null;
@@ -693,6 +702,7 @@ export interface Leadership {
     [k: string]: unknown;
   } | null;
   photo?: (number | null) | Media;
+  workflowState?: ('draft' | 'in_review' | 'approved') | null;
   seo?: {
     metaTitle?: string | null;
     metaDescription?: string | null;
@@ -753,6 +763,7 @@ export interface BlogPost {
   conclusion?: string | null;
   examples?: string | null;
   tags?: (number | Tag)[] | null;
+  workflowState?: ('draft' | 'in_review' | 'approved') | null;
   seo?: {
     metaTitle?: string | null;
     metaDescription?: string | null;
@@ -802,6 +813,7 @@ export interface PressRelease {
   quote?: string | null;
   companyInfo?: string | null;
   mediaContact?: string | null;
+  workflowState?: ('draft' | 'in_review' | 'approved') | null;
   seo?: {
     metaTitle?: string | null;
     metaDescription?: string | null;
@@ -868,6 +880,7 @@ export interface Event {
         id?: string | null;
       }[]
     | null;
+  workflowState?: ('draft' | 'in_review' | 'approved') | null;
   seo?: {
     metaTitle?: string | null;
     metaDescription?: string | null;
@@ -904,6 +917,7 @@ export interface Product {
       }[]
     | null;
   industry?: (number | null) | Tag;
+  workflowState?: ('draft' | 'in_review' | 'approved') | null;
   seo?: {
     metaTitle?: string | null;
     metaDescription?: string | null;
@@ -949,6 +963,7 @@ export interface CaseStudy {
     [k: string]: unknown;
   } | null;
   results?: string | null;
+  workflowState?: ('draft' | 'in_review' | 'approved') | null;
   seo?: {
     metaTitle?: string | null;
     metaDescription?: string | null;
@@ -992,6 +1007,7 @@ export interface Faq {
     [k: string]: unknown;
   };
   category?: string | null;
+  workflowState?: ('draft' | 'in_review' | 'approved') | null;
   seo?: {
     metaTitle?: string | null;
     metaDescription?: string | null;
@@ -1026,6 +1042,7 @@ export interface MediaGallery {
         id?: string | null;
       }[]
     | null;
+  workflowState?: ('draft' | 'in_review' | 'approved') | null;
   seo?: {
     metaTitle?: string | null;
     metaDescription?: string | null;
@@ -1054,6 +1071,56 @@ export interface CampaignMicrosite {
   id: number;
   title: string;
   theme?: ('studio' | 'cms' | 'neutral') | null;
+  workflowState?: ('draft' | 'in_review' | 'approved') | null;
+  seo?: {
+    metaTitle?: string | null;
+    metaDescription?: string | null;
+    ogImage?: (number | null) | Media;
+    canonical?: string | null;
+    jsonLd?:
+      | {
+          [k: string]: unknown;
+        }
+      | unknown[]
+      | string
+      | number
+      | boolean
+      | null;
+    noindex?: boolean | null;
+  };
+  updatedAt: string;
+  createdAt: string;
+  _status?: ('draft' | 'published') | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "careers".
+ */
+export interface Career {
+  id: number;
+  title: string;
+  department?: string | null;
+  location?: string | null;
+  employmentType?: ('full-time' | 'part-time' | 'contract' | 'internship') | null;
+  description?: {
+    root: {
+      type: string;
+      children: {
+        type: any;
+        version: number;
+        [k: string]: unknown;
+      }[];
+      direction: ('ltr' | 'rtl') | null;
+      format: 'left' | 'start' | 'center' | 'right' | 'end' | 'justify' | '';
+      indent: number;
+      version: number;
+    };
+    [k: string]: unknown;
+  } | null;
+  responsibilities?: string | null;
+  requirements?: string | null;
+  applyUrl?: string | null;
+  workflowState?: ('draft' | 'in_review' | 'approved') | null;
   seo?: {
     metaTitle?: string | null;
     metaDescription?: string | null;
@@ -1161,6 +1228,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'campaignMicrosites';
         value: number | CampaignMicrosite;
+      } | null)
+    | ({
+        relationTo: 'careers';
+        value: number | Career;
       } | null)
     | ({
         relationTo: 'tags';
@@ -1609,6 +1680,7 @@ export interface ArticlesSelect<T extends boolean = true> {
   conclusion?: T;
   author?: T;
   tags?: T;
+  workflowState?: T;
   seo?:
     | T
     | {
@@ -1637,6 +1709,7 @@ export interface BlogPostsSelect<T extends boolean = true> {
   conclusion?: T;
   examples?: T;
   tags?: T;
+  workflowState?: T;
   seo?:
     | T
     | {
@@ -1665,6 +1738,7 @@ export interface PressReleasesSelect<T extends boolean = true> {
   quote?: T;
   companyInfo?: T;
   mediaContact?: T;
+  workflowState?: T;
   seo?:
     | T
     | {
@@ -1710,6 +1784,7 @@ export interface EventsSelect<T extends boolean = true> {
         title?: T;
         id?: T;
       };
+  workflowState?: T;
   seo?:
     | T
     | {
@@ -1739,6 +1814,7 @@ export interface ProductsSelect<T extends boolean = true> {
         id?: T;
       };
   industry?: T;
+  workflowState?: T;
   seo?:
     | T
     | {
@@ -1763,6 +1839,7 @@ export interface CaseStudiesSelect<T extends boolean = true> {
   challenge?: T;
   solution?: T;
   results?: T;
+  workflowState?: T;
   seo?:
     | T
     | {
@@ -1786,6 +1863,7 @@ export interface LeadershipSelect<T extends boolean = true> {
   role?: T;
   bio?: T;
   photo?: T;
+  workflowState?: T;
   seo?:
     | T
     | {
@@ -1808,6 +1886,7 @@ export interface FaqsSelect<T extends boolean = true> {
   question?: T;
   answer?: T;
   category?: T;
+  workflowState?: T;
   seo?:
     | T
     | {
@@ -1835,6 +1914,7 @@ export interface MediaGalleriesSelect<T extends boolean = true> {
         caption?: T;
         id?: T;
       };
+  workflowState?: T;
   seo?:
     | T
     | {
@@ -1856,6 +1936,35 @@ export interface MediaGalleriesSelect<T extends boolean = true> {
 export interface CampaignMicrositesSelect<T extends boolean = true> {
   title?: T;
   theme?: T;
+  workflowState?: T;
+  seo?:
+    | T
+    | {
+        metaTitle?: T;
+        metaDescription?: T;
+        ogImage?: T;
+        canonical?: T;
+        jsonLd?: T;
+        noindex?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+  _status?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "careers_select".
+ */
+export interface CareersSelect<T extends boolean = true> {
+  title?: T;
+  department?: T;
+  location?: T;
+  employmentType?: T;
+  description?: T;
+  responsibilities?: T;
+  requirements?: T;
+  applyUrl?: T;
+  workflowState?: T;
   seo?:
     | T
     | {
@@ -1919,6 +2028,112 @@ export interface PayloadMigrationsSelect<T extends boolean = true> {
   batch?: T;
   updatedAt?: T;
   createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "navigation".
+ */
+export interface Navigation {
+  id: number;
+  header?:
+    | {
+        label: string;
+        href: string;
+        id?: string | null;
+      }[]
+    | null;
+  footer?:
+    | {
+        label: string;
+        href: string;
+        id?: string | null;
+      }[]
+    | null;
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "settings".
+ */
+export interface Setting {
+  id: number;
+  siteName?: string | null;
+  tagline?: string | null;
+  logo?: (number | null) | Media;
+  social?:
+    | {
+        platform: string;
+        url: string;
+        id?: string | null;
+      }[]
+    | null;
+  defaultSeo?: {
+    metaTitle?: string | null;
+    metaDescription?: string | null;
+    ogImage?: (number | null) | Media;
+  };
+  analytics?: {
+    ga4MeasurementId?: string | null;
+    gtmContainerId?: string | null;
+  };
+  updatedAt?: string | null;
+  createdAt?: string | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "navigation_select".
+ */
+export interface NavigationSelect<T extends boolean = true> {
+  header?:
+    | T
+    | {
+        label?: T;
+        href?: T;
+        id?: T;
+      };
+  footer?:
+    | T
+    | {
+        label?: T;
+        href?: T;
+        id?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "settings_select".
+ */
+export interface SettingsSelect<T extends boolean = true> {
+  siteName?: T;
+  tagline?: T;
+  logo?: T;
+  social?:
+    | T
+    | {
+        platform?: T;
+        url?: T;
+        id?: T;
+      };
+  defaultSeo?:
+    | T
+    | {
+        metaTitle?: T;
+        metaDescription?: T;
+        ogImage?: T;
+      };
+  analytics?:
+    | T
+    | {
+        ga4MeasurementId?: T;
+        gtmContainerId?: T;
+      };
+  updatedAt?: T;
+  createdAt?: T;
+  globalType?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

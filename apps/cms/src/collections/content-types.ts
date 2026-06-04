@@ -1,15 +1,34 @@
 import type { CollectionConfig, Field } from "payload";
-import { isEditor, readPublishedOrEditor } from "../access/roles";
-import { emitContentEvent, onDelete } from "../hooks/events";
+import { isEditor, readPublishedOrEditor, canReview } from "../access/roles";
+import { emitContentEvent, onDelete, enforcePublishPermission } from "../hooks/events";
 import { seoField } from "../fields/seo";
+
+// Editorial workflow gate (separate from Payload's draft/published _status):
+// author -> in_review -> approved. Only reviewer+ may move it past "draft".
+const workflowField: Field = {
+  name: "workflowState",
+  type: "select",
+  defaultValue: "draft",
+  options: [
+    { label: "Draft", value: "draft" },
+    { label: "In review", value: "in_review" },
+    { label: "Approved", value: "approved" },
+  ],
+  admin: { position: "sidebar" },
+  access: { update: canReview },
+};
 
 const base = (slug: string, title: string, extra: Field[]): CollectionConfig => ({
   slug,
   versions: { drafts: { autosave: { interval: 2000 } }, maxPerDoc: 50 },
   admin: { useAsTitle: title },
   access: { read: readPublishedOrEditor, create: isEditor, update: isEditor, delete: isEditor, readVersions: isEditor },
-  fields: [...extra, seoField()],
-  hooks: { afterChange: [emitContentEvent], afterDelete: [onDelete] },
+  fields: [...extra, workflowField, seoField()],
+  hooks: {
+    beforeChange: [enforcePublishPermission],
+    afterChange: [emitContentEvent],
+    afterDelete: [onDelete],
+  },
 });
 
 const templateField = (opts: string[]): Field =>
@@ -113,6 +132,17 @@ export const CampaignMicrosites = base("campaignMicrosites", "title", [
   { name: "theme", type: "select", defaultValue: "studio", options: ["studio", "cms", "neutral"] },
 ]);
 
+export const Careers = base("careers", "title", [
+  { name: "title", type: "text", localized: true, required: true },
+  { name: "department", type: "text", localized: true },
+  { name: "location", type: "text", localized: true },
+  { name: "employmentType", type: "select", options: ["full-time", "part-time", "contract", "internship"] },
+  { name: "description", type: "richText", localized: true },
+  { name: "responsibilities", type: "textarea", localized: true },
+  { name: "requirements", type: "textarea", localized: true },
+  { name: "applyUrl", type: "text" },
+]);
+
 export const Tags: CollectionConfig = {
   slug: "tags",
   admin: { useAsTitle: "name" },
@@ -121,7 +151,10 @@ export const Tags: CollectionConfig = {
            { name: "slug", type: "text", required: true, unique: true }],
 };
 
+// 12 content types: Articles, BlogPosts, PressReleases, Events, Products,
+// CaseStudies, Leadership, Faqs, MediaGalleries, CampaignMicrosites, Careers,
+// plus Pages (registered separately). Tags is taxonomy.
 export const contentCollections: CollectionConfig[] = [
   Articles, BlogPosts, PressReleases, Events, Products, CaseStudies,
-  Leadership, Faqs, MediaGalleries, CampaignMicrosites, Tags,
+  Leadership, Faqs, MediaGalleries, CampaignMicrosites, Careers, Tags,
 ];

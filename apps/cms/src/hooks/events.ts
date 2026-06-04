@@ -4,7 +4,24 @@
 import crypto from "node:crypto";
 import { Queue } from "bullmq";
 import IORedis from "ioredis";
-import type { CollectionAfterChangeHook, CollectionAfterDeleteHook } from "payload";
+import type {
+  CollectionAfterChangeHook,
+  CollectionAfterDeleteHook,
+  CollectionBeforeChangeHook,
+} from "payload";
+
+// RBAC: only publisher/admin may transition content to _status="published".
+export const enforcePublishPermission: CollectionBeforeChangeHook = async ({ data, req, originalDoc }) => {
+  const becomingPublished = data?._status === "published" && originalDoc?._status !== "published";
+  if (becomingPublished) {
+    const roles: string[] = req.user?.roles ?? [];
+    const canPublish = roles.some((r) => ["publisher", "admin"].includes(r));
+    if (!canPublish) {
+      throw new Error("You do not have permission to publish. Save as draft or request review.");
+    }
+  }
+  return data;
+};
 
 const connection = new IORedis(process.env.REDIS_URL || "redis://localhost:6379", {
   maxRetriesPerRequest: null,

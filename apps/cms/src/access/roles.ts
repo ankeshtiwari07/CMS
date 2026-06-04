@@ -21,3 +21,7 @@ export const canPublish: Access = ({ req: { user } }) =>
 
 export const brandOnly: FieldAccess = ({ req: { user } }) =>
   hasRole(user, ["brand", "admin"]);
+
+// Field-level: who may advance the editorial workflow past "draft".
+export const canReview: FieldAccess = ({ req: { user } }) =>
+  hasRole(user, ["reviewer", "publisher", "admin"]);

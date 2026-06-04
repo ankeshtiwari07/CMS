@@ -1,4 +1,4 @@
-import type { Access, FieldAccess } from "payload";
+import type { Access, FieldAccess, Where } from "payload";
 
 export type Role = "viewer" | "author" | "reviewer" | "publisher" | "brand" | "admin";
 
@@ -34,9 +34,9 @@ export const readPublishedOrEditor: Access = ({ req: { user } }) => {
   if (hasRole(user, ["admin"])) return true;
   if (hasRole(user, ["author", "reviewer", "publisher", "brand"])) {
     const sites = siteIds(user);
-    return sites.length ? { site: { in: sites } } : true;
+    return sites.length ? ({ site: { in: sites } } as Where) : true;
   }
-  return { _status: { equals: "published" } };
+  return { _status: { equals: "published" } } as Where;
 };
 
 // create/update/delete on content: must be an editor; site-scoped by attribute.
@@ -44,7 +44,7 @@ export const editorSiteScoped: Access = ({ req: { user } }) => {
   if (hasRole(user, ["admin"])) return true;
   if (!hasRole(user, ["author", "reviewer", "publisher", "brand"])) return false;
   const sites = siteIds(user);
-  return sites.length ? { site: { in: sites } } : true;
+  return sites.length ? ({ site: { in: sites } } as Where) : true;
 };
 
 // Collection-level ABAC by department (e.g. HR owns Careers). Admins always pass.

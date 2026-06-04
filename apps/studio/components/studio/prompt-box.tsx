@@ -212,8 +212,8 @@ export default function PromptBox() {
                   <div style={{ ...menuWrap, bottom: 40, left: 0 }}>
                     <div style={{ padding: "6px 10px", fontSize: 12, color: "var(--muted)", fontWeight: 600 }}>Choose image style</div>
                     {STYLES.map((s) => (
-                      <button key={s} style={item} onClick={() => { setStyle(s); setOpen(null); }}>
-                        {s}{style === s && <CheckIcon size={15} color="var(--studio-primary)" style={{ marginInlineStart: "auto" } as any} />}
+                      <button key={s} style={{ ...item, justifyContent: "space-between" }} onClick={() => { setStyle(s); setOpen(null); }}>
+                        <span>{s}</span>{style === s && <CheckIcon size={15} color="var(--studio-primary)" />}
                       </button>
                     ))}
                   </div>

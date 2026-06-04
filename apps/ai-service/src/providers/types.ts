@@ -8,6 +8,7 @@ export interface CompleteRequest {
 }
 export interface LlmProvider {
   name: string;
+  configured?: boolean;
   complete(req: CompleteRequest): Promise<string>;
   embed(texts: string[]): Promise<number[][]>;
 }

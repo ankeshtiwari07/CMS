@@ -60,7 +60,7 @@ export default function LoginPage() {
         </Suspense>
 
         <p style={{ textAlign: "center", marginTop: 22, fontSize: 12.5, color: "var(--muted)" }}>
-          Sovereign by design · KSA-resident · Arabic-first
+          Sovereign by design · Arabic-first
         </p>
       </section>
     </main>

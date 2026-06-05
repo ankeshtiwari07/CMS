@@ -337,7 +337,7 @@ export default function PromptBox() {
               {current?.label ?? "Model"} <ChevronDownIcon size={15} />
             </button>
             {open === "model" && (
-              <div style={{ ...menuWrap, bottom: 40, right: 0, minWidth: 248, maxHeight: 360, overflow: "auto" }}>
+              <div style={{ ...menuWrap, top: 42, right: 0, minWidth: 248, maxHeight: 360, overflow: "auto" }}>
                 <div style={{ padding: "6px 10px", fontSize: 12, color: "var(--muted)", fontWeight: 600 }}>Choose a model</div>
                 {models.map((m) => {
                   const active = m.id === modelId;

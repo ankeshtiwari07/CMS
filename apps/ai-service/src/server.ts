@@ -102,6 +102,8 @@ app.post("/studio/generate", async (req) => {
       options: z.record(z.unknown()).optional(),
       fast: z.boolean().optional(),
       model: z.string().optional(), // model id from the catalog (/models)
+      // Prior conversation turns for Claude-like multi-turn refinement.
+      history: z.array(z.object({ role: z.enum(["user", "assistant"]), content: z.string().max(8000) })).max(12).optional(),
     })
     .parse(req.body);
 
@@ -128,10 +130,12 @@ app.post("/studio/generate", async (req) => {
     ? `You are HUMAIN Create Studio. The user wants to create a ${body.mode}. This build generates a detailed CONCEPT PREVIEW (layout, content, visual direction) — not a rendered ${body.mode}. Produce a structured brief.`
     : systemFor[body.mode] ?? systemFor.writing;
 
+  // Prior turns (if any) give the model conversation context for refinements.
+  const history = (body.history ?? []).map((m) => ({ role: m.role, content: m.content }));
   try {
     let out = await chosen.complete({
       system,
-      messages: [{ role: "user", content: body.prompt }],
+      messages: [...history, { role: "user", content: body.prompt }],
       maxTokens: preview ? 1500 : long ? 4096 : 2048,
       model,
       fast: body.fast ?? fast,

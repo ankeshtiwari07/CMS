@@ -35,11 +35,15 @@ function parse(md: string) {
   };
   for (const raw of lines) {
     const line = raw.replace(/\r$/, "");
-    const h = line.match(/^#{1,4}\s+(.*)$/) || line.match(/^\*\*(.+?)\*\*\s*:?\s*$/);
-    if (h) { flush(); cur = { title: h[1].replace(/[:#*]+$/, "").trim(), buf: [] }; }
+    // Only real markdown headings (## ...) start a new section — NOT inline **bold**,
+    // which models use liberally inside content.
+    const h = line.match(/^#{1,4}\s+(.*)$/);
+    if (h) { flush(); cur = { title: h[1].replace(/\*\*/g, "").replace(/[:#]+$/, "").trim(), buf: [] }; }
     else { if (!cur) cur = { title: "Overview", buf: [] }; cur.buf.push(line); }
   }
   flush();
+  // Drop the leading title-only section (doc title with no body) and any empties.
+  while (sections.length && !sections[0].content.trim()) sections.shift();
   // Pull hex colors out of any palette section.
   const palette: { name: string; hex: string }[] = [];
   for (const s of sections) {

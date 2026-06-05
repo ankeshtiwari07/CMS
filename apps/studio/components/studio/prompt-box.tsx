@@ -11,6 +11,16 @@ type Mode =
   | "auto" | "image" | "deck" | "website" | "email" | "writing" | "translation" | "designSystem"
   | "event" | "webinar" | "campaign" | "brandGuideline" | "websiteBuild" | "video";
 type Att = { name: string; size: number; text?: string };
+type Turn = {
+  role: "user" | "assistant";
+  text: string;
+  mode?: Mode;
+  preview?: boolean;
+  html?: boolean;
+  video?: boolean;
+  videoPrompt?: string;
+  model?: string;
+};
 
 // Active-mode chip metadata (label + icon) for the secondary modes.
 const MODE_META: Partial<Record<Mode, { label: string; Icon: any }>> = {
@@ -56,9 +66,7 @@ export default function PromptBox() {
   const [deckFormat, setDeckFormat] = useState<"html" | "image">("html");
   const [files, setFiles] = useState<Att[]>([]);
   const [busy, setBusy] = useState(false);
-  const [out, setOut] = useState<
-    { text: string; preview?: boolean; model?: string; html?: boolean; video?: boolean; videoPrompt?: string } | null
-  >(null);
+  const [turns, setTurns] = useState<Turn[]>([]);
   const [listening, setListening] = useState(false);
   const [models, setModels] = useState<ModelOpt[]>(FALLBACK_MODELS);
   const [modelId, setModelId] = useState("claude-opus-4-8");
@@ -80,13 +88,13 @@ export default function PromptBox() {
       const d = (e as CustomEvent).detail as { prompt?: string; mode?: Mode };
       if (d.prompt !== undefined) setPrompt(d.prompt);
       if (d.mode) setMode(d.mode);
-      setOut(null);
+      setTurns([]);
       focusPrompt();
     };
-    // "Create new" in the sidebar resets to a blank prompt.
+    // "Create new" in the sidebar resets to a blank conversation.
     const newChat = () => {
       setPrompt("");
-      setOut(null);
+      setTurns([]);
       setFiles([]);
       setMode("auto");
       focusPrompt();
@@ -132,41 +140,48 @@ export default function PromptBox() {
 
   async function generate() {
     if (!prompt.trim() || busy) return;
+    const userText = prompt.trim();
     setBusy(true);
-    setOut(null);
     setOpen(null);
+    setPrompt(""); // clear the composer after sending, like Claude
     const aiMode = mode === "auto" ? "writing" : mode;
     const attachments = files.filter((f) => f.text).map((f) => ({ name: f.name, text: f.text }));
+    // Build conversation context from the last few turns (text only, truncated).
+    const history = turns.slice(-6).map((t) => ({ role: t.role, content: (t.text || "").slice(0, 6000) }));
+    setTurns((p) => [...p, { role: "user", text: userText, mode }]);
     try {
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           mode: aiMode,
-          prompt,
+          prompt: userText,
           model: modelId,
+          history,
           options: { ratio, style, deckFormat, modelLabel: current?.label, files: files.map((f) => f.name), attachments },
         }),
       });
       const data = await res.json();
-      if (!res.ok) setOut({ text: data.error || "Generation failed." });
-      else setOut({
+      if (!res.ok) setTurns((p) => [...p, { role: "assistant", text: data.error || "Generation failed." }]);
+      else setTurns((p) => [...p, {
+        role: "assistant",
         text: data.artifact ?? "No output.",
+        mode,
         preview: data.preview,
         model: data.modelLabel || current?.label,
         html: data.html,
         video: data.video,
         videoPrompt: data.videoPrompt,
-      });
+      }]);
     } catch {
-      setOut({ text: "Could not reach the generation service." });
+      setTurns((p) => [...p, { role: "assistant", text: "Could not reach the generation service." }]);
     }
     setBusy(false);
   }
 
   function toggleMic() {
     const SR = (globalThis as any).webkitSpeechRecognition || (globalThis as any).SpeechRecognition;
-    if (!SR) return setOut({ text: "Voice input needs Chrome or Edge." });
+    if (!SR) { setTurns((p) => [...p, { role: "assistant", text: "Voice input needs Chrome or Edge." }]); return; }
     if (listening) return recRef.current?.stop();
     const rec = new SR();
     rec.lang = "en-US";
@@ -226,7 +241,7 @@ export default function PromptBox() {
           value={prompt}
           onChange={(e) => { setPrompt(e.target.value); setOpen(e.target.value.trim().length >= 3 ? "suggest" : null); }}
           onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); generate(); } }}
-          placeholder="Describe what you want to create"
+          placeholder={turns.length ? "Ask a follow-up or refine…" : "Describe what you want to create"}
           rows={1}
           style={{ width: "100%", border: "none", outline: "none", resize: "none", fontSize: 16, color: "var(--ink)", minHeight: 26, lineHeight: 1.5 }}
         />
@@ -362,7 +377,7 @@ export default function PromptBox() {
       </div>
 
       {/* type-ahead suggestions */}
-      {open === "suggest" && suggestions.length > 0 && !out && (
+      {open === "suggest" && suggestions.length > 0 && !turns.length && (
         <div style={{ marginTop: 10, background: "#fff", border: "1px solid var(--hairline)", borderRadius: 14, boxShadow: "var(--shadow-card)", padding: 10 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--muted)", fontSize: 13, padding: "4px 8px" }}><SparkIcon size={15} /> Suggestions</div>
           {suggestions.map((s, i) => {
@@ -377,45 +392,55 @@ export default function PromptBox() {
         </div>
       )}
 
-      {busy && (
-        <div style={{ marginTop: 18, background: "#fff", border: "1px solid var(--hairline)", borderRadius: 18, padding: 18, display: "flex", alignItems: "center", gap: 12, color: "var(--studio-teal-dark)" }}>
-          <span className="humain-spin" style={{ width: 18, height: 18, border: "2.5px solid var(--mint-pill)", borderTopColor: "var(--studio-primary)", borderRadius: "50%", display: "inline-block" }} />
-          <span style={{ fontWeight: 600 }}>Generating with {current?.label ?? "Claude"}…</span>
-          <style>{`@keyframes humain-spin{to{transform:rotate(360deg)}}.humain-spin{animation:humain-spin .7s linear infinite}`}</style>
-        </div>
-      )}
-
-      {!busy && out && (
-        <div style={{ marginTop: 18, background: "#fff", border: "1px solid var(--hairline)", borderRadius: 18, padding: 18 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-            <span style={{ display: "inline-flex", gap: 8, alignItems: "center" }}>
-              {out.preview && <span style={badge}>CONCEPT PREVIEW</span>}
-              {out.html && <span style={badge}>LIVE HTML</span>}
-              {out.video && <span style={badge}>VIDEO</span>}
-              <span style={{ fontSize: 12, color: "var(--muted)", fontWeight: 600 }}>{out.model ?? current?.label}</span>
-            </span>
-            <span style={{ display: "flex", gap: 8 }}>
-              {out.html && (
-                <button onClick={() => { const w = window.open(); if (w) { w.document.write(out.text); w.document.close(); } }}
-                  style={btnSm}>Open</button>
-              )}
-              <button onClick={() => navigator.clipboard?.writeText(out.text)} style={btnSm}>Copy</button>
-            </span>
-          </div>
-
-          {out.html ? (
-            <iframe
-              title="Website preview"
-              srcDoc={out.text}
-              style={{ width: "100%", height: 520, border: "1px solid var(--hairline)", borderRadius: 12, background: "#fff" }}
-            />
-          ) : (
-            <div style={{ whiteSpace: "pre-wrap", color: "var(--ink)", lineHeight: 1.6, fontSize: 15 }}>{out.text}</div>
+      {/* conversation thread — Claude-like multi-turn */}
+      {(turns.length > 0 || busy) && (
+        <div style={{ marginTop: 18, display: "flex", flexDirection: "column", gap: 14 }}>
+          {turns.map((t, i) =>
+            t.role === "user" ? (
+              <div key={i} style={{ alignSelf: "flex-end", maxWidth: "85%", background: "var(--mint-pill)", color: "var(--studio-teal-dark)", borderRadius: 14, padding: "10px 14px", fontSize: 14.5, lineHeight: 1.5, whiteSpace: "pre-wrap" }}>
+                {t.text}
+              </div>
+            ) : (
+              <AssistantTurn key={i} t={t} />
+            ),
           )}
-
-          {out.video && <VideoRender prompt={out.videoPrompt || prompt} />}
+          {busy && (
+            <div style={{ background: "#fff", border: "1px solid var(--hairline)", borderRadius: 18, padding: 18, display: "flex", alignItems: "center", gap: 12, color: "var(--studio-teal-dark)" }}>
+              <span className="humain-spin" style={{ width: 18, height: 18, border: "2.5px solid var(--mint-pill)", borderTopColor: "var(--studio-primary)", borderRadius: "50%", display: "inline-block" }} />
+              <span style={{ fontWeight: 600 }}>Generating with {current?.label ?? "Claude"}…</span>
+              <style>{`@keyframes humain-spin{to{transform:rotate(360deg)}}.humain-spin{animation:humain-spin .7s linear infinite}`}</style>
+            </div>
+          )}
         </div>
       )}
+    </div>
+  );
+}
+
+// One assistant message: text, live-HTML iframe, or video concept + render panel.
+function AssistantTurn({ t }: { t: Turn }) {
+  return (
+    <div style={{ background: "#fff", border: "1px solid var(--hairline)", borderRadius: 18, padding: 18 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+        <span style={{ display: "inline-flex", gap: 8, alignItems: "center" }}>
+          {t.preview && <span style={badge}>CONCEPT PREVIEW</span>}
+          {t.html && <span style={badge}>LIVE HTML</span>}
+          {t.video && <span style={badge}>VIDEO</span>}
+          <span style={{ fontSize: 12, color: "var(--muted)", fontWeight: 600 }}>{t.model ?? "Claude"}</span>
+        </span>
+        <span style={{ display: "flex", gap: 8 }}>
+          {t.html && (
+            <button onClick={() => { const w = window.open(); if (w) { w.document.write(t.text); w.document.close(); } }} style={btnSm}>Open</button>
+          )}
+          <button onClick={() => navigator.clipboard?.writeText(t.text)} style={btnSm}>Copy</button>
+        </span>
+      </div>
+      {t.html ? (
+        <iframe title="Website preview" srcDoc={t.text} style={{ width: "100%", height: 520, border: "1px solid var(--hairline)", borderRadius: 12, background: "#fff" }} />
+      ) : (
+        <div style={{ whiteSpace: "pre-wrap", color: "var(--ink)", lineHeight: 1.6, fontSize: 15 }}>{t.text}</div>
+      )}
+      {t.video && <VideoRender prompt={t.videoPrompt || t.text} />}
     </div>
   );
 }

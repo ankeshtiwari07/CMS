@@ -15,8 +15,10 @@ const BASE = process.env.VIDEO_BASE_URL || DEFAULT_BASE[PROVIDER] || DEFAULT_BAS
 const MODEL = process.env.VIDEO_MODEL || "uni-1";
 const MODEL_VERSION = process.env.VIDEO_MODEL_VERSION || "";
 
-// Replicate also needs a model version; the others only need the key.
-export const videoConfigured = Boolean(KEY) && (PROVIDER === "replicate" ? Boolean(MODEL_VERSION) : true);
+// Replicate needs either an official model (owner/name in VIDEO_MODEL) or a
+// community version hash (VIDEO_MODEL_VERSION); the others only need the key.
+export const videoConfigured =
+  Boolean(KEY) && (PROVIDER === "replicate" ? Boolean(MODEL_VERSION) || MODEL.includes("/") : true);
 
 export type RenderStatus = {
   configured: boolean;
@@ -73,10 +75,15 @@ export async function startRender(prompt: string): Promise<RenderStatus> {
       return { configured: true, status: "processing", id: pickId(data), provider: PROVIDER };
     }
     if (PROVIDER === "replicate") {
-      const res = await fetch(`${BASE}/predictions`, {
+      // Official model (owner/name) -> /v1/models/{model}/predictions (no version).
+      // Community model -> /v1/predictions with a {version} hash.
+      const official = MODEL.includes("/") && !MODEL_VERSION;
+      const url = official ? `${BASE}/models/${MODEL}/predictions` : `${BASE}/predictions`;
+      const body = official ? { input: { prompt } } : { version: MODEL_VERSION, input: { prompt } };
+      const res = await fetch(url, {
         method: "POST",
-        headers: { Authorization: `Token ${KEY}`, "content-type": "application/json" },
-        body: JSON.stringify({ version: MODEL_VERSION, input: { prompt } }),
+        headers: { Authorization: `Token ${KEY}`, "content-type": "application/json", Prefer: "respond-async" },
+        body: JSON.stringify(body),
       });
       const data: any = await res.json().catch(() => ({}));
       if (!res.ok) return { configured: true, status: "failed", provider: PROVIDER, message: data?.detail || `render error ${res.status}` };

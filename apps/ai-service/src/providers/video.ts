@@ -1,20 +1,22 @@
-// Pluggable text-to-video render provider. Supports Luma (Dream Machine) and
-// Replicate. Renders real MP4s when VIDEO_API_KEY is set, and reports
-// `configured:false` (so the UI shows the concept + "add key" state) when it
-// isn't. Never throws to the caller — always returns a status object.
+// Pluggable text-to-video render provider. Supports Luma Agents API
+// (agents.lumalabs.ai/v1 — the key the user has), Luma Dream Machine, and
+// Replicate. Renders real MP4s when VIDEO_API_KEY is set; reports
+// `configured:false` otherwise. Never throws — always returns a status object.
 
 const KEY = process.env.VIDEO_API_KEY || "";
-const PROVIDER = (process.env.VIDEO_PROVIDER || "luma").toLowerCase();
-const BASE =
-  process.env.VIDEO_BASE_URL ||
-  (PROVIDER === "luma" ? "https://api.lumalabs.ai/dream-machine/v1" : "https://api.replicate.com/v1");
-// Luma: model name (e.g. ray-2 / ray-flash-2). Replicate: a model version hash.
-const MODEL = process.env.VIDEO_MODEL || "ray-2";
+const PROVIDER = (process.env.VIDEO_PROVIDER || "luma-agents").toLowerCase();
+const DEFAULT_BASE: Record<string, string> = {
+  "luma-agents": "https://agents.lumalabs.ai/v1",
+  luma: "https://api.lumalabs.ai/dream-machine/v1",
+  replicate: "https://api.replicate.com/v1",
+};
+const BASE = process.env.VIDEO_BASE_URL || DEFAULT_BASE[PROVIDER] || DEFAULT_BASE["luma-agents"];
+// Agents/Luma: a model name (uni-1 / ray-2). Replicate: a model version hash.
+const MODEL = process.env.VIDEO_MODEL || "uni-1";
 const MODEL_VERSION = process.env.VIDEO_MODEL_VERSION || "";
 
-// Luma needs only a key; Replicate also needs a model version.
-export const videoConfigured =
-  Boolean(KEY) && (PROVIDER === "luma" ? true : Boolean(MODEL_VERSION));
+// Replicate also needs a model version; the others only need the key.
+export const videoConfigured = Boolean(KEY) && (PROVIDER === "replicate" ? Boolean(MODEL_VERSION) : true);
 
 export type RenderStatus = {
   configured: boolean;
@@ -34,19 +36,41 @@ const unconfigured: RenderStatus = {
     "real MP4 rendering. The concept/script above is ready to use.",
 };
 
-// Start a render job. Returns a job id to poll, or an unconfigured status.
+// Defensive field extraction (the Agents API shape varies across models).
+const pickId = (d: any) => d?.id || d?.generation_id || d?.data?.id || d?.generation?.id;
+const pickState = (d: any) => (d?.state || d?.status || d?.data?.state || "").toString().toLowerCase();
+const pickUrl = (d: any) =>
+  d?.assets?.video || d?.output?.video || d?.video_url || d?.url || d?.data?.url ||
+  (Array.isArray(d?.output) ? d.output[d.output.length - 1] : undefined) ||
+  (d?.assets && typeof d.assets === "object" ? Object.values(d.assets)[0] : undefined);
+const DONE = ["completed", "succeeded", "success", "done", "finished"];
+const FAIL = ["failed", "error", "canceled", "cancelled"];
+
 export async function startRender(prompt: string): Promise<RenderStatus> {
   if (!videoConfigured) return unconfigured;
   try {
+    if (PROVIDER === "luma-agents") {
+      const res = await fetch(`${BASE}/generations`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${KEY}`, "content-type": "application/json", accept: "application/json" },
+        body: JSON.stringify({ prompt, model: MODEL, type: "video", output_format: "mp4" }),
+      });
+      const data: any = await res.json().catch(() => ({}));
+      if (!res.ok) return { configured: true, status: "failed", provider: PROVIDER, message: data?.detail || data?.message || `render error ${res.status}` };
+      const id = pickId(data);
+      const url = pickUrl(data);
+      if (url) return { configured: true, status: "succeeded", id, url, provider: PROVIDER }; // sync response
+      return { configured: true, status: "processing", id, provider: PROVIDER };
+    }
     if (PROVIDER === "luma") {
       const res = await fetch(`${BASE}/generations`, {
         method: "POST",
         headers: { Authorization: `Bearer ${KEY}`, "content-type": "application/json", accept: "application/json" },
         body: JSON.stringify({ prompt, model: MODEL }),
       });
-      const data: any = await res.json();
+      const data: any = await res.json().catch(() => ({}));
       if (!res.ok) return { configured: true, status: "failed", provider: PROVIDER, message: data?.detail || data?.message || `render error ${res.status}` };
-      return { configured: true, status: "processing", id: data.id, provider: PROVIDER };
+      return { configured: true, status: "processing", id: pickId(data), provider: PROVIDER };
     }
     if (PROVIDER === "replicate") {
       const res = await fetch(`${BASE}/predictions`, {
@@ -54,7 +78,7 @@ export async function startRender(prompt: string): Promise<RenderStatus> {
         headers: { Authorization: `Token ${KEY}`, "content-type": "application/json" },
         body: JSON.stringify({ version: MODEL_VERSION, input: { prompt } }),
       });
-      const data: any = await res.json();
+      const data: any = await res.json().catch(() => ({}));
       if (!res.ok) return { configured: true, status: "failed", provider: PROVIDER, message: data?.detail || `render error ${res.status}` };
       return { configured: true, status: "processing", id: data.id, provider: PROVIDER };
     }
@@ -64,35 +88,22 @@ export async function startRender(prompt: string): Promise<RenderStatus> {
   }
 }
 
-// Poll a render job by id.
 export async function pollRender(id: string): Promise<RenderStatus> {
   if (!videoConfigured) return unconfigured;
   try {
-    if (PROVIDER === "luma") {
-      const res = await fetch(`${BASE}/generations/${id}`, {
-        headers: { Authorization: `Bearer ${KEY}`, accept: "application/json" },
-      });
-      const data: any = await res.json();
-      if (!res.ok) return { configured: true, status: "failed", id, provider: PROVIDER, message: data?.detail || `poll error ${res.status}` };
-      const state = data.state; // queued | dreaming | completed | failed
-      if (state === "completed") return { configured: true, status: "succeeded", id, url: data?.assets?.video, provider: PROVIDER };
-      if (state === "failed") return { configured: true, status: "failed", id, provider: PROVIDER, message: data?.failure_reason || "render failed" };
-      return { configured: true, status: "processing", id, provider: PROVIDER };
-    }
-    if (PROVIDER === "replicate") {
-      const res = await fetch(`${BASE}/predictions/${id}`, { headers: { Authorization: `Token ${KEY}` } });
-      const data: any = await res.json();
-      if (!res.ok) return { configured: true, status: "failed", id, provider: PROVIDER, message: data?.detail || `poll error ${res.status}` };
-      if (data.status === "succeeded") {
-        const url = Array.isArray(data.output) ? data.output[data.output.length - 1] : data.output;
-        return { configured: true, status: "succeeded", id, url, provider: PROVIDER };
-      }
-      if (data.status === "failed" || data.status === "canceled") {
-        return { configured: true, status: "failed", id, provider: PROVIDER, message: data?.error || "render failed" };
-      }
-      return { configured: true, status: "processing", id, provider: PROVIDER };
-    }
-    return { configured: true, status: "failed", id, provider: PROVIDER, message: `Unknown VIDEO_PROVIDER: ${PROVIDER}` };
+    const replicate = PROVIDER === "replicate";
+    const path = replicate ? `${BASE}/predictions/${id}` : `${BASE}/generations/${id}`;
+    const headers: Record<string, string> = replicate
+      ? { Authorization: `Token ${KEY}` }
+      : { Authorization: `Bearer ${KEY}`, accept: "application/json" };
+    const res = await fetch(path, { headers });
+    const data: any = await res.json().catch(() => ({}));
+    if (!res.ok) return { configured: true, status: "failed", id, provider: PROVIDER, message: data?.detail || `poll error ${res.status}` };
+    const state = pickState(data);
+    const url = pickUrl(data);
+    if (DONE.includes(state) || (url && !FAIL.includes(state))) return { configured: true, status: "succeeded", id, url, provider: PROVIDER };
+    if (FAIL.includes(state)) return { configured: true, status: "failed", id, provider: PROVIDER, message: data?.failure_reason || data?.error || "render failed" };
+    return { configured: true, status: "processing", id, provider: PROVIDER };
   } catch (e: any) {
     return { configured: true, status: "failed", id, provider: PROVIDER, message: e?.message || "poll failed" };
   }

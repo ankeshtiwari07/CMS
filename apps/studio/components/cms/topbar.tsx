@@ -2,7 +2,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { HumainWordmark } from "@/components/brand";
-import { BellIcon, ChevronDownIcon } from "@/components/icons";
+import { ChevronDownIcon } from "@/components/icons";
+import NotificationsBell from "@/components/notifications/notifications-bell";
 
 function initials(name?: string, email?: string) {
   const src = (name || email || "U").trim();
@@ -41,7 +42,7 @@ export default function TopBar({ user }: { user: { name?: string; email: string 
 
       {/* Right: notifications + account menu */}
       <div style={{ display: "flex", alignItems: "center", gap: 16, position: "relative" }}>
-        <BellIcon size={21} color="#ffffff" />
+        <NotificationsBell variant="topbar" />
         <span style={{ color: "rgba(255,255,255,0.3)" }}>|</span>
         <button
           onClick={() => setMenu((m) => !m)}

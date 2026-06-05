@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { HumainLockup, HumainMark } from "@/components/brand";
+import NotificationsBell from "@/components/notifications/notifications-bell";
 import {
   PlusIcon,
   SearchIcon,
@@ -61,11 +62,9 @@ const ROLE_LABEL: Record<string, string> = {
 export default function Sidebar({
   user,
   active = "create",
-  notifications = 3,
 }: {
   user: { name?: string; email: string; roles?: string[] };
   active?: string;
-  notifications?: number;
 }) {
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
@@ -217,34 +216,8 @@ export default function Sidebar({
 
       <div style={{ flex: 1 }} />
 
-      {/* Notifications */}
-      <button style={row(false)} title={collapsed ? "Notifications" : undefined}>
-        <span style={{ position: "relative", display: "grid", placeItems: "center" }}>
-          <BellIcon size={21} />
-          {notifications > 0 && (
-            <span
-              style={{
-                position: "absolute",
-                top: -4,
-                right: -6,
-                minWidth: 16,
-                height: 16,
-                padding: "0 4px",
-                borderRadius: 999,
-                background: "var(--studio-primary)",
-                color: "#fff",
-                fontSize: 10,
-                fontWeight: 700,
-                display: "grid",
-                placeItems: "center",
-              }}
-            >
-              {notifications}
-            </span>
-          )}
-        </span>
-        {!collapsed && <span style={{ fontWeight: 500 }}>Notification</span>}
-      </button>
+      {/* Notifications (real activity feed) */}
+      <NotificationsBell variant="sidebar" collapsed={collapsed} />
 
       {/* User block */}
       <div style={{ position: "relative", marginTop: 4 }}>

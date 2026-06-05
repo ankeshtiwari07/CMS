@@ -59,6 +59,9 @@ export const Users: CollectionConfig = {
       admin: { description: "Deactivated users cannot sign in." },
       access: { update: adminOnlyField },
     },
+    // When the user last opened their notifications — drives the unread badge.
+    // Self-updatable (no adminOnlyField), so each user can clear their own.
+    { name: "notificationsReadAt", type: "date", admin: { hidden: true } },
   ],
   hooks: {
     // Block sign-in for deactivated users.

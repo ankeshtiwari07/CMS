@@ -7,6 +7,7 @@ export type CurrentUser = {
   email: string;
   name?: string;
   roles: string[];
+  notificationsReadAt?: string | null;
 };
 
 export async function getToken(): Promise<string | null> {
@@ -40,6 +41,7 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
       email: data.user.email,
       name: data.user.name,
       roles: data.user.roles ?? [],
+      notificationsReadAt: data.user.notificationsReadAt ?? null,
     };
   } catch {
     return null;

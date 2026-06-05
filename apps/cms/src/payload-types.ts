@@ -72,6 +72,7 @@ export interface Config {
     media: Media;
     pages: Page;
     projects: Project;
+    brandGuidelines: BrandGuideline;
     auditLog: AuditLog;
     articles: Article;
     blogPosts: BlogPost;
@@ -97,6 +98,7 @@ export interface Config {
     media: MediaSelect<false> | MediaSelect<true>;
     pages: PagesSelect<false> | PagesSelect<true>;
     projects: ProjectsSelect<false> | ProjectsSelect<true>;
+    brandGuidelines: BrandGuidelinesSelect<false> | BrandGuidelinesSelect<true>;
     auditLog: AuditLogSelect<false> | AuditLogSelect<true>;
     articles: ArticlesSelect<false> | ArticlesSelect<true>;
     blogPosts: BlogPostsSelect<false> | BlogPostsSelect<true>;
@@ -588,7 +590,21 @@ export interface PricingBlock {
 export interface Project {
   id: number;
   title: string;
-  type: 'deck' | 'image' | 'website' | 'email' | 'brand' | 'designSystem' | 'writing' | 'translation';
+  type:
+    | 'deck'
+    | 'image'
+    | 'website'
+    | 'email'
+    | 'brand'
+    | 'designSystem'
+    | 'writing'
+    | 'translation'
+    | 'event'
+    | 'webinar'
+    | 'campaign'
+    | 'brandGuideline'
+    | 'websiteBuild'
+    | 'video';
   prompt?: string | null;
   model?: string | null;
   options?:
@@ -618,6 +634,33 @@ export interface Project {
    * { collection, id } once sent to CMS.
    */
   promotedTo?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  owner?: (number | null) | User;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "brandGuidelines".
+ */
+export interface BrandGuideline {
+  id: number;
+  name: string;
+  industry?: string | null;
+  summary?: string | null;
+  /**
+   * System suggestion shown to everyone in the library.
+   */
+  isArchetype?: boolean | null;
+  source?: ('humain' | 'archetype' | 'ai' | 'custom') | null;
+  data?:
     | {
         [k: string]: unknown;
       }
@@ -1198,6 +1241,10 @@ export interface PayloadLockedDocument {
         value: number | Project;
       } | null)
     | ({
+        relationTo: 'brandGuidelines';
+        value: number | BrandGuideline;
+      } | null)
+    | ({
         relationTo: 'auditLog';
         value: number | AuditLog;
       } | null)
@@ -1665,6 +1712,21 @@ export interface ProjectsSelect<T extends boolean = true> {
   media?: T;
   status?: T;
   promotedTo?: T;
+  owner?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "brandGuidelines_select".
+ */
+export interface BrandGuidelinesSelect<T extends boolean = true> {
+  name?: T;
+  industry?: T;
+  summary?: T;
+  isArchetype?: T;
+  source?: T;
+  data?: T;
   owner?: T;
   updatedAt?: T;
   createdAt?: T;

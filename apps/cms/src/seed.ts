@@ -110,6 +110,33 @@ const run = async () => {
     console.log("[seed] created bilingual home page:", pageId);
   }
 
+  // ---- Brand library (HUMAIN guideline + curated archetypes), idempotent ----
+  try {
+    const { BRAND_LIBRARY } = await import("./data/brand-archetypes.js");
+    for (const g of BRAND_LIBRARY) {
+      const exists = await payload.find({
+        collection: "brandGuidelines",
+        where: { and: [{ name: { equals: g.name } }, { isArchetype: { equals: true } }] },
+        limit: 1,
+      });
+      if (exists.docs.length) { console.log("[seed] brand archetype exists:", g.name); continue; }
+      await payload.create({
+        collection: "brandGuidelines",
+        data: {
+          name: g.name,
+          industry: g.industry,
+          summary: g.summary,
+          isArchetype: true,
+          source: g.source,
+          data: { sections: g.sections, palette: g.palette, typography: g.typography },
+        } as any,
+      });
+      console.log("[seed] created brand archetype:", g.name);
+    }
+  } catch (e) {
+    console.warn("[seed] brand library skipped:", (e as Error).message);
+  }
+
   console.log("[seed] DONE. admin:", email, "| site:", site.id, "| page:", pageId);
   process.exit(0);
 };

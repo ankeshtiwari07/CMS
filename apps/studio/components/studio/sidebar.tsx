@@ -18,6 +18,7 @@ import {
   TranslateIcon,
   PaperclipIcon,
   ClockIcon,
+  BookmarkIcon,
 } from "@/components/icons";
 
 // Create-new menu (mirrors the Figma "+" menu).
@@ -44,6 +45,7 @@ const NAV = [
   { key: "search", Icon: SearchIcon, label: "Search", href: "/search" },
   { key: "projects", Icon: FolderIcon, label: "Projects", href: "/projects" },
   { key: "templates", Icon: GridIcon, label: "Templates", href: "/cms" },
+  { key: "brand", Icon: BookmarkIcon, label: "Brand", href: "/brand" },
   { key: "design", Icon: PaletteIcon, label: "Design", href: "/design" },
 ];
 

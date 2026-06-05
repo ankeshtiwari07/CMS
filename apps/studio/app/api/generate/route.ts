@@ -21,6 +21,31 @@ const TYPE_MAP: Record<string, string> = {
   video: "video",
 };
 
+const clean = (s: string) =>
+  String(s || "").replace(/<[^>]+>/g, "").replace(/[*_`>#]/g, "").replace(/\s+/g, " ").trim();
+
+// Generic section words that make poor titles — skip to the next heading/line.
+const GENERIC = /^(logline|overview|concept|title|introduction|summary|brand essence|tagline|subject)\b/i;
+
+// Derive a clean project title from the generated output (heading / <title> /
+// first real line), falling back to the meaningful tail of the prompt.
+function deriveTitle(artifact: string, mode: string, prompt: string): string {
+  const text = String(artifact || "");
+  if (mode === "websiteBuild" || /^\s*<!doctype/i.test(text)) {
+    const t = text.match(/<title[^>]*>([^<]+)<\/title>/i)?.[1] || text.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i)?.[1];
+    if (t && clean(t)) return clean(t).slice(0, 80);
+  }
+  // Collect candidate lines: markdown headings first, then any non-empty line.
+  const lines = text.split("\n").map(clean).filter(Boolean);
+  const headings = text.split("\n").map((l) => l.match(/^\s*#{1,3}\s+(.+)$/)?.[1]).filter(Boolean).map((s) => clean(s!));
+  for (const h of headings) if (h && !GENERIC.test(h)) return h.slice(0, 80);
+  for (const l of lines) if (l && !GENERIC.test(l) && l.length > 3) return l.slice(0, 80);
+  if (headings[0]) return headings[0].slice(0, 80);
+  // Fallback: last non-empty line of the prompt (skips any brand preamble).
+  const pl = String(prompt || "").split("\n").map(clean).filter(Boolean);
+  return (pl[pl.length - 1] || "Untitled").slice(0, 80);
+}
+
 export async function POST(req: Request) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -46,7 +71,7 @@ export async function POST(req: Request) {
     await payloadFetch("/api/projects", {
       method: "POST",
       body: JSON.stringify({
-        title: String(prompt).slice(0, 60) || "Untitled",
+        title: deriveTitle(data.artifact, mode, prompt),
         type: TYPE_MAP[mode] ?? "writing",
         prompt,
         model: data.modelLabel || model,

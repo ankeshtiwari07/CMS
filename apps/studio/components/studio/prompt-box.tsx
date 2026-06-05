@@ -4,13 +4,23 @@ import {
   PlusIcon, ImageIcon, LayoutAutoIcon, PaletteIcon, MicIcon, ChevronDownIcon, ArrowUpIcon,
   PaperclipIcon, ClockIcon, MonitorIcon, GlobeIcon, MailIcon, TranslateIcon, GridIcon,
   CodeIcon, CheckIcon, XIcon, FileIcon, SquareIcon, SparkIcon, CalendarIcon, MegaphoneIcon,
-  BookmarkIcon, VideoIcon,
+  BookmarkIcon, VideoIcon, BuildingIcon,
 } from "@/components/icons";
 
 type Mode =
   | "auto" | "image" | "deck" | "website" | "email" | "writing" | "translation" | "designSystem"
-  | "event" | "webinar" | "campaign" | "brandGuideline" | "websiteBuild" | "video";
+  | "event" | "webinar" | "campaign" | "brandGuideline" | "websiteBuild" | "video"
+  | "conference" | "summit";
 type Att = { name: string; size: number; text?: string };
+
+// Quick-action buttons shown below the chat — fast mode selectors.
+const QUICK_ACTIONS: { key: string; label: string; mode: Mode; Icon: any }[] = [
+  { key: "conference", label: "Conference", mode: "conference", Icon: CalendarIcon },
+  { key: "webinar", label: "Webinar", mode: "webinar", Icon: MonitorIcon },
+  { key: "summit", label: "Summit", mode: "summit", Icon: BuildingIcon },
+  { key: "content", label: "Content", mode: "writing", Icon: FileIcon },
+  { key: "campaign", label: "Campaign", mode: "campaign", Icon: MegaphoneIcon },
+];
 type Turn = {
   role: "user" | "assistant";
   text: string;
@@ -34,6 +44,8 @@ const MODE_META: Partial<Record<Mode, { label: string; Icon: any }>> = {
   brandGuideline: { label: "Brand Guideline", Icon: BookmarkIcon },
   websiteBuild: { label: "Build Website", Icon: CodeIcon },
   video: { label: "Create Video", Icon: VideoIcon },
+  conference: { label: "Create Conference", Icon: CalendarIcon },
+  summit: { label: "Create Summit", Icon: BuildingIcon },
 };
 
 const RATIOS = [
@@ -374,6 +386,29 @@ export default function PromptBox() {
             {busy ? "…" : hasText ? <ArrowUpIcon size={19} color="#fff" /> : <MicIcon size={19} color="#fff" />}
           </button>
         </div>
+      </div>
+
+      {/* quick-action buttons below the chat */}
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center", marginTop: 14 }}>
+        {QUICK_ACTIONS.map((a) => {
+          const on = mode === a.mode;
+          const I = a.Icon;
+          return (
+            <button
+              key={a.key}
+              onClick={() => { setMode(a.mode); focusPrompt(); }}
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 7, height: 38, padding: "0 16px",
+                borderRadius: 999, cursor: "pointer", fontSize: 13.5, fontWeight: 600,
+                border: `1px solid ${on ? "var(--studio-primary)" : "var(--hairline)"}`,
+                background: on ? "var(--mint-pill)" : "#fff",
+                color: on ? "var(--studio-teal-dark)" : "var(--ink)",
+              }}
+            >
+              <I size={16} /> {a.label}
+            </button>
+          );
+        })}
       </div>
 
       {/* type-ahead suggestions */}

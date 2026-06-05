@@ -10,7 +10,7 @@ export const Projects: CollectionConfig = {
     { name: "title", type: "text", required: true },
     { name: "type", type: "select", required: true,
       options: ["deck", "image", "website", "email", "brand", "designSystem", "writing", "translation",
-        "event", "webinar", "campaign", "brandGuideline", "websiteBuild", "video"] },
+        "event", "webinar", "campaign", "brandGuideline", "websiteBuild", "video", "conference", "summit"] },
     { name: "prompt", type: "textarea" },
     { name: "model", type: "text" },
     { name: "options", type: "json" },

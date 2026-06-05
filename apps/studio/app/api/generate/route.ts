@@ -19,6 +19,8 @@ const TYPE_MAP: Record<string, string> = {
   brandGuideline: "brandGuideline",
   websiteBuild: "websiteBuild",
   video: "video",
+  conference: "conference",
+  summit: "summit",
 };
 
 const clean = (s: string) =>

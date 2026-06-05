@@ -65,13 +65,15 @@ const TEXT_MODES = [
   "website", "email", "writing", "translation", "brand", "designSystem",
   // Wave A additions:
   "event", "webinar", "campaign", "brandGuideline", "websiteBuild", "video",
+  // Quick-action additions:
+  "conference", "summit",
 ] as const;
 const PREVIEW_MODES = ["image", "deck"] as const;
 
 // Modes whose output is raw HTML rendered in a live in-app preview.
 const HTML_MODES: readonly string[] = ["websiteBuild"];
 // Modes that produce long structured documents — give them more tokens.
-const LONG_MODES: readonly string[] = ["campaign", "brandGuideline", "websiteBuild", "video", "event", "webinar"];
+const LONG_MODES: readonly string[] = ["campaign", "brandGuideline", "websiteBuild", "video", "event", "webinar", "conference", "summit"];
 
 const systemFor: Record<string, string> = {
   website: "You are HUMAIN Create Studio. Generate clean, production-ready landing-page copy and a section outline. On-brand and concise.",
@@ -82,6 +84,8 @@ const systemFor: Record<string, string> = {
   designSystem: "You are HUMAIN Create Studio. Propose design tokens (color, type, spacing) as structured notes.",
   event: "You are HUMAIN Create Studio. Produce a complete EVENT package with clear markdown headings: Title & tagline; Overview; Audience; Agenda (with timings); Speakers; Logistics (date/venue/format); Registration CTA; and three short promo blurbs (LinkedIn, email subject+preview, X/Twitter). Concise, on-brand, action-oriented.",
   webinar: "You are HUMAIN Create Studio. Produce a complete WEBINAR package with markdown headings: Title & hook; Who it's for; Learning outcomes (3-5 bullets); Run-of-show (minute-by-minute agenda); Speaker bios; Registration page copy; Reminder email; and Follow-up email. Concise and compelling.",
+  conference: "You are HUMAIN Create Studio. Produce a complete CONFERENCE package with markdown headings: Title & theme; Overview; Audience; Multi-track agenda (days, parallel tracks, session titles with times); Keynote & speaker lineup (with talk titles); Venue & logistics; Sponsorship tiers; Registration CTA; and three promo blurbs (LinkedIn, email subject+preview, X). On-brand and ambitious.",
+  summit: "You are HUMAIN Create Studio. Produce an executive SUMMIT package with markdown headings: Title & theme; Strategic premise; Invited audience (C-level / ministerial); High-level agenda (half/full day); Keynote topics; Panel & roundtable themes; Featured speakers; By-invitation logistics; Registration/RSVP CTA; and promo blurbs. Prestigious, concise, on-brand.",
   campaign: "You are HUMAIN Create Studio. Produce an integrated marketing CAMPAIGN with markdown headings: Big idea; Objective & KPIs; Target audience & insight; Key messages & proof points; Channel plan (web, email, social, paid, PR); 4-week content calendar (as a table); Hero headline + 3 variations; and primary CTAs. Practical and on-brand.",
   brandGuideline: "You are HUMAIN Create Studio, an expert brand strategist. Produce a structured BRAND GUIDELINE with markdown headings: Brand Essence (one line); Positioning statement; Personality & values; Voice & tone (with do/don't); Messaging pillars (3-4); Color palette (list each with HEX and usage); Typography (headline + body recommendations); Logo usage (do & don't); Imagery & art direction; Iconography; and Example applications. Be specific and usable; include concrete hex codes and font names.",
   websiteBuild:

@@ -3,7 +3,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   MonitorIcon, ImageIcon, GlobeIcon, MailIcon, PaletteIcon, FileIcon, TranslateIcon,
-  XIcon, TrashIcon, PlusIcon, SparkIcon,
+  XIcon, TrashIcon, PlusIcon, SparkIcon, CalendarIcon, MegaphoneIcon, BookmarkIcon,
+  CodeIcon, VideoIcon, BuildingIcon,
 } from "@/components/icons";
 
 export type Project = { id: string | number; title: string; type: string; updatedAt?: string; text?: string; preview?: boolean };
@@ -17,16 +18,30 @@ const META: Record<string, { label: string; Icon: any; grad: string }> = {
   designSystem: { label: "DESIGN SYSTEM", Icon: PaletteIcon, grad: "linear-gradient(135deg,#eef7d9,#e3f0c8)" },
   writing: { label: "WRITING", Icon: FileIcon, grad: "linear-gradient(135deg,#f3f1ec,#e7e2d8)" },
   translation: { label: "TRANSLATION", Icon: TranslateIcon, grad: "linear-gradient(135deg,#f6efd6,#ece0bf)" },
+  event: { label: "EVENT", Icon: CalendarIcon, grad: "linear-gradient(135deg,#e7f5ef,#d6ecdf)" },
+  webinar: { label: "WEBINAR", Icon: MonitorIcon, grad: "linear-gradient(135deg,#e6f2f4,#d6e9ec)" },
+  conference: { label: "CONFERENCE", Icon: CalendarIcon, grad: "linear-gradient(135deg,#e7f1f5,#d6e7ee)" },
+  summit: { label: "SUMMIT", Icon: BuildingIcon, grad: "linear-gradient(135deg,#eef2e6,#e1ead2)" },
+  campaign: { label: "CAMPAIGN", Icon: MegaphoneIcon, grad: "linear-gradient(135deg,#f0ece6,#e6ddd0)" },
+  brandGuideline: { label: "BRAND GUIDELINE", Icon: BookmarkIcon, grad: "linear-gradient(135deg,#e9f5ee,#dceede)" },
+  websiteBuild: { label: "WEBSITE BUILD", Icon: CodeIcon, grad: "linear-gradient(135deg,#e6f4f1,#d3ece4)" },
+  video: { label: "VIDEO", Icon: VideoIcon, grad: "linear-gradient(135deg,#1a2a2e,#0e2a2e)" },
 };
 
 const TYPE_OPTIONS = [
+  { key: "writing", label: "Content" },
+  { key: "websiteBuild", label: "Website" },
+  { key: "email", label: "Email" },
+  { key: "event", label: "Event" },
+  { key: "webinar", label: "Webinar" },
+  { key: "conference", label: "Conference" },
+  { key: "summit", label: "Summit" },
+  { key: "campaign", label: "Campaign" },
+  { key: "brandGuideline", label: "Brand Guideline" },
+  { key: "video", label: "Video" },
   { key: "deck", label: "Deck" },
   { key: "image", label: "Image" },
-  { key: "website", label: "Website / App" },
-  { key: "email", label: "Email" },
-  { key: "writing", label: "Writing" },
   { key: "translation", label: "Translation" },
-  { key: "brand", label: "Brand" },
   { key: "designSystem", label: "Design System" },
 ];
 

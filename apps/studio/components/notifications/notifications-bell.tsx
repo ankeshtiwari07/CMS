@@ -3,14 +3,15 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   BellIcon, VideoIcon, FileIcon, MegaphoneIcon, MonitorIcon, CalendarIcon,
-  GlobeIcon, BookmarkIcon, PaletteIcon, MailIcon, ImageIcon, CheckIcon,
+  GlobeIcon, BookmarkIcon, PaletteIcon, MailIcon, ImageIcon, CheckIcon, BuildingIcon,
 } from "@/components/icons";
 
 type Item = { id: string; type: string; title: string; detail?: string; ts: string; href?: string; unread?: boolean };
 
 const ICON: Record<string, any> = {
   video: VideoIcon, writing: FileIcon, campaign: MegaphoneIcon, webinar: MonitorIcon,
-  event: CalendarIcon, website: GlobeIcon, websiteBuild: GlobeIcon, brandGuideline: BookmarkIcon,
+  event: CalendarIcon, conference: CalendarIcon, summit: BuildingIcon,
+  website: GlobeIcon, websiteBuild: GlobeIcon, brandGuideline: BookmarkIcon,
   brand: BookmarkIcon, designSystem: PaletteIcon, email: MailIcon, image: ImageIcon,
   publish: MegaphoneIcon, create: FileIcon, update: FileIcon, delete: FileIcon,
 };

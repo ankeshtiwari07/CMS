@@ -46,6 +46,7 @@ const MODE_META: Partial<Record<Mode, { label: string; Icon: any }>> = {
   video: { label: "Create Video", Icon: VideoIcon },
   conference: { label: "Create Conference", Icon: CalendarIcon },
   summit: { label: "Create Summit", Icon: BuildingIcon },
+  writing: { label: "Create Content", Icon: FileIcon },
 };
 
 const RATIOS = [
@@ -400,9 +401,10 @@ export default function PromptBox() {
               style={{
                 display: "inline-flex", alignItems: "center", gap: 7, height: 38, padding: "0 16px",
                 borderRadius: 999, cursor: "pointer", fontSize: 13.5, fontWeight: 600,
-                border: `1px solid ${on ? "var(--studio-primary)" : "var(--hairline)"}`,
-                background: on ? "var(--mint-pill)" : "#fff",
-                color: on ? "var(--studio-teal-dark)" : "var(--ink)",
+                border: "1px solid transparent",
+                background: on ? "var(--studio-primary)" : "var(--mint-pill)",
+                color: on ? "#ffffff" : "var(--studio-teal-dark)",
+                transition: "background .15s, color .15s",
               }}
             >
               <I size={16} /> {a.label}

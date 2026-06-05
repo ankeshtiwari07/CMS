@@ -37,7 +37,9 @@ COMPOSE="docker compose -f docker-compose.prod.yml"
 [[ -n "$PROFILE" ]] && COMPOSE="$COMPOSE --profile $PROFILE"
 
 echo "==> Building + starting stack ($COMPOSE)"
-"${SSH[@]}" "cd $APP_DIR && $COMPOSE up -d --build"
+# Export GIT_SHA from the freshly-pulled HEAD so the Dockerfile cache-bust layer
+# changes every commit (prevents reusing a stale .next build).
+"${SSH[@]}" "cd $APP_DIR && export GIT_SHA=\$(git rev-parse HEAD) && $COMPOSE up -d --build"
 
 echo "==> Waiting for cms, then bootstrapping schema + seeding admin (idempotent)"
 # Payload's drizzle `push` is dev-gated, so the first run bootstraps the schema

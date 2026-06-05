@@ -20,6 +20,10 @@ COPY packages/blocks/package.json ./packages/blocks/
 RUN pnpm install --frozen-lockfile
 
 # ---- Build all apps ----
+# GIT_SHA changes per commit, so this layer (and everything below: source COPY
+# + builds) is rebuilt on every new commit — never a stale `.next`.
+ARG GIT_SHA=dev
+RUN echo "build $GIT_SHA"
 COPY . .
 # Dummy build-time values so Next/Payload build never needs live services.
 ENV DATABASE_URI=postgres://build:build@localhost:5432/build

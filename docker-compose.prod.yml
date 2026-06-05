@@ -10,6 +10,10 @@ x-app: &app
   build:
     context: .
     dockerfile: Dockerfile
+    args:
+      # Busts the source COPY + build layers whenever the commit changes, so a
+      # deploy can never reuse a stale `.next` build (see deploy-haow.sh).
+      GIT_SHA: ${GIT_SHA:-dev}
   env_file: .env.production
   restart: unless-stopped
   depends_on:

@@ -254,7 +254,7 @@ export default function PromptBox() {
               <PlusIcon size={20} />
             </button>
             {open === "plus" && (
-              <div style={{ ...menuWrap, bottom: 40, left: 0 }}>
+              <div style={{ ...menuWrap, top: 38, left: 0, maxHeight: 360, overflow: "auto" }}>
                 <button style={item} onClick={() => { fileRef.current?.click(); setOpen(null); }}><PaperclipIcon size={17} color="var(--muted)" /> Add photos &amp; files</button>
                 <button style={item} onClick={() => globalThis.dispatchEvent(new CustomEvent("humain:recent"))}><ClockIcon size={17} color="var(--muted)" /> Recent projects</button>
                 <div style={{ height: 1, background: "var(--hairline)", margin: "4px 0" }} />
@@ -284,7 +284,7 @@ export default function PromptBox() {
                   <LayoutAutoIcon size={16} /> {RATIOS.find((r) => r.key === ratio)?.label} <ChevronDownIcon size={14} />
                 </span>
                 {open === "ratio" && (
-                  <div style={{ ...menuWrap, bottom: 40, left: 0, minWidth: 200 }}>
+                  <div style={{ ...menuWrap, top: 42, left: 0, minWidth: 200 }}>
                     <div style={{ padding: "6px 10px", fontSize: 12, color: "var(--muted)", fontWeight: 600 }}>Choose image ratio</div>
                     {RATIOS.map((r) => (
                       <button key={r.key} style={item} onClick={() => { setRatio(r.key); setOpen(null); }}>
@@ -299,7 +299,7 @@ export default function PromptBox() {
               <div style={{ position: "relative" }}>
                 <span style={chip(false)} onClick={() => setOpen(open === "style" ? null : "style")}><PaletteIcon size={16} /> Style</span>
                 {open === "style" && (
-                  <div style={{ ...menuWrap, bottom: 40, left: 0 }}>
+                  <div style={{ ...menuWrap, top: 42, left: 0 }}>
                     <div style={{ padding: "6px 10px", fontSize: 12, color: "var(--muted)", fontWeight: 600 }}>Choose image style</div>
                     {STYLES.map((s) => (
                       <button key={s} style={{ ...item, justifyContent: "space-between" }} onClick={() => { setStyle(s); setOpen(null); }}>

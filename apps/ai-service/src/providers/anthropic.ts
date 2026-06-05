@@ -12,9 +12,11 @@ export class AnthropicProvider implements LlmProvider {
   }
 
   async complete(req: CompleteRequest): Promise<string> {
-    const model = req.fast
-      ? process.env.ANTHROPIC_FAST_MODEL || "claude-haiku-4-5-20251001"
-      : process.env.ANTHROPIC_MODEL || "claude-opus-4-8";
+    const model =
+      req.model ||
+      (req.fast
+        ? process.env.ANTHROPIC_FAST_MODEL || "claude-haiku-4-5-20251001"
+        : process.env.ANTHROPIC_MODEL || "claude-opus-4-8");
     const res = await this.client.messages.create({
       model,
       max_tokens: req.maxTokens ?? 1024,

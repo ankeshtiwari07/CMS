@@ -19,7 +19,7 @@ export async function POST(req: Request) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { mode, prompt, options, fast } = await req.json();
+  const { mode, prompt, options, fast, model } = await req.json();
   if (!prompt) return NextResponse.json({ error: "Prompt is required" }, { status: 400 });
 
   let gen: Response;
@@ -27,7 +27,7 @@ export async function POST(req: Request) {
     gen = await fetch(`${AI_URL}/studio/generate`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ mode, prompt, options, fast }),
+      body: JSON.stringify({ mode, prompt, options, fast, model }),
     });
   } catch {
     return NextResponse.json({ error: "generation_unavailable" }, { status: 502 });
@@ -43,6 +43,7 @@ export async function POST(req: Request) {
         title: String(prompt).slice(0, 60) || "Untitled",
         type: TYPE_MAP[mode] ?? "writing",
         prompt,
+        model: data.modelLabel || model,
         options,
         asset: { text: data.artifact, preview: Boolean(data.preview) },
         status: "ready",
@@ -53,5 +54,11 @@ export async function POST(req: Request) {
     /* non-fatal: generation still returned */
   }
 
-  return NextResponse.json({ ok: true, artifact: data.artifact, preview: Boolean(data.preview) });
+  return NextResponse.json({
+    ok: true,
+    artifact: data.artifact,
+    preview: Boolean(data.preview),
+    model: data.model,
+    modelLabel: data.modelLabel,
+  });
 }

@@ -1,7 +1,7 @@
 import Fastify from "fastify";
 import rateLimit from "@fastify/rate-limit";
 import { z } from "zod";
-import { getProvider } from "./providers/index.js";
+import { getProvider, resolveModel, listModels } from "./providers/index.js";
 import { parseStructured } from "./providers/types.js";
 import { prompts, type PromptId } from "./prompts/library.js";
 
@@ -14,6 +14,9 @@ await app.register(rateLimit, {
 });
 
 app.get("/health", async () => ({ ok: true, provider: provider.name, configured: provider.configured ?? false }));
+
+// Catalog of selectable models + whether each is configured (has its API key).
+app.get("/models", async () => ({ models: listModels() }));
 
 // Run a versioned prompt with schema validation (human-in-the-loop: suggestion only).
 app.post("/run", async (req, reply) => {
@@ -65,39 +68,46 @@ app.post("/studio/generate", async (req) => {
       prompt: z.string().min(1).max(8000),
       options: z.record(z.unknown()).optional(),
       fast: z.boolean().optional(),
+      model: z.string().optional(), // model id from the catalog (/models)
     })
     .parse(req.body);
 
-  if (provider.configured === false) {
+  const preview = (PREVIEW_MODES as readonly string[]).includes(body.mode);
+  // Route to the chosen model's provider (defaults to Claude Opus).
+  const { provider: chosen, model, fast, entry } = resolveModel(body.model);
+
+  if (chosen.configured === false) {
     return {
       ok: true,
       mode: body.mode,
-      preview: (PREVIEW_MODES as readonly string[]).includes(body.mode),
+      model: entry.id,
+      modelLabel: entry.label,
+      preview,
       artifact:
-        "⚙️ The generation model is not configured yet. Set ANTHROPIC_API_KEY on the service to enable live Claude generation. " +
-        `(Requested: ${body.mode} — “${body.prompt.slice(0, 80)}”.)`,
+        `⚙️ ${entry.label} is not configured yet. Add the ${entry.provider.toUpperCase()} API key on the ai-service ` +
+        `to enable it, or pick another model. (Requested: ${body.mode} — “${body.prompt.slice(0, 80)}”.)`,
     };
   }
 
-  const preview = (PREVIEW_MODES as readonly string[]).includes(body.mode);
   const system = preview
     ? `You are HUMAIN Create Studio. The user wants to create a ${body.mode}. This build generates a detailed CONCEPT PREVIEW (layout, content, visual direction) — not a rendered ${body.mode}. Produce a structured brief.`
     : systemFor[body.mode] ?? systemFor.writing;
 
   try {
-    const out = await provider.complete({
+    const out = await chosen.complete({
       system,
       messages: [{ role: "user", content: body.prompt }],
       maxTokens: preview ? 1500 : 2048,
-      fast: body.fast,
+      model,
+      fast: body.fast ?? fast,
     });
-    return { ok: true, mode: body.mode, preview, artifact: out };
+    return { ok: true, mode: body.mode, model: entry.id, modelLabel: entry.label, preview, artifact: out };
   } catch (e: any) {
     // Surface provider errors (e.g. billing/credit, rate limit) as a readable
     // artifact rather than a generic failure, so the Studio UI can show it.
     const msg = e?.error?.error?.message || e?.message || "Generation failed.";
-    req.log.warn({ err: msg }, "studio/generate provider error");
-    return { ok: true, mode: body.mode, preview, artifact: `⚠️ ${msg}` };
+    req.log.warn({ err: msg, model: entry.id }, "studio/generate provider error");
+    return { ok: true, mode: body.mode, model: entry.id, modelLabel: entry.label, preview, artifact: `⚠️ ${msg}` };
   }
 });
 

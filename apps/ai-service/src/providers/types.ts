@@ -5,6 +5,7 @@ export interface CompleteRequest {
   messages: { role: "user" | "assistant"; content: string }[];
   maxTokens?: number;
   fast?: boolean;
+  model?: string; // explicit provider model id (overrides fast/default)
 }
 export interface LlmProvider {
   name: string;

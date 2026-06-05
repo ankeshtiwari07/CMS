@@ -18,9 +18,11 @@ const RATIOS = [
   { key: "widescreen", label: "Widescreen", hint: "16:9" },
 ];
 const STYLES = ["No style", "Abstract", "Risograph", "Vector Art", "Photorealistic"];
-const MODELS = [
-  { label: "Claude Opus 4.8", fast: false },
-  { label: "Claude Haiku 4.5", fast: true },
+
+type ModelOpt = { id: string; label: string; family: string; fast: boolean; configured: boolean };
+const FALLBACK_MODELS: ModelOpt[] = [
+  { id: "claude-opus-4-8", label: "Claude Opus 4.8", family: "Claude", fast: false, configured: true },
+  { id: "claude-haiku-4-5", label: "Claude Haiku 4.5", family: "Claude", fast: true, configured: true },
 ];
 
 function fmtSize(n: number) {
@@ -37,10 +39,13 @@ export default function PromptBox() {
   const [deckFormat, setDeckFormat] = useState<"html" | "image">("html");
   const [files, setFiles] = useState<Att[]>([]);
   const [busy, setBusy] = useState(false);
-  const [out, setOut] = useState<{ text: string; preview?: boolean } | null>(null);
+  const [out, setOut] = useState<{ text: string; preview?: boolean; model?: string } | null>(null);
   const [listening, setListening] = useState(false);
-  const [model, setModel] = useState(0);
+  const [models, setModels] = useState<ModelOpt[]>(FALLBACK_MODELS);
+  const [modelId, setModelId] = useState("claude-opus-4-8");
   const [open, setOpen] = useState<null | "plus" | "ratio" | "style" | "model" | "suggest">(null);
+
+  const current = models.find((m) => m.id === modelId) || models[0];
 
   const recRef = useRef<any>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -72,6 +77,15 @@ export default function PromptBox() {
     globalThis.addEventListener("humain:prefill", prefill);
     globalThis.addEventListener("humain:newchat", newChat);
     globalThis.addEventListener("humain:addfiles", addFiles);
+
+    // Load the model catalog (Claude / GPT / Grok / Gemini) + configured status.
+    fetch("/api/models")
+      .then((r) => r.json())
+      .then((d) => {
+        if (Array.isArray(d.models) && d.models.length) setModels(d.models);
+      })
+      .catch(() => {});
+
     return () => {
       globalThis.removeEventListener("humain:prefill", prefill);
       globalThis.removeEventListener("humain:newchat", newChat);
@@ -111,13 +125,13 @@ export default function PromptBox() {
         body: JSON.stringify({
           mode: aiMode,
           prompt,
-          fast: MODELS[model].fast,
-          options: { ratio, style, deckFormat, model: MODELS[model].label, files: files.map((f) => f.name), attachments },
+          model: modelId,
+          options: { ratio, style, deckFormat, modelLabel: current?.label, files: files.map((f) => f.name), attachments },
         }),
       });
       const data = await res.json();
       if (!res.ok) setOut({ text: data.error || "Generation failed." });
-      else setOut({ text: data.artifact ?? "No output.", preview: data.preview });
+      else setOut({ text: data.artifact ?? "No output.", preview: data.preview, model: data.modelLabel || current?.label });
     } catch {
       setOut({ text: "Could not reach the generation service." });
     }
@@ -270,22 +284,38 @@ export default function PromptBox() {
 
           <span style={{ flex: 1 }} />
 
-          {/* model selector (Claude) */}
+          {/* model selector — Claude / GPT / Grok / Gemini */}
           <div style={{ position: "relative" }}>
             <button
               onClick={() => setOpen(open === "model" ? null : "model")}
               style={{ display: "inline-flex", alignItems: "center", gap: 6, height: 34, padding: "0 12px", border: "none", borderRadius: 999, background: "var(--mint-pill)", color: "var(--studio-teal-dark)", fontSize: 13.5, fontWeight: 700, cursor: "pointer" }}
             >
-              {MODELS[model].label} <ChevronDownIcon size={15} />
+              {current?.label ?? "Model"} <ChevronDownIcon size={15} />
             </button>
             {open === "model" && (
-              <div style={{ ...menuWrap, bottom: 40, right: 0, minWidth: 200 }}>
-                <div style={{ padding: "6px 10px", fontSize: 12, color: "var(--muted)", fontWeight: 600 }}>Model</div>
-                {MODELS.map((m, i) => (
-                  <button key={m.label} style={{ ...item, justifyContent: "space-between" }} onClick={() => { setModel(i); setOpen(null); }}>
-                    <span>{m.label}</span>{model === i && <CheckIcon size={15} color="var(--studio-primary)" />}
-                  </button>
-                ))}
+              <div style={{ ...menuWrap, bottom: 40, right: 0, minWidth: 248, maxHeight: 360, overflow: "auto" }}>
+                <div style={{ padding: "6px 10px", fontSize: 12, color: "var(--muted)", fontWeight: 600 }}>Choose a model</div>
+                {models.map((m) => {
+                  const active = m.id === modelId;
+                  return (
+                    <button
+                      key={m.id}
+                      onClick={() => { setModelId(m.id); setOpen(null); }}
+                      title={m.configured ? "" : "Add this provider's API key to enable"}
+                      style={{ ...item, justifyContent: "space-between", opacity: m.configured ? 1 : 0.55 }}
+                    >
+                      <span style={{ display: "flex", flexDirection: "column", lineHeight: 1.25 }}>
+                        <span style={{ fontWeight: 600 }}>{m.label}</span>
+                        <span style={{ fontSize: 11, color: "var(--muted)" }}>
+                          {m.family}{m.fast ? " · fast" : ""}{m.configured ? "" : " · key needed"}
+                        </span>
+                      </span>
+                      {active ? <CheckIcon size={15} color="var(--studio-primary)" />
+                        : !m.configured ? <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#d1d5db" }} />
+                        : <span style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--studio-primary)" }} />}
+                    </button>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -321,7 +351,7 @@ export default function PromptBox() {
       {busy && (
         <div style={{ marginTop: 18, background: "#fff", border: "1px solid var(--hairline)", borderRadius: 18, padding: 18, display: "flex", alignItems: "center", gap: 12, color: "var(--studio-teal-dark)" }}>
           <span className="humain-spin" style={{ width: 18, height: 18, border: "2.5px solid var(--mint-pill)", borderTopColor: "var(--studio-primary)", borderRadius: "50%", display: "inline-block" }} />
-          <span style={{ fontWeight: 600 }}>Generating with {MODELS[model].label}…</span>
+          <span style={{ fontWeight: 600 }}>Generating with {current?.label ?? "Claude"}…</span>
           <style>{`@keyframes humain-spin{to{transform:rotate(360deg)}}.humain-spin{animation:humain-spin .7s linear infinite}`}</style>
         </div>
       )}
@@ -332,7 +362,7 @@ export default function PromptBox() {
             {out.preview ? (
               <span style={{ display: "inline-block", fontSize: 11.5, fontWeight: 700, letterSpacing: "0.06em", color: "var(--studio-teal-dark)", background: "var(--mint-pill)", padding: "4px 10px", borderRadius: 999 }}>CONCEPT PREVIEW</span>
             ) : (
-              <span style={{ fontSize: 12, color: "var(--muted)", fontWeight: 600 }}>{MODELS[model].label}</span>
+              <span style={{ fontSize: 12, color: "var(--muted)", fontWeight: 600 }}>{out.model ?? current?.label}</span>
             )}
             <button onClick={() => navigator.clipboard?.writeText(out.text)} style={{ border: "1px solid var(--hairline)", background: "#fff", borderRadius: 8, padding: "5px 10px", fontSize: 12.5, color: "var(--ink)", cursor: "pointer" }}>Copy</button>
           </div>

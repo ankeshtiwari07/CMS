@@ -13,6 +13,12 @@ const TYPE_MAP: Record<string, string> = {
   brand: "brand",
   designSystem: "designSystem",
   deck: "deck",
+  event: "event",
+  webinar: "webinar",
+  campaign: "campaign",
+  brandGuideline: "brandGuideline",
+  websiteBuild: "websiteBuild",
+  video: "video",
 };
 
 export async function POST(req: Request) {
@@ -45,7 +51,7 @@ export async function POST(req: Request) {
         prompt,
         model: data.modelLabel || model,
         options,
-        asset: { text: data.artifact, preview: Boolean(data.preview) },
+        asset: { text: data.artifact, preview: Boolean(data.preview), html: Boolean(data.html), video: Boolean(data.video), videoPrompt: data.videoPrompt },
         status: "ready",
         owner: user.id,
       }),
@@ -58,6 +64,10 @@ export async function POST(req: Request) {
     ok: true,
     artifact: data.artifact,
     preview: Boolean(data.preview),
+    html: Boolean(data.html),
+    video: Boolean(data.video),
+    videoPrompt: data.videoPrompt,
+    renderPending: Boolean(data.renderPending),
     model: data.model,
     modelLabel: data.modelLabel,
   });

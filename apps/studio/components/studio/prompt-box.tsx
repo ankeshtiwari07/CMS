@@ -3,11 +3,28 @@ import { useEffect, useRef, useState } from "react";
 import {
   PlusIcon, ImageIcon, LayoutAutoIcon, PaletteIcon, MicIcon, ChevronDownIcon, ArrowUpIcon,
   PaperclipIcon, ClockIcon, MonitorIcon, GlobeIcon, MailIcon, TranslateIcon, GridIcon,
-  CodeIcon, CheckIcon, XIcon, FileIcon, SquareIcon, SparkIcon,
+  CodeIcon, CheckIcon, XIcon, FileIcon, SquareIcon, SparkIcon, CalendarIcon, MegaphoneIcon,
+  BookmarkIcon, VideoIcon,
 } from "@/components/icons";
 
-type Mode = "auto" | "image" | "deck" | "website" | "email" | "writing" | "translation" | "designSystem";
+type Mode =
+  | "auto" | "image" | "deck" | "website" | "email" | "writing" | "translation" | "designSystem"
+  | "event" | "webinar" | "campaign" | "brandGuideline" | "websiteBuild" | "video";
 type Att = { name: string; size: number; text?: string };
+
+// Active-mode chip metadata (label + icon) for the secondary modes.
+const MODE_META: Partial<Record<Mode, { label: string; Icon: any }>> = {
+  website: { label: "Create Website", Icon: GlobeIcon },
+  email: { label: "Create Email", Icon: MailIcon },
+  translation: { label: "Translate", Icon: TranslateIcon },
+  designSystem: { label: "Design System", Icon: PaletteIcon },
+  event: { label: "Create Event", Icon: CalendarIcon },
+  webinar: { label: "Create Webinar", Icon: MonitorIcon },
+  campaign: { label: "Build Campaign", Icon: MegaphoneIcon },
+  brandGuideline: { label: "Brand Guideline", Icon: BookmarkIcon },
+  websiteBuild: { label: "Build Website", Icon: CodeIcon },
+  video: { label: "Create Video", Icon: VideoIcon },
+};
 
 const RATIOS = [
   { key: "auto", label: "Auto", hint: "" },
@@ -39,7 +56,9 @@ export default function PromptBox() {
   const [deckFormat, setDeckFormat] = useState<"html" | "image">("html");
   const [files, setFiles] = useState<Att[]>([]);
   const [busy, setBusy] = useState(false);
-  const [out, setOut] = useState<{ text: string; preview?: boolean; model?: string } | null>(null);
+  const [out, setOut] = useState<
+    { text: string; preview?: boolean; model?: string; html?: boolean; video?: boolean; videoPrompt?: string } | null
+  >(null);
   const [listening, setListening] = useState(false);
   const [models, setModels] = useState<ModelOpt[]>(FALLBACK_MODELS);
   const [modelId, setModelId] = useState("claude-opus-4-8");
@@ -131,7 +150,14 @@ export default function PromptBox() {
       });
       const data = await res.json();
       if (!res.ok) setOut({ text: data.error || "Generation failed." });
-      else setOut({ text: data.artifact ?? "No output.", preview: data.preview, model: data.modelLabel || current?.label });
+      else setOut({
+        text: data.artifact ?? "No output.",
+        preview: data.preview,
+        model: data.modelLabel || current?.label,
+        html: data.html,
+        video: data.video,
+        videoPrompt: data.videoPrompt,
+      });
     } catch {
       setOut({ text: "Could not reach the generation service." });
     }
@@ -219,8 +245,14 @@ export default function PromptBox() {
                 <div style={{ height: 1, background: "var(--hairline)", margin: "4px 0" }} />
                 <button style={item} onClick={() => { setMode("deck"); setOpen(null); }}><MonitorIcon size={17} color="var(--muted)" /> Create Deck</button>
                 <button style={item} onClick={() => { setMode("image"); setOpen(null); }}><ImageIcon size={17} color="var(--muted)" /> Create Image</button>
-                <button style={item} onClick={() => { setMode("website"); setOpen(null); }}><GlobeIcon size={17} color="var(--muted)" /> Create Website</button>
+                <button style={item} onClick={() => { setMode("video"); setOpen(null); }}><VideoIcon size={17} color="var(--muted)" /> Create Video</button>
+                <button style={item} onClick={() => { setMode("websiteBuild"); setOpen(null); }}><CodeIcon size={17} color="var(--muted)" /> Build Website</button>
+                <button style={item} onClick={() => { setMode("website"); setOpen(null); }}><GlobeIcon size={17} color="var(--muted)" /> Website Copy</button>
                 <button style={item} onClick={() => { setMode("email"); setOpen(null); }}><MailIcon size={17} color="var(--muted)" /> Create Email</button>
+                <button style={item} onClick={() => { setMode("event"); setOpen(null); }}><CalendarIcon size={17} color="var(--muted)" /> Create Event</button>
+                <button style={item} onClick={() => { setMode("webinar"); setOpen(null); }}><MonitorIcon size={17} color="var(--muted)" /> Create Webinar</button>
+                <button style={item} onClick={() => { setMode("campaign"); setOpen(null); }}><MegaphoneIcon size={17} color="var(--muted)" /> Build Campaign</button>
+                <button style={item} onClick={() => { setMode("brandGuideline"); setOpen(null); }}><BookmarkIcon size={17} color="var(--muted)" /> Brand Guideline</button>
                 <button style={item} onClick={() => { globalThis.dispatchEvent(new CustomEvent("humain:prefill", { detail: { mode: "auto" } })); setOpen(null); }}><GridIcon size={17} color="var(--muted)" /> Use template</button>
                 <button style={item} onClick={() => { setMode("designSystem"); setOpen(null); }}><PaletteIcon size={17} color="var(--muted)" /> Design System</button>
                 <button style={item} onClick={() => { setMode("translation"); setOpen(null); }}><TranslateIcon size={17} color="var(--muted)" /> Translate</button>
@@ -272,13 +304,10 @@ export default function PromptBox() {
               <span style={chip(deckFormat === "image")} onClick={() => setDeckFormat("image")}><ImageIcon size={16} /> Image</span>
             </>
           )}
-          {(mode === "website" || mode === "email" || mode === "translation" || mode === "designSystem") && (
+          {MODE_META[mode] && (
             <span style={chip(true)} onClick={() => setMode("auto")}>
               <XIcon size={14} />
-              {mode === "website" && <><GlobeIcon size={16} /> Create Website</>}
-              {mode === "email" && <><MailIcon size={16} /> Create Email</>}
-              {mode === "translation" && <><TranslateIcon size={16} /> Translate</>}
-              {mode === "designSystem" && <><PaletteIcon size={16} /> Design System</>}
+              {(() => { const M = MODE_META[mode]!; const I = M.Icon; return <><I size={16} /> {M.label}</>; })()}
             </span>
           )}
 
@@ -359,14 +388,105 @@ export default function PromptBox() {
       {!busy && out && (
         <div style={{ marginTop: 18, background: "#fff", border: "1px solid var(--hairline)", borderRadius: 18, padding: 18 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-            {out.preview ? (
-              <span style={{ display: "inline-block", fontSize: 11.5, fontWeight: 700, letterSpacing: "0.06em", color: "var(--studio-teal-dark)", background: "var(--mint-pill)", padding: "4px 10px", borderRadius: 999 }}>CONCEPT PREVIEW</span>
-            ) : (
+            <span style={{ display: "inline-flex", gap: 8, alignItems: "center" }}>
+              {out.preview && <span style={badge}>CONCEPT PREVIEW</span>}
+              {out.html && <span style={badge}>LIVE HTML</span>}
+              {out.video && <span style={badge}>VIDEO</span>}
               <span style={{ fontSize: 12, color: "var(--muted)", fontWeight: 600 }}>{out.model ?? current?.label}</span>
-            )}
-            <button onClick={() => navigator.clipboard?.writeText(out.text)} style={{ border: "1px solid var(--hairline)", background: "#fff", borderRadius: 8, padding: "5px 10px", fontSize: 12.5, color: "var(--ink)", cursor: "pointer" }}>Copy</button>
+            </span>
+            <span style={{ display: "flex", gap: 8 }}>
+              {out.html && (
+                <button onClick={() => { const w = window.open(); if (w) { w.document.write(out.text); w.document.close(); } }}
+                  style={btnSm}>Open</button>
+              )}
+              <button onClick={() => navigator.clipboard?.writeText(out.text)} style={btnSm}>Copy</button>
+            </span>
           </div>
-          <div style={{ whiteSpace: "pre-wrap", color: "var(--ink)", lineHeight: 1.6, fontSize: 15 }}>{out.text}</div>
+
+          {out.html ? (
+            <iframe
+              title="Website preview"
+              srcDoc={out.text}
+              style={{ width: "100%", height: 520, border: "1px solid var(--hairline)", borderRadius: 12, background: "#fff" }}
+            />
+          ) : (
+            <div style={{ whiteSpace: "pre-wrap", color: "var(--ink)", lineHeight: 1.6, fontSize: 15 }}>{out.text}</div>
+          )}
+
+          {out.video && <VideoRender prompt={out.videoPrompt || prompt} />}
+        </div>
+      )}
+    </div>
+  );
+}
+
+const badge: React.CSSProperties = {
+  display: "inline-block", fontSize: 11.5, fontWeight: 700, letterSpacing: "0.06em",
+  color: "var(--studio-teal-dark)", background: "var(--mint-pill)", padding: "4px 10px", borderRadius: 999,
+};
+const btnSm: React.CSSProperties = {
+  border: "1px solid var(--hairline)", background: "#fff", borderRadius: 8, padding: "5px 10px",
+  fontSize: 12.5, color: "var(--ink)", cursor: "pointer",
+};
+
+// Real text-to-video render panel: starts a render job and polls until done.
+function VideoRender({ prompt }: { prompt: string }) {
+  const [state, setState] = useState<{ status: string; url?: string; message?: string } | null>(null);
+  const [busy, setBusy] = useState(false);
+  const pollRef = useRef<any>(null);
+
+  useEffect(() => () => clearTimeout(pollRef.current), []);
+
+  async function poll(id: string) {
+    try {
+      const res = await fetch(`/api/video/status/${id}`);
+      const d = await res.json();
+      setState(d);
+      if (d.status === "processing") pollRef.current = setTimeout(() => poll(id), 4000);
+      else setBusy(false);
+    } catch {
+      setState({ status: "failed", message: "Lost connection to the render service." });
+      setBusy(false);
+    }
+  }
+
+  async function render() {
+    setBusy(true); setState({ status: "starting" });
+    try {
+      const res = await fetch("/api/video/render", {
+        method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ prompt }),
+      });
+      const d = await res.json();
+      setState(d);
+      if (d.status === "processing" && d.id) poll(d.id);
+      else setBusy(false);
+    } catch {
+      setState({ status: "failed", message: "Could not reach the render service." });
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div style={{ marginTop: 16, borderTop: "1px solid var(--hairline)", paddingTop: 16 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+        <span style={{ fontSize: 13.5, fontWeight: 600, color: "var(--ink)" }}>🎬 Render this as a real video</span>
+        <button onClick={render} disabled={busy}
+          style={{ height: 38, padding: "0 16px", borderRadius: 10, border: "none", background: "var(--studio-primary)", color: "#fff", fontSize: 13.5, fontWeight: 700, cursor: busy ? "default" : "pointer" }}>
+          {busy ? "Rendering…" : "Render video"}
+        </button>
+      </div>
+      {state && state.status !== "starting" && (
+        <div style={{ marginTop: 12 }}>
+          {state.status === "processing" && <div style={{ color: "var(--studio-teal-dark)", fontSize: 13.5 }}>⏳ Rendering on the video model — this can take a minute…</div>}
+          {state.status === "succeeded" && state.url && (
+            <video src={state.url} controls style={{ width: "100%", borderRadius: 12, background: "#000" }} />
+          )}
+          {(state.status === "unconfigured" || state.status === "failed") && (
+            <div style={{ fontSize: 13, color: "var(--muted)", background: "#f8f9fa", border: "1px solid var(--hairline)", borderRadius: 10, padding: "10px 12px" }}>
+              {state.message || "Render unavailable."}
+            </div>
+          )}
         </div>
       )}
     </div>

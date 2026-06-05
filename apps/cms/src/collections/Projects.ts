@@ -9,7 +9,8 @@ export const Projects: CollectionConfig = {
   fields: [
     { name: "title", type: "text", required: true },
     { name: "type", type: "select", required: true,
-      options: ["deck", "image", "website", "email", "brand", "designSystem", "writing", "translation"] },
+      options: ["deck", "image", "website", "email", "brand", "designSystem", "writing", "translation",
+        "event", "webinar", "campaign", "brandGuideline", "websiteBuild", "video"] },
     { name: "prompt", type: "textarea" },
     { name: "model", type: "text" },
     { name: "options", type: "json" },

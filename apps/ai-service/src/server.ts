@@ -4,6 +4,7 @@ import { z } from "zod";
 import { getProvider, resolveModel, listModels } from "./providers/index.js";
 import { parseStructured } from "./providers/types.js";
 import { prompts, type PromptId } from "./prompts/library.js";
+import { startRender, pollRender, videoConfigured } from "./providers/video.js";
 
 const app = Fastify({ logger: true, bodyLimit: 1_000_000 });
 const provider = getProvider();
@@ -16,7 +17,19 @@ await app.register(rateLimit, {
 app.get("/health", async () => ({ ok: true, provider: provider.name, configured: provider.configured ?? false }));
 
 // Catalog of selectable models + whether each is configured (has its API key).
-app.get("/models", async () => ({ models: listModels() }));
+app.get("/models", async () => ({ models: listModels(), videoConfigured }));
+
+// ---- Video rendering (text-to-video) ----
+// Start a render from a text prompt (usually the VIDEO_PROMPT from /studio/generate).
+app.post("/video/render", async (req) => {
+  const body = z.object({ prompt: z.string().min(1).max(2000) }).parse(req.body);
+  return startRender(body.prompt);
+});
+// Poll a render job.
+app.get("/video/status/:id", async (req) => {
+  const { id } = z.object({ id: z.string().min(1) }).parse(req.params);
+  return pollRender(id);
+});
 
 // Run a versioned prompt with schema validation (human-in-the-loop: suggestion only).
 app.post("/run", async (req, reply) => {
@@ -48,8 +61,17 @@ app.post("/embed", async (req) => {
   return { ok: true, vectors, dim: vectors[0]?.length ?? 0 };
 });
 
-const TEXT_MODES = ["website", "email", "writing", "translation", "brand", "designSystem"] as const;
+const TEXT_MODES = [
+  "website", "email", "writing", "translation", "brand", "designSystem",
+  // Wave A additions:
+  "event", "webinar", "campaign", "brandGuideline", "websiteBuild", "video",
+] as const;
 const PREVIEW_MODES = ["image", "deck"] as const;
+
+// Modes whose output is raw HTML rendered in a live in-app preview.
+const HTML_MODES: readonly string[] = ["websiteBuild"];
+// Modes that produce long structured documents — give them more tokens.
+const LONG_MODES: readonly string[] = ["campaign", "brandGuideline", "websiteBuild", "video", "event", "webinar"];
 
 const systemFor: Record<string, string> = {
   website: "You are HUMAIN Create Studio. Generate clean, production-ready landing-page copy and a section outline. On-brand and concise.",
@@ -58,6 +80,17 @@ const systemFor: Record<string, string> = {
   translation: "You are HUMAIN Create Studio. Translate faithfully between English and Arabic, preserving tone and meaning.",
   brand: "You are HUMAIN Create Studio. Propose a concise brand voice and messaging system.",
   designSystem: "You are HUMAIN Create Studio. Propose design tokens (color, type, spacing) as structured notes.",
+  event: "You are HUMAIN Create Studio. Produce a complete EVENT package with clear markdown headings: Title & tagline; Overview; Audience; Agenda (with timings); Speakers; Logistics (date/venue/format); Registration CTA; and three short promo blurbs (LinkedIn, email subject+preview, X/Twitter). Concise, on-brand, action-oriented.",
+  webinar: "You are HUMAIN Create Studio. Produce a complete WEBINAR package with markdown headings: Title & hook; Who it's for; Learning outcomes (3-5 bullets); Run-of-show (minute-by-minute agenda); Speaker bios; Registration page copy; Reminder email; and Follow-up email. Concise and compelling.",
+  campaign: "You are HUMAIN Create Studio. Produce an integrated marketing CAMPAIGN with markdown headings: Big idea; Objective & KPIs; Target audience & insight; Key messages & proof points; Channel plan (web, email, social, paid, PR); 4-week content calendar (as a table); Hero headline + 3 variations; and primary CTAs. Practical and on-brand.",
+  brandGuideline: "You are HUMAIN Create Studio, an expert brand strategist. Produce a structured BRAND GUIDELINE with markdown headings: Brand Essence (one line); Positioning statement; Personality & values; Voice & tone (with do/don't); Messaging pillars (3-4); Color palette (list each with HEX and usage); Typography (headline + body recommendations); Logo usage (do & don't); Imagery & art direction; Iconography; and Example applications. Be specific and usable; include concrete hex codes and font names.",
+  websiteBuild:
+    "You are HUMAIN Create Studio, an expert front-end engineer. Build a COMPLETE, responsive, single-file landing page. " +
+    "Return ONLY valid HTML starting with <!doctype html> and nothing else (no markdown fences, no commentary). " +
+    "Use inline <style> with modern CSS (flex/grid, system font stack), on-brand for HUMAIN (primary teal #00A18B, dark ink #0B1416, lime accent #C2E54B, generous whitespace, rounded corners). " +
+    "Include: a sticky header with logo text 'HUMAIN' and nav, a hero with headline+subhead+CTA, a 3-up features section, a stats or logos strip, a testimonial, a closing CTA band, and a footer. Use semantic HTML and real, specific copy based on the user's request.",
+  video:
+    "You are HUMAIN Create Studio, a creative director. Produce a production-ready VIDEO package with markdown headings: Logline (one sentence); Concept & tone; Target duration; Script (scene-by-scene — for each scene give Visual, Voiceover/Dialogue, On-screen text); Shot list; Storyboard notes (describe each key frame); Music & pacing; and a single line beginning 'VIDEO_PROMPT:' followed by one vivid paragraph (<500 chars) suitable for a generative text-to-video model. Make it shootable.",
 };
 
 // Studio generation. Text modes -> Claude. Image/deck -> concept preview (Claude-only build).
@@ -89,19 +122,33 @@ app.post("/studio/generate", async (req) => {
     };
   }
 
+  const html = HTML_MODES.includes(body.mode);
+  const long = LONG_MODES.includes(body.mode);
   const system = preview
     ? `You are HUMAIN Create Studio. The user wants to create a ${body.mode}. This build generates a detailed CONCEPT PREVIEW (layout, content, visual direction) — not a rendered ${body.mode}. Produce a structured brief.`
     : systemFor[body.mode] ?? systemFor.writing;
 
   try {
-    const out = await chosen.complete({
+    let out = await chosen.complete({
       system,
       messages: [{ role: "user", content: body.prompt }],
-      maxTokens: preview ? 1500 : 2048,
+      maxTokens: preview ? 1500 : long ? 4096 : 2048,
       model,
       fast: body.fast ?? fast,
     });
-    return { ok: true, mode: body.mode, model: entry.id, modelLabel: entry.label, preview, artifact: out };
+    // For HTML builds, strip any stray markdown fences so the preview iframe is clean.
+    if (html) out = out.replace(/^```html\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "").trim();
+    // Video mode: extract the text-to-video prompt so the render pipeline can use it.
+    let videoPrompt: string | undefined;
+    if (body.mode === "video") {
+      const m = out.match(/VIDEO_PROMPT:\s*([\s\S]+?)(?:\n\n|$)/i);
+      videoPrompt = (m?.[1] || body.prompt).trim().slice(0, 500);
+    }
+    return {
+      ok: true, mode: body.mode, model: entry.id, modelLabel: entry.label, preview,
+      html, artifact: out,
+      ...(body.mode === "video" ? { video: true, videoPrompt, renderPending: true } : {}),
+    };
   } catch (e: any) {
     // Surface provider errors (e.g. billing/credit, rate limit) as a readable
     // artifact rather than a generic failure, so the Studio UI can show it.

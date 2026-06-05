@@ -29,19 +29,12 @@ export default async function ProjectsPage() {
       <Sidebar user={{ name: user.name, email: user.email, roles: user.roles }} active="projects" />
       <main style={{ flex: 1, padding: "10px 10px 10px 0" }}>
         <div style={{ minHeight: "calc(100vh - 20px)", borderRadius: 22, background: "#fff", border: "1px solid var(--hairline)", padding: "36px 40px" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
-            <h1 style={{ fontSize: 24, fontWeight: 700, color: "var(--ink)", margin: 0 }}>Projects</h1>
-            <a href="/studio" style={{ fontSize: 14, color: "var(--studio-primary)", fontWeight: 600, textDecoration: "none" }}>+ Create new</a>
-          </div>
-          <p style={{ color: "var(--muted)", fontSize: 13.5, margin: "0 0 24px" }}>{projects.length} project{projects.length === 1 ? "" : "s"} from Create Studio.</p>
+          <h1 style={{ fontSize: 24, fontWeight: 700, color: "var(--ink)", margin: 0 }}>Projects</h1>
+          <p style={{ color: "var(--muted)", fontSize: 13.5, margin: "4px 0 24px" }}>
+            {projects.length} project{projects.length === 1 ? "" : "s"} · click <strong style={{ color: "var(--studio-teal-dark)" }}>New project</strong> to create one with Claude or start blank.
+          </p>
 
-          {projects.length === 0 ? (
-            <div style={{ textAlign: "center", color: "var(--muted)", padding: "60px 0" }}>
-              No projects yet. <a href="/studio" style={{ color: "var(--studio-primary)", fontWeight: 600 }}>Create your first one →</a>
-            </div>
-          ) : (
-            <ProjectsGrid projects={projects} />
-          )}
+          <ProjectsGrid projects={projects} />
         </div>
       </main>
     </div>

@@ -2081,6 +2081,17 @@ export interface Setting {
     ga4MeasurementId?: string | null;
     gtmContainerId?: string | null;
   };
+  theme?: {
+    primary?: string | null;
+    primaryDark?: string | null;
+    accent?: string | null;
+    ink?: string | null;
+    canvas?: string | null;
+    muted?: string | null;
+    font?: string | null;
+    radius?: number | null;
+    mode?: ('light' | 'dark') | null;
+  };
   updatedAt?: string | null;
   createdAt?: string | null;
 }
@@ -2134,6 +2145,19 @@ export interface SettingsSelect<T extends boolean = true> {
     | {
         ga4MeasurementId?: T;
         gtmContainerId?: T;
+      };
+  theme?:
+    | T
+    | {
+        primary?: T;
+        primaryDark?: T;
+        accent?: T;
+        ink?: T;
+        canvas?: T;
+        muted?: T;
+        font?: T;
+        radius?: T;
+        mode?: T;
       };
   updatedAt?: T;
   createdAt?: T;

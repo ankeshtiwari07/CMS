@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/payload";
+import { getCurrentUser, hasRole, payloadFetch } from "@/lib/payload";
 import Sidebar from "@/components/studio/sidebar";
 import { HumainWordmark } from "@/components/brand";
+import ThemeBuilder, { DEFAULT_THEME, type Theme } from "@/components/design/theme-builder";
 
 export const metadata = { title: "Design System · HUMAIN" };
 export const dynamic = "force-dynamic";
@@ -46,16 +47,39 @@ function Swatches({ title, items }: { title: string; items: string[][] }) {
   );
 }
 
+async function loadTheme(): Promise<Theme> {
+  try {
+    const res = await payloadFetch("/api/globals/settings?depth=0");
+    if (res.ok) {
+      const data = await res.json();
+      if (data?.theme) return { ...DEFAULT_THEME, ...data.theme };
+    }
+  } catch {
+    /* ignore */
+  }
+  return { ...DEFAULT_THEME };
+}
+
 export default async function DesignPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
+  const theme = await loadTheme();
+  const canSave = hasRole(user, ["publisher", "admin"]);
+
   return (
     <div style={{ display: "flex", minHeight: "100vh", background: "#eef4f3" }}>
       <Sidebar user={{ name: user.name, email: user.email, roles: user.roles }} active="design" />
       <main style={{ flex: 1, padding: "10px 10px 10px 0" }}>
         <div style={{ minHeight: "calc(100vh - 20px)", borderRadius: 22, background: "#fff", border: "1px solid var(--hairline)", padding: "36px 40px" }}>
           <h1 style={{ fontSize: 24, fontWeight: 700, color: "var(--ink)", margin: "0 0 4px" }}>Design System</h1>
-          <p style={{ color: "var(--muted)", fontSize: 13.5, margin: "0 0 26px" }}>HUMAIN brand tokens — the single source of truth shared by both surfaces.</p>
+          <p style={{ color: "var(--muted)", fontSize: 13.5, margin: "0 0 26px" }}>Build your own theme — pick colors, type and radius, watch the live preview, and save it.</p>
+
+          <ThemeBuilder initial={theme} canSave={canSave} />
+
+          <hr style={{ border: "none", borderTop: "1px solid var(--hairline)", margin: "34px 0 28px" }} />
+
+          <h2 style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)", margin: "0 0 4px" }}>Brand reference</h2>
+          <p style={{ color: "var(--muted)", fontSize: 13, margin: "0 0 22px" }}>The default HUMAIN tokens shared by both surfaces.</p>
 
           <div style={{ marginBottom: 28 }}>
             <h3 style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", margin: "0 0 12px" }}>Logo</h3>

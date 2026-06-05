@@ -60,6 +60,22 @@ export const GlobalSettings: GlobalConfig = {
         { name: "gtmContainerId", type: "text" },
       ],
     },
+    // User-built design theme (edited live in the Design System screen).
+    {
+      name: "theme",
+      type: "group",
+      fields: [
+        { name: "primary", type: "text", defaultValue: "#00A18B" },
+        { name: "primaryDark", type: "text", defaultValue: "#0E7C6B" },
+        { name: "accent", type: "text", defaultValue: "#C2E54B" },
+        { name: "ink", type: "text", defaultValue: "#1A1A1A" },
+        { name: "canvas", type: "text", defaultValue: "#FFFFFF" },
+        { name: "muted", type: "text", defaultValue: "#6B7280" },
+        { name: "font", type: "text", defaultValue: "Inter" },
+        { name: "radius", type: "number", defaultValue: 18 },
+        { name: "mode", type: "select", defaultValue: "light", options: ["light", "dark"] },
+      ],
+    },
   ],
 };
 

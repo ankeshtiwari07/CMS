@@ -162,6 +162,11 @@ export const XIcon = ({ size, color, stroke }: P) => (
     <path d="M6 6l12 12M18 6 6 18" />
   </svg>
 );
+export const TrashIcon = ({ size, color, stroke }: P) => (
+  <svg {...base(size, color, stroke)}>
+    <path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M6 7l1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13M10 11v6M14 11v6" />
+  </svg>
+);
 export const FileIcon = ({ size, color, stroke }: P) => (
   <svg {...base(size, color, stroke)}>
     <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" />

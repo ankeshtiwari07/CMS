@@ -24,26 +24,33 @@ const TYPE_MAP: Record<string, string> = {
 const clean = (s: string) =>
   String(s || "").replace(/<[^>]+>/g, "").replace(/[*_`>#]/g, "").replace(/\s+/g, " ").trim();
 
-// Generic section words that make poor titles — skip to the next heading/line.
-const GENERIC = /^(logline|overview|concept|title|introduction|summary|brand essence|tagline|subject)\b/i;
+// Generic section labels that make poor titles (esp. video: Logline, Script…).
+const GENERIC = /^(logline|overview|concept|concept & tone|title|introduction|summary|brand essence|tagline|subject|target duration|duration|script|shot list|storyboard|storyboard notes|music|music & pacing|pacing|video prompt|english|arabic|who it'?s for|learning outcomes|agenda|run.?of.?show|positioning|personality|voice|values)\b/i;
+
+// Last meaningful line of the prompt (skips any brand preamble / leading context).
+function promptTail(prompt: string): string {
+  const pl = String(prompt || "").split("\n").map(clean).filter(Boolean);
+  return (pl[pl.length - 1] || "Untitled").slice(0, 80);
+}
 
 // Derive a clean project title from the generated output (heading / <title> /
 // first real line), falling back to the meaningful tail of the prompt.
 function deriveTitle(artifact: string, mode: string, prompt: string): string {
   const text = String(artifact || "");
+  // Error / not-configured artifacts shouldn't become the title.
+  if (/^\s*[⚠⚙]/.test(text)) return promptTail(prompt);
   if (mode === "websiteBuild" || /^\s*<!doctype/i.test(text)) {
     const t = text.match(/<title[^>]*>([^<]+)<\/title>/i)?.[1] || text.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i)?.[1];
     if (t && clean(t)) return clean(t).slice(0, 80);
   }
-  // Collect candidate lines: markdown headings first, then any non-empty line.
   const lines = text.split("\n").map(clean).filter(Boolean);
   const headings = text.split("\n").map((l) => l.match(/^\s*#{1,3}\s+(.+)$/)?.[1]).filter(Boolean).map((s) => clean(s!));
-  for (const h of headings) if (h && !GENERIC.test(h)) return h.slice(0, 80);
-  for (const l of lines) if (l && !GENERIC.test(l) && l.length > 3) return l.slice(0, 80);
+  // A non-generic first heading is the document title (articles, events, brand…).
+  if (headings[0] && !GENERIC.test(headings[0])) return headings[0].slice(0, 80);
+  // Otherwise the doc is section-first (e.g. video) — use the first real sentence.
+  for (const l of lines) if (!GENERIC.test(l) && l.length > 8) return l.slice(0, 80);
   if (headings[0]) return headings[0].slice(0, 80);
-  // Fallback: last non-empty line of the prompt (skips any brand preamble).
-  const pl = String(prompt || "").split("\n").map(clean).filter(Boolean);
-  return (pl[pl.length - 1] || "Untitled").slice(0, 80);
+  return promptTail(prompt);
 }
 
 export async function POST(req: Request) {

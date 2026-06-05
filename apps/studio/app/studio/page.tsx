@@ -17,7 +17,7 @@ function greeting(name?: string) {
 
 async function recentProjects(): Promise<Project[]> {
   try {
-    const res = await payloadFetch("/api/projects?sort=-updatedAt&limit=5&depth=0");
+    const res = await payloadFetch("/api/projects?sort=-createdAt&limit=5&depth=0");
     if (!res.ok) return [];
     const data = await res.json();
     return (data.docs ?? []).map((d: any) => ({ id: d.id, title: d.title, type: d.type, updatedAt: d.updatedAt }));

@@ -12,7 +12,7 @@ export default async function ProjectsPage() {
 
   let projects: Project[] = [];
   try {
-    const res = await payloadFetch("/api/projects?sort=-updatedAt&limit=60&depth=0");
+    const res = await payloadFetch("/api/projects?sort=-createdAt&limit=60&depth=0");
     if (res.ok) {
       projects = ((await res.json()).docs ?? []).map((d: any) => ({
         id: d.id, title: d.title, type: d.type, updatedAt: d.updatedAt,

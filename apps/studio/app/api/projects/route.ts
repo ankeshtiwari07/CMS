@@ -6,7 +6,7 @@ const TYPES = ["deck", "image", "website", "email", "brand", "designSystem", "wr
 // List the current user's projects.
 export async function GET() {
   if (!(await getCurrentUser())) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const res = await payloadFetch("/api/projects?sort=-updatedAt&limit=60&depth=0");
+  const res = await payloadFetch("/api/projects?sort=-createdAt&limit=60&depth=0");
   const data = res.ok ? await res.json() : { docs: [] };
   return NextResponse.json({ projects: data.docs ?? [] });
 }

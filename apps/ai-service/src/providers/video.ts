@@ -42,9 +42,11 @@ const unconfigured: RenderStatus = {
 const pickId = (d: any) => d?.id || d?.generation_id || d?.data?.id || d?.generation?.id;
 const pickState = (d: any) => (d?.state || d?.status || d?.data?.state || "").toString().toLowerCase();
 const pickUrl = (d: any) =>
-  d?.assets?.video || d?.output?.video || d?.video_url || d?.url || d?.data?.url ||
+  d?.assets?.video || d?.output?.video || d?.video_url || d?.data?.url ||
+  (typeof d?.output === "string" ? d.output : undefined) ||
   (Array.isArray(d?.output) ? d.output[d.output.length - 1] : undefined) ||
-  (d?.assets && typeof d.assets === "object" ? Object.values(d.assets)[0] : undefined);
+  (typeof d?.url === "string" ? d.url : undefined) ||
+  (d?.assets && typeof d.assets === "object" ? Object.values(d.assets).find((v) => typeof v === "string") : undefined);
 const DONE = ["completed", "succeeded", "success", "done", "finished"];
 const FAIL = ["failed", "error", "canceled", "cancelled"];
 

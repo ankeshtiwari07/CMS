@@ -89,6 +89,23 @@ export default function PromptBox() {
 
   const recRef = useRef<any>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  // Close any open menu (+, ratio, style, model, suggestions) on an outside
+  // click or Escape.
+  useEffect(() => {
+    if (open === null) return;
+    const onDown = (e: MouseEvent) => {
+      if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(null);
+    };
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(null); };
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
 
   function focusPrompt() {
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -225,7 +242,7 @@ export default function PromptBox() {
   const hasText = prompt.trim().length > 0;
 
   return (
-    <div style={{ width: "100%", maxWidth: 840, margin: "0 auto", position: "relative" }}>
+    <div ref={rootRef} style={{ width: "100%", maxWidth: 840, margin: "0 auto", position: "relative" }}>
       <input ref={fileRef} type="file" multiple hidden onChange={(e) => onFiles(e.target.files)} />
 
       <div style={{ border: "1.5px solid var(--studio-primary)", borderRadius: 16, background: "#fff", padding: "14px 16px 12px" }}>

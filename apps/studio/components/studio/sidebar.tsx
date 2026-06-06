@@ -151,9 +151,16 @@ export default function Sidebar({
         transition: "width .16s ease",
       }}
     >
-      {/* Brand + collapse toggle */}
+      {/* Brand (links to landing page) + collapse toggle */}
       <div style={{ display: "flex", flexDirection: collapsed ? "column" : "row", alignItems: "center", gap: collapsed ? 12 : 0, justifyContent: "space-between", marginBottom: 14, minHeight: 40 }}>
-        {collapsed ? <HumainMark size={24} color="var(--ink)" /> : <HumainLockup color="var(--ink)" />}
+        <button
+          onClick={() => router.push("/studio")}
+          aria-label="HUMAIN home"
+          title="Home"
+          style={{ background: "none", border: "none", padding: 0, cursor: "pointer", display: "grid", placeItems: "center" }}
+        >
+          {collapsed ? <HumainMark size={24} color="var(--ink)" /> : <HumainLockup color="var(--ink)" />}
+        </button>
         <button
           onClick={toggle}
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}

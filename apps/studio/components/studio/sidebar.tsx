@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { HumainLockup, HumainMark } from "@/components/brand";
 import NotificationsBell from "@/components/notifications/notifications-bell";
@@ -71,6 +71,27 @@ export default function Sidebar({
   const [menu, setMenu] = useState(false);
   const [createMenu, setCreateMenu] = useState(false);
   const [hover, setHover] = useState<string | null>(null);
+  const createRef = useRef<HTMLDivElement>(null);
+  const userRef = useRef<HTMLDivElement>(null);
+
+  // Close the open menus on an outside click or Escape.
+  useEffect(() => {
+    if (!createMenu && !menu) return;
+    const onDown = (e: MouseEvent) => {
+      const t = e.target as Node;
+      if (createMenu && createRef.current && !createRef.current.contains(t)) setCreateMenu(false);
+      if (menu && userRef.current && !userRef.current.contains(t)) setMenu(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") { setCreateMenu(false); setMenu(false); }
+    };
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [createMenu, menu]);
 
   function runCreate(o: { mode?: string; href?: string; action?: string }) {
     setCreateMenu(false);
@@ -131,7 +152,7 @@ export default function Sidebar({
       }}
     >
       {/* Brand + collapse toggle */}
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 14, minHeight: 40 }}>
+      <div style={{ display: "flex", flexDirection: collapsed ? "column" : "row", alignItems: "center", gap: collapsed ? 12 : 0, justifyContent: "space-between", marginBottom: 14, minHeight: 40 }}>
         {collapsed ? <HumainMark size={24} color="var(--ink)" /> : <HumainLockup color="var(--ink)" />}
         <button
           onClick={toggle}
@@ -141,9 +162,11 @@ export default function Sidebar({
             border: "none",
             background: "transparent",
             color: "var(--muted)",
-            display: collapsed ? "none" : "grid",
+            display: "grid",
             placeItems: "center",
             padding: 4,
+            cursor: "pointer",
+            transform: collapsed ? "rotate(180deg)" : "none",
           }}
         >
           <PanelLeftIcon size={20} />
@@ -155,7 +178,7 @@ export default function Sidebar({
         {NAV.map(({ key, Icon, label, href }) => {
           if (key === "create") {
             return (
-              <div key={key} style={{ position: "relative" }}>
+              <div key={key} ref={createRef} style={{ position: "relative" }}>
                 <button
                   title={collapsed ? "Create new" : undefined}
                   onClick={() => setCreateMenu((v) => !v)}
@@ -220,7 +243,7 @@ export default function Sidebar({
       <NotificationsBell variant="sidebar" collapsed={collapsed} />
 
       {/* User block */}
-      <div style={{ position: "relative", marginTop: 4 }}>
+      <div ref={userRef} style={{ position: "relative", marginTop: 4 }}>
         <button
           onClick={() => setMenu((m) => !m)}
           style={{

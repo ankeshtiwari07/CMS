@@ -214,6 +214,7 @@ async function execTool(
       system: sp.system,
       messages: [{ role: "user", content: `${input.instruction}${input.context ? `\n\n---\nContext:\n${input.context}` : ""}` }],
       maxTokens: 2048,
+      fast: true, // specialists run on the fast model to keep cost low
     });
     trace.push({ kind: "agent", name: sp.label, detail: String(input.instruction || "").slice(0, 80) });
     return out;
@@ -240,6 +241,7 @@ async function execTool(
       system: CONTENT_BUILDER_SYSTEM,
       messages: [{ role: "user", content: `Content type: ${input.contentType}\n${input.brief}\n\n${lang}` }],
       maxTokens: 4096,
+      fast: true,
     });
     let doc: DocArtifact;
     try {
@@ -262,7 +264,7 @@ async function execTool(
   }
   if (name === "build_video") {
     onEvent?.({ type: "status", label: "Video Agent" });
-    const out = await provider.complete({ system: VIDEO_SYSTEM, messages: [{ role: "user", content: String(input.brief || "") }], maxTokens: 4096 });
+    const out = await provider.complete({ system: VIDEO_SYSTEM, messages: [{ role: "user", content: String(input.brief || "") }], maxTokens: 4096, fast: true });
     const m = out.match(/VIDEO_PROMPT:\s*([\s\S]+?)(?:\n\n|$)/i);
     const videoPrompt = (m?.[1] || input.brief || "").trim().slice(0, 500);
     trace.push({ kind: "agent", name: "Video Agent", detail: String(input.title || input.brief || "video").slice(0, 80) });
@@ -278,7 +280,7 @@ async function execTool(
   }
   if (name === "build_brand") {
     onEvent?.({ type: "status", label: "Brand Agent" });
-    const raw = await provider.complete({ system: BRAND_SYSTEM, messages: [{ role: "user", content: String(input.brief || "") }], maxTokens: 4096 });
+    const raw = await provider.complete({ system: BRAND_SYSTEM, messages: [{ role: "user", content: String(input.brief || "") }], maxTokens: 4096, fast: true });
     let brand: any;
     try {
       const j = JSON.parse(stripJson(raw));
@@ -292,7 +294,7 @@ async function execTool(
   }
   if (name === "build_theme") {
     onEvent?.({ type: "status", label: "Design Agent" });
-    const raw = await provider.complete({ system: prompts["theme@v1"].system, messages: [{ role: "user", content: String(input.brief || "") }], maxTokens: 1024 });
+    const raw = await provider.complete({ system: prompts["theme@v1"].system, messages: [{ role: "user", content: String(input.brief || "") }], maxTokens: 1024, fast: true });
     let theme: any = null;
     try { theme = JSON.parse(stripJson(raw)); } catch { theme = null; }
     if (!theme) return "Could not generate a valid theme. Ask the user to rephrase the look & feel.";

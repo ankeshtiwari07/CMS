@@ -30,7 +30,16 @@ type Turn = {
   video?: boolean;
   videoPrompt?: string;
   model?: string;
+  streaming?: boolean;
 };
+
+// Text modes stream a conversational, agentic reply (token-by-token). The rich
+// artifact modes (websiteBuild → iframe, video → render panel, image/deck →
+// concept preview) keep the one-shot /api/generate path.
+const STREAM_MODES: Mode[] = [
+  "auto", "writing", "website", "email", "translation", "designSystem",
+  "event", "webinar", "campaign", "brandGuideline", "conference", "summit",
+];
 
 // Active-mode chip metadata (label + icon) for the secondary modes.
 const MODE_META: Partial<Record<Mode, { label: string; Icon: any }>> = {
@@ -168,6 +177,17 @@ export default function PromptBox() {
     setFiles((p) => [...p, ...next]);
   }
 
+  // Update the most recent assistant turn (used while streaming tokens in).
+  function patchLastAssistant(fn: (t: Turn) => Turn) {
+    setTurns((p) => {
+      const i = p.length - 1;
+      if (i < 0 || p[i].role !== "assistant") return p;
+      const next = p.slice();
+      next[i] = fn(next[i]);
+      return next;
+    });
+  }
+
   async function generate() {
     if (!prompt.trim() || busy) return;
     const userText = prompt.trim();
@@ -178,18 +198,60 @@ export default function PromptBox() {
     const attachments = files.filter((f) => f.text).map((f) => ({ name: f.name, text: f.text }));
     // Build conversation context from the last few turns (text only, truncated).
     const history = turns.slice(-6).map((t) => ({ role: t.role, content: (t.text || "").slice(0, 6000) }));
+    const options = { ratio, style, deckFormat, modelLabel: current?.label, files: files.map((f) => f.name), attachments };
     setTurns((p) => [...p, { role: "user", text: userText, mode }]);
+
+    // ---- Conversational, streaming, agentic path (text modes) ----
+    if (STREAM_MODES.includes(mode)) {
+      setTurns((p) => [...p, { role: "assistant", text: "", mode, model: current?.label, streaming: true }]);
+      try {
+        const res = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ mode: aiMode, prompt: userText, model: modelId, history, options }),
+        });
+        if (!res.ok || !res.body) {
+          const d = await res.json().catch(() => ({}));
+          patchLastAssistant((t) => ({ ...t, text: d.error || "Generation failed.", streaming: false }));
+          setBusy(false);
+          return;
+        }
+        const reader = res.body.getReader();
+        const dec = new TextDecoder();
+        let buf = "";
+        for (;;) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          buf += dec.decode(value, { stream: true });
+          let idx: number;
+          while ((idx = buf.indexOf("\n\n")) !== -1) {
+            const raw = buf.slice(0, idx);
+            buf = buf.slice(idx + 2);
+            const line = raw.startsWith("data:") ? raw.slice(5).trim() : raw.trim();
+            if (!line) continue;
+            let ev: any;
+            try { ev = JSON.parse(line); } catch { continue; }
+            if (ev.type === "delta") patchLastAssistant((t) => ({ ...t, text: (t.text || "") + ev.text }));
+            else if (ev.type === "reset") patchLastAssistant((t) => ({ ...t, text: "" }));
+            else if (ev.type === "error") patchLastAssistant((t) => ({ ...t, text: `${t.text ? t.text + "\n\n" : ""}⚠️ ${ev.message}`, streaming: false }));
+            else if (ev.type === "done") patchLastAssistant((t) => ({ ...t, model: ev.modelLabel || t.model, streaming: false }));
+            // "status" / "agents" events carry agent activity — no visual change.
+          }
+        }
+        patchLastAssistant((t) => ({ ...t, streaming: false }));
+      } catch {
+        patchLastAssistant((t) => ({ ...t, text: "Could not reach the generation service.", streaming: false }));
+      }
+      setBusy(false);
+      return;
+    }
+
+    // ---- Rich artifact modes (websiteBuild / video / image / deck) ----
     try {
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          mode: aiMode,
-          prompt: userText,
-          model: modelId,
-          history,
-          options: { ratio, style, deckFormat, modelLabel: current?.label, files: files.map((f) => f.name), attachments },
-        }),
+        body: JSON.stringify({ mode: aiMode, prompt: userText, model: modelId, history, options }),
       });
       const data = await res.json();
       if (!res.ok) setTurns((p) => [...p, { role: "assistant", text: data.error || "Generation failed." }]);
@@ -458,7 +520,7 @@ export default function PromptBox() {
               <AssistantTurn key={i} t={t} />
             ),
           )}
-          {busy && (
+          {busy && turns[turns.length - 1]?.role !== "assistant" && (
             <div style={{ background: "#fff", border: "1px solid var(--hairline)", borderRadius: 18, padding: 18, display: "flex", alignItems: "center", gap: 12, color: "var(--studio-teal-dark)" }}>
               <span className="humain-spin" style={{ width: 18, height: 18, border: "2.5px solid var(--mint-pill)", borderTopColor: "var(--studio-primary)", borderRadius: "50%", display: "inline-block" }} />
               <span style={{ fontWeight: 600 }}>Generating with {current?.label ?? "Claude"}…</span>
@@ -492,7 +554,17 @@ function AssistantTurn({ t }: { t: Turn }) {
       {t.html ? (
         <iframe title="Website preview" srcDoc={t.text} style={{ width: "100%", height: 520, border: "1px solid var(--hairline)", borderRadius: 12, background: "#fff" }} />
       ) : (
-        <div style={{ whiteSpace: "pre-wrap", color: "var(--ink)", lineHeight: 1.6, fontSize: 15 }}>{t.text}</div>
+        <div style={{ whiteSpace: "pre-wrap", color: "var(--ink)", lineHeight: 1.6, fontSize: 15 }}>
+          {t.streaming && !t.text ? (
+            <span style={{ color: "var(--muted)" }}>Thinking…</span>
+          ) : (
+            <>
+              {t.text}
+              {t.streaming && <span className="humain-caret" style={{ color: "var(--studio-primary)", fontWeight: 700 }}>▌</span>}
+            </>
+          )}
+          {t.streaming && <style>{`@keyframes humain-blink{0%,100%{opacity:1}50%{opacity:0}}.humain-caret{animation:humain-blink 1s step-end infinite}`}</style>}
+        </div>
       )}
       {t.video && <VideoRender prompt={t.videoPrompt || t.text} />}
     </div>

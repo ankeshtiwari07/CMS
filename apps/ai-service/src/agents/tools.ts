@@ -1,0 +1,60 @@
+// Governed tools the agents act through. Each is permission-scoped to read-only
+// grounding (RAG over HUMAIN's own content + brand) and degrades gracefully so a
+// missing DB / CMS never breaks a conversation.
+import { Pool } from "pg";
+import { embedTexts } from "../providers/embeddings.js";
+
+const pool = new Pool({ connectionString: process.env.DATABASE_URI });
+const CMS = process.env.CMS_BASE_URL || "http://localhost:3001";
+
+export type ToolOutput = { ok: boolean; text: string };
+
+// RAG: semantic, Arabic-aware retrieval over indexed HUMAIN content (pgvector).
+export async function retrieveContext(query: string, locale = "en", limit = 5): Promise<ToolOutput> {
+  try {
+    const [vec] = await embedTexts([query]);
+    const { rows } = await pool.query(
+      `SELECT entity, entity_id, content, 1 - (vector <=> $1) AS score
+         FROM embeddings WHERE locale = $2
+         ORDER BY vector <=> $1 LIMIT $3`,
+      [JSON.stringify(vec), locale, limit],
+    );
+    if (!rows.length) {
+      return { ok: true, text: "No indexed HUMAIN content matched this query. Proceed from the brief and brand guidance." };
+    }
+    const text = rows
+      .map((r: any, i: number) => `[${i + 1}] ${r.entity} (relevance ${Number(r.score).toFixed(2)})\n${String(r.content).slice(0, 800)}`)
+      .join("\n\n");
+    return { ok: true, text };
+  } catch (e: any) {
+    return { ok: false, text: `retrieve_context unavailable (${e?.message || e}). Proceed without retrieval.` };
+  }
+}
+
+// Fetch HUMAIN brand voice / messaging / visual tokens to keep output on-brand.
+export async function getBrandGuidelines(): Promise<ToolOutput> {
+  const fallback =
+    "No brand guidelines record found. Apply HUMAIN defaults — voice: confident, clear, forward-looking; " +
+    "colours: primary teal #00A18B, dark ink #0B1416, lime accent #C2E54B; generous whitespace, rounded corners.";
+  try {
+    const res = await fetch(`${CMS}/api/brand-guidelines?limit=3&depth=0`);
+    if (!res.ok) return { ok: false, text: fallback };
+    const data: any = await res.json();
+    const docs = data?.docs ?? [];
+    if (!docs.length) return { ok: true, text: fallback };
+    return { ok: true, text: JSON.stringify(docs).slice(0, 3000) };
+  } catch {
+    return { ok: false, text: fallback };
+  }
+}
+
+// Audit one agentic run (mirrors the AuditLog collection schema; best-effort).
+export async function auditAgentRun(summary: string, diff: unknown): Promise<void> {
+  await pool
+    .query(
+      `INSERT INTO audit_log(summary, action, collection_slug, document_id, "user", diff, created_at, updated_at)
+       VALUES($1, 'update', 'agent', '-', 'agent-orchestrator', $2, now(), now())`,
+      [summary, JSON.stringify(diff)],
+    )
+    .catch(() => {});
+}

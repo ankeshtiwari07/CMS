@@ -1,10 +1,11 @@
 import Fastify from "fastify";
 import rateLimit from "@fastify/rate-limit";
 import { z } from "zod";
-import { getProvider, resolveModel, listModels } from "./providers/index.js";
+import { getProvider, resolveModel, listModels, providerByName } from "./providers/index.js";
 import { parseStructured } from "./providers/types.js";
 import { prompts, type PromptId } from "./prompts/library.js";
 import { startRender, pollRender, videoConfigured } from "./providers/video.js";
+import { runOrchestrator } from "./agents/orchestrator.js";
 
 const app = Fastify({ logger: true, bodyLimit: 1_000_000 });
 const provider = getProvider();
@@ -164,6 +165,71 @@ app.post("/studio/generate", async (req) => {
     req.log.warn({ err: msg, model: entry.id }, "studio/generate provider error");
     return { ok: true, mode: body.mode, model: entry.id, modelLabel: entry.label, preview, artifact: `⚠️ ${msg}` };
   }
+});
+
+// Conversational, streaming, agentic chat. Same inputs as /studio/generate, but
+// the Orchestrator agent converses (asks one clarifying question when the request
+// is ambiguous), grounds itself via governed tools, delegates to specialists, and
+// streams the reply token-by-token (Server-Sent Events). Text modes use this; the
+// rich artifact modes (websiteBuild/video/image/deck) keep /studio/generate.
+app.post("/studio/chat", async (req, reply) => {
+  const body = z
+    .object({
+      mode: z.string().default("auto"),
+      prompt: z.string().min(1).max(8000),
+      model: z.string().optional(),
+      options: z.record(z.unknown()).optional(),
+      history: z
+        .array(z.object({ role: z.enum(["user", "assistant"]), content: z.string().max(8000) }))
+        .max(16)
+        .optional(),
+    })
+    .parse(req.body);
+
+  reply.hijack();
+  reply.raw.writeHead(200, {
+    "content-type": "text/event-stream",
+    "cache-control": "no-cache, no-transform",
+    connection: "keep-alive",
+    "x-accel-buffering": "no",
+  });
+  const send = (e: unknown) => reply.raw.write(`data: ${JSON.stringify(e)}\n\n`);
+
+  const { entry, model } = resolveModel(body.model);
+  const agentic = providerByName(entry.provider);
+  if (agentic.configured === false) {
+    send({ type: "delta", text: `⚙️ ${entry.label} is not configured. Add its API key on the ai-service, or pick another model.` });
+    send({ type: "done", model: entry.id, modelLabel: entry.label, artifact: "" });
+    return reply.raw.end();
+  }
+  // The agent runtime (tool-use loop) runs on Claude; if a non-Anthropic model is
+  // selected we still orchestrate on the default Claude model.
+  const useModel = entry.provider === "anthropic" ? model : (process.env.ANTHROPIC_MODEL || "claude-opus-4-8");
+
+  const deliverableSpec =
+    body.mode === "auto" || body.mode === "writing"
+      ? "You are a general creative & content assistant. Help with whatever the user asks — answer, brainstorm, or produce the requested content, formatted appropriately in clean markdown."
+      : systemFor[body.mode] ?? systemFor.writing;
+
+  const history = (body.history ?? []).map((m) => ({ role: m.role, content: m.content }));
+  let collected = "";
+  try {
+    await runOrchestrator({
+      deliverableSpec,
+      conversational: true,
+      messages: [...history, { role: "user", content: body.prompt }],
+      model: useModel,
+      maxTokens: LONG_MODES.includes(body.mode) ? 4096 : 2048,
+      onText: (d) => { collected += d; send({ type: "delta", text: d }); },
+      onEvent: (e) => { if (e.type === "reset") collected = ""; send(e); },
+    });
+    send({ type: "done", model: entry.id, modelLabel: entry.label, artifact: collected });
+  } catch (e: any) {
+    const msg = e?.error?.error?.message || e?.message || "Generation failed.";
+    req.log.warn({ err: msg, model: entry.id }, "studio/chat agent error");
+    send({ type: "error", message: msg });
+  }
+  reply.raw.end();
 });
 
 const port = Number(process.env.PORT || 4000);

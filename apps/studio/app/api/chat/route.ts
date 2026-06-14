@@ -53,24 +53,28 @@ export async function POST(req: Request) {
   let artifact = "";
   let modelLabel = "";
   let builtHtml = "";
+  let builtDoc: any = null;
 
   const stream = new ReadableStream({
     async pull(controller) {
       const { value, done } = await reader.read();
       if (done) {
-        if ((artifact && !/^\s*[⚠⚙]/.test(artifact)) || builtHtml) {
+        const hasContent = (artifact && !/^\s*[⚠⚙]/.test(artifact)) || builtHtml || builtDoc;
+        if (hasContent) {
+          const title = builtDoc?.title || deriveTitle(builtHtml || artifact, prompt);
+          const assetText = builtDoc?.bodyMarkdown || artifact;
           try {
             await fetch(`${CMS_URL}/api/projects`, {
               method: "POST",
               cache: "no-store",
               headers: { "content-type": "application/json", ...(token ? { Authorization: `JWT ${token}` } : {}) },
               body: JSON.stringify({
-                title: deriveTitle(builtHtml || artifact, prompt),
-                type: builtHtml ? "websiteBuild" : mode && mode !== "auto" ? mode : "writing",
+                title,
+                type: builtHtml ? "websiteBuild" : builtDoc ? "writing" : mode && mode !== "auto" ? mode : "writing",
                 prompt,
                 model: modelLabel || body.model,
                 options,
-                asset: { text: artifact, ...(builtHtml ? { html: true } : {}) },
+                asset: { text: assetText, ...(builtHtml ? { html: true } : {}) },
                 status: "ready",
                 owner: user.id,
               }),
@@ -94,6 +98,7 @@ export async function POST(req: Request) {
           const ev = JSON.parse(line);
           if (ev.type === "done") { artifact = ev.artifact || artifact; modelLabel = ev.modelLabel || modelLabel; }
           else if (ev.type === "artifact" && ev.kind === "html") builtHtml = ev.html || builtHtml;
+          else if (ev.type === "artifact" && ev.kind === "doc") builtDoc = ev.doc || builtDoc;
         } catch {
           /* ignore partial */
         }

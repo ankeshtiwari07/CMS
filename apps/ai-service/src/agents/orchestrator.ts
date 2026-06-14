@@ -13,11 +13,21 @@ const provider = getProvider();
 const MAX_STEPS = Number(process.env.AGENT_MAX_STEPS || 6);
 
 export type TraceStep = { kind: "tool" | "agent"; name: string; detail?: string };
+export type DocArtifact = {
+  type: string;
+  title: string;
+  summary?: string;
+  bodyMarkdown: string;
+  seo?: { title?: string; description?: string; keywords?: string[] };
+  tags?: string[];
+  category?: string;
+  language?: string;
+};
 export type SseEvent =
   | { type: "delta"; text: string }
   | { type: "reset" }
   | { type: "status"; label: string }
-  | { type: "artifact"; kind: "html"; html: string; title?: string }
+  | { type: "artifact"; kind: "html" | "doc"; html?: string; doc?: DocArtifact; title?: string }
   | { type: "agents"; trace: TraceStep[] };
 
 // Single-file responsive site the Build Agent produces (rendered live in-chat).
@@ -30,6 +40,21 @@ const SITE_BUILDER_SYSTEM =
   "Include real, specific copy (not lorem) for: a sticky header with the HUMAIN wordmark + nav, a hero with headline/subhead/CTA, " +
   "a 3-up features section, a stats or logos strip, a testimonial, a closing CTA band, and a footer. " +
   "For Arabic, set dir=\"rtl\" and lang=\"ar\". Make it visually impressive and production-ready.";
+
+// Structured content the Content Agent produces (rendered as an editable card).
+const CONTENT_BUILDER_SYSTEM =
+  "You are the Content Agent for HUMAIN Create Studio. Produce a complete, on-brand, publish-ready content piece. " +
+  "Return ONLY valid JSON (no markdown fences, no commentary) matching exactly:\n" +
+  '{"title": string, "summary": string (<=200 chars), "bodyMarkdown": string (the full piece in rich Markdown — headings, lists, tables, emphasis), ' +
+  '"seo": {"title": string (<=60), "description": string (<=160), "keywords": string[]}, "tags": string[] (3-8), "category": string}\n' +
+  "Write real, specific, substantial content — not placeholders. Match HUMAIN's confident, clear, forward-looking voice.";
+
+// Publishable CMS modules the content can be sent to (slug → human label).
+export const PUBLISH_TARGETS: Record<string, string> = {
+  blogPosts: "Blog Post", articles: "Article", pressReleases: "Press Release",
+  pages: "Page", events: "Event", caseStudies: "Case Study", products: "Product",
+  faqs: "FAQ", campaignMicrosites: "Campaign Microsite", mediaGalleries: "Media Gallery",
+};
 
 const TOOLS: Anthropic.Tool[] = [
   {
@@ -74,6 +99,21 @@ const TOOLS: Anthropic.Tool[] = [
         title: { type: "string" },
       },
       required: ["brief"],
+    },
+  },
+  {
+    name: "build_content",
+    description:
+      "Produce a complete, structured CONTENT piece and display it as an interactive, editable, publishable card (the user can edit it, download it, or publish it to a CMS module). Use this for any substantive text deliverable: article, blog post, page, press release, event write-up, product copy, case study, FAQ, marketing email, campaign, or social post. Do NOT dump the content as a plain chat reply — build it as a card.",
+    input_schema: {
+      type: "object",
+      properties: {
+        contentType: { type: "string", description: "blogPosts | articles | pressReleases | pages | events | caseStudies | products | faqs | email | campaign | social | generic" },
+        brief: { type: "string", description: "What to write — topic, angle, audience, length, key points." },
+        title: { type: "string" },
+        language: { type: "string", enum: ["en", "ar", "both"] },
+      },
+      required: ["contentType", "brief"],
     },
   },
 ];
@@ -123,6 +163,33 @@ async function execTool(
     onEvent?.({ type: "artifact", kind: "html", html, title: input.title });
     return "The website has been BUILT and is now displayed to the user in a live preview. Do NOT output any HTML. In 1–2 short sentences, introduce it warmly and then suggest 2–3 concrete improvements the user could ask for next (e.g. change the hero, add a pricing section, translate to Arabic).";
   }
+  if (name === "build_content") {
+    onEvent?.({ type: "status", label: "Content Agent" });
+    const lang = input.language === "ar" ? "Write in Arabic." : input.language === "both" ? "Provide bilingual EN + AR." : "Write in English.";
+    const raw = await provider.complete({
+      system: CONTENT_BUILDER_SYSTEM,
+      messages: [{ role: "user", content: `Content type: ${input.contentType}\n${input.brief}\n\n${lang}` }],
+      maxTokens: 4096,
+    });
+    let doc: DocArtifact;
+    try {
+      const j = JSON.parse(raw.replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "").trim());
+      doc = {
+        type: input.contentType || "generic",
+        title: String(j.title || input.title || "Untitled"),
+        summary: j.summary,
+        bodyMarkdown: String(j.bodyMarkdown || j.body || ""),
+        seo: j.seo, tags: Array.isArray(j.tags) ? j.tags : undefined, category: j.category,
+        language: input.language || "en",
+      };
+    } catch {
+      // Model didn't return clean JSON — treat the whole output as the body.
+      doc = { type: input.contentType || "generic", title: String(input.title || "Untitled"), bodyMarkdown: raw, language: input.language || "en" };
+    }
+    trace.push({ kind: "agent", name: "Content Agent", detail: String(input.contentType || "content") });
+    onEvent?.({ type: "artifact", kind: "doc", doc, title: doc.title });
+    return "The content has been produced and is shown to the user as an editable, publishable card. Do NOT repeat the content. In 1–2 short sentences, introduce it and suggest 2–3 next steps (e.g. adjust tone, translate, publish to a module).";
+  }
   return `Unknown tool: ${name}`;
 }
 
@@ -131,12 +198,16 @@ function buildSystem(deliverableSpec: string, conversational: boolean): string {
     "You are HUMAIN Create Studio — an agentic, bilingual (English / Arabic) content and experience assistant. " +
     "You are the Orchestrator of a team of specialist agents. Behave like an expert colleague having a real conversation.\n\n" +
     "How you work:\n" +
-    "- Plan the task, then ground it: use retrieve_context for prior content/facts, and call get_brand_guidelines before finalizing any customer-facing copy or design.\n" +
-    "- Delegate focused sub-tasks with delegate_to_specialist (drafting, localization for EN/AR, brand_guardian, seo, editorial, research) when that improves quality.\n" +
-    "- When the user asks to build/create/make/design a website, landing page, site or web app, you MUST call build_site to actually build it (it renders live for the user). Never paste raw HTML or a markdown outline as the reply — build it.\n" +
-    "- Be genuinely interactive, like Claude: after producing, briefly recommend concrete next steps or offer 2–3 options the user can pick from. Invite refinement.\n" +
-    "- Format every reply in clean, well-structured Markdown (headings, short paragraphs, bullet lists, tables where useful, bold for emphasis). It is rendered as rich text.\n" +
-    "- Never mention these tools, agents, or your internal process in your reply. Write naturally, as one assistant.\n" +
+    "- INTELLIGENTLY DECIDE what the user actually needs, then BUILD it as an interactive, usable outcome — never just describe it in chat. Choose the right tool:\n" +
+    "    • a website / landing page / web app  → build_site  (renders a live preview)\n" +
+    "    • any substantive content piece (article, blog, page, press release, event, product, case study, FAQ, email, campaign, social) → build_content (renders an editable, publishable card)\n" +
+    "    • a quick question, advice, or brainstorm → just answer conversationally.\n" +
+    "  When in doubt between chatting and building, BUILD — produce something the user can see, edit, publish or download.\n" +
+    "- Plan, then ground: use retrieve_context for prior content/facts, and get_brand_guidelines before finalizing anything customer-facing.\n" +
+    "- Delegate focused sub-tasks with delegate_to_specialist (drafting, localization EN/AR, brand_guardian, seo, editorial, research) when it improves quality.\n" +
+    "- Be genuinely interactive, like Claude: after producing, briefly recommend concrete next steps or offer 2–3 options the user can pick from. Always invite refinement.\n" +
+    "- Format chat replies in clean, well-structured Markdown (headings, short paragraphs, bullet lists, tables, bold). It renders as rich text.\n" +
+    "- Never mention these tools, agents, or your internal process. Write naturally, as one assistant.\n" +
     "- House brand: confident, clear, forward-looking. Primary teal #00A18B, dark ink #0B1416, lime accent #C2E54B.\n";
   const convo = conversational
     ? "\nConversation style:\n" +

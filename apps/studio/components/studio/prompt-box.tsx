@@ -33,6 +33,18 @@ type Turn = {
   model?: string;
   streaming?: boolean;
   artifactHtml?: string; // a built website/app, rendered in an in-chat viewer
+  doc?: DocArt; // a structured content piece, rendered as an editable/publishable card
+};
+
+type DocArt = {
+  type: string;
+  title: string;
+  summary?: string;
+  bodyMarkdown: string;
+  seo?: { title?: string; description?: string; keywords?: string[] };
+  tags?: string[];
+  category?: string;
+  language?: string;
 };
 
 // Text modes stream a conversational, agentic reply (token-by-token). The rich
@@ -236,6 +248,7 @@ export default function PromptBox() {
             if (ev.type === "delta") patchLastAssistant((t) => ({ ...t, text: (t.text || "") + ev.text }));
             else if (ev.type === "reset") patchLastAssistant((t) => ({ ...t, text: "" }));
             else if (ev.type === "artifact" && ev.kind === "html") patchLastAssistant((t) => ({ ...t, artifactHtml: ev.html }));
+            else if (ev.type === "artifact" && ev.kind === "doc") patchLastAssistant((t) => ({ ...t, doc: ev.doc }));
             else if (ev.type === "error") patchLastAssistant((t) => ({ ...t, text: `${t.text ? t.text + "\n\n" : ""}⚠️ ${ev.message}`, streaming: false }));
             else if (ev.type === "done") patchLastAssistant((t) => ({ ...t, model: ev.modelLabel || t.model, streaming: false }));
             // "status" / "agents" events carry agent activity — no visual change.
@@ -545,6 +558,7 @@ function AssistantTurn({ t }: { t: Turn }) {
           {t.preview && <span style={badge}>CONCEPT PREVIEW</span>}
           {t.html && <span style={badge}>LIVE HTML</span>}
           {t.artifactHtml && <span style={badge}>WEBSITE</span>}
+          {t.doc && <span style={badge}>{(t.doc.type || "CONTENT").toUpperCase()}</span>}
           {t.video && <span style={badge}>VIDEO</span>}
           <span style={{ fontSize: 12, color: "var(--muted)", fontWeight: 600 }}>{t.model ?? "Claude"}</span>
         </span>
@@ -571,6 +585,7 @@ function AssistantTurn({ t }: { t: Turn }) {
         </div>
       )}
       {t.artifactHtml && <SiteViewer html={t.artifactHtml} />}
+      {t.doc && <DocCard doc={t.doc} />}
       {t.video && <VideoRender prompt={t.videoPrompt || t.text} />}
     </div>
   );
@@ -584,6 +599,96 @@ const btnSm: React.CSSProperties = {
   border: "1px solid var(--hairline)", background: "#fff", borderRadius: 8, padding: "5px 10px",
   fontSize: 12.5, color: "var(--ink)", cursor: "pointer",
 };
+
+// Interactive card for a structured content piece the Content Agent produced.
+// View as rich text, take over manually (Edit), copy, download, or publish to a
+// CMS module of the user's choice.
+const PUBLISH_TARGETS: { slug: string; label: string }[] = [
+  { slug: "blogPosts", label: "Blog Post" }, { slug: "articles", label: "Article" },
+  { slug: "pressReleases", label: "Press Release" }, { slug: "events", label: "Event" },
+  { slug: "caseStudies", label: "Case Study" }, { slug: "products", label: "Product" },
+  { slug: "faqs", label: "FAQ" },
+];
+
+function DocCard({ doc }: { doc: DocArt }) {
+  const [editing, setEditing] = useState(false);
+  const [title, setTitle] = useState(doc.title || "Untitled");
+  const [body, setBody] = useState(doc.bodyMarkdown || "");
+  const [dest, setDest] = useState(PUBLISH_TARGETS.find((t) => t.slug === doc.type)?.slug || "blogPosts");
+  const [pub, setPub] = useState<{ state: "idle" | "busy" | "ok" | "err"; msg?: string }>({ state: "idle" });
+
+  function downloadMd() {
+    const md = `# ${title}\n\n${body}`;
+    const blob = new Blob([md], { type: "text/markdown" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `${title.replace(/[^\w]+/g, "-").slice(0, 60) || "content"}.md`; a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+  async function publish() {
+    setPub({ state: "busy" });
+    try {
+      const res = await fetch("/api/publish", {
+        method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ collection: dest, title, bodyMarkdown: body, seo: doc.seo, tags: doc.tags, category: doc.category }),
+      });
+      const d = await res.json();
+      if (res.ok && d.ok) setPub({ state: "ok", msg: d.draft ? "Saved as draft for review" : "Published" });
+      else setPub({ state: "err", msg: d.error || "Publish failed" });
+    } catch { setPub({ state: "err", msg: "Could not reach publish service" }); }
+  }
+
+  return (
+    <div style={{ marginTop: 14, border: "1px solid var(--hairline)", borderRadius: 12, overflow: "hidden" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "9px 12px", background: "var(--mint-pill)", gap: 10, flexWrap: "wrap" }}>
+        <span style={{ fontSize: 12.5, fontWeight: 700, color: "var(--studio-teal-dark)", letterSpacing: "0.04em" }}>
+          {editing ? "EDITING" : "CONTENT"}{doc.language === "ar" ? " · AR" : doc.language === "both" ? " · EN/AR" : ""}
+        </span>
+        <span style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <button onClick={() => setEditing((e) => !e)} style={btnSm}>{editing ? "Done" : "Edit"}</button>
+          <button onClick={() => navigator.clipboard?.writeText(`# ${title}\n\n${body}`)} style={btnSm}>Copy</button>
+          <button onClick={downloadMd} style={btnSm}>Download</button>
+        </span>
+      </div>
+      <div style={{ padding: "14px 16px" }}>
+        {editing ? (
+          <input value={title} onChange={(e) => setTitle(e.target.value)}
+            style={{ width: "100%", fontSize: 18, fontWeight: 700, border: "1px solid var(--hairline)", borderRadius: 8, padding: "6px 10px", marginBottom: 10 }} />
+        ) : (
+          <div style={{ fontSize: 19, fontWeight: 700, color: "var(--ink)", marginBottom: 6 }}>{title}</div>
+        )}
+        {doc.summary && !editing && <p style={{ color: "var(--muted)", fontSize: 13.5, margin: "0 0 10px" }}>{doc.summary}</p>}
+        {editing ? (
+          <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={14}
+            style={{ width: "100%", fontFamily: "var(--font-mono, monospace)", fontSize: 13.5, lineHeight: 1.6, border: "1px solid var(--hairline)", borderRadius: 8, padding: "10px 12px", resize: "vertical" }} />
+        ) : (
+          <Markdown text={body} />
+        )}
+        {(doc.tags?.length || doc.seo?.keywords?.length) && !editing && (
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 12 }}>
+            {(doc.tags || []).map((t, i) => (
+              <span key={i} style={{ fontSize: 12, background: "var(--mint-pill)", color: "var(--studio-teal-dark)", padding: "3px 9px", borderRadius: 999, fontWeight: 600 }}>{t}</span>
+            ))}
+          </div>
+        )}
+      </div>
+      {/* publish to a CMS module of the user's choice (lands as a draft for review) */}
+      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderTop: "1px solid var(--hairline)", flexWrap: "wrap" }}>
+        <span style={{ fontSize: 13, color: "var(--ink)", fontWeight: 600 }}>Publish to</span>
+        <select value={dest} onChange={(e) => setDest(e.target.value)}
+          style={{ height: 34, borderRadius: 8, border: "1px solid var(--hairline)", padding: "0 10px", fontSize: 13.5, background: "#fff", color: "var(--ink)" }}>
+          {PUBLISH_TARGETS.map((t) => <option key={t.slug} value={t.slug}>{t.label}</option>)}
+        </select>
+        <button onClick={publish} disabled={pub.state === "busy"}
+          style={{ height: 34, padding: "0 16px", borderRadius: 8, border: "none", background: "var(--studio-primary)", color: "#fff", fontSize: 13.5, fontWeight: 700, cursor: pub.state === "busy" ? "default" : "pointer" }}>
+          {pub.state === "busy" ? "Publishing…" : "Publish"}
+        </button>
+        {pub.state === "ok" && <span style={{ fontSize: 13, color: "var(--studio-teal-dark)", fontWeight: 600 }}>✓ {pub.msg}</span>}
+        {pub.state === "err" && <span style={{ fontSize: 13, color: "#c0392b" }}>⚠ {pub.msg}</span>}
+      </div>
+    </div>
+  );
+}
 
 // In-chat viewer for a website/app the Build Agent produced: live iframe preview
 // with open-in-new-tab and download. Lets the user actually see and use the build.

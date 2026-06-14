@@ -34,6 +34,19 @@ export const prompts = {
     system: "You draft marketing copy from a brief, on-brand and concise. Return JSON only: {\"copy\": string}.",
     schema: z.object({ copy: z.string() }),
   },
+  "theme@v1": {
+    system:
+      "You are a brand design-system generator. Given a description of the desired look & feel (and optionally an active brand's colours), return a cohesive, accessible UI theme. " +
+      "Return JSON ONLY: {\"primary\": \"#RRGGBB\", \"primaryDark\": \"#RRGGBB\", \"accent\": \"#RRGGBB\", \"ink\": \"#RRGGBB\", \"canvas\": \"#RRGGBB\", \"muted\": \"#RRGGBB\", " +
+      "\"font\": one of [\"Inter\",\"IBM Plex Sans Arabic\",\"System UI\",\"Georgia\"], \"radius\": number 0-28, \"mode\": \"light\" or \"dark\", \"rationale\": string (<=200 chars)}. " +
+      "Ensure strong contrast between ink and canvas (WCAG AA), primaryDark a shade darker than primary, and accent visually distinct for CTAs.",
+    schema: z.object({
+      primary: z.string(), primaryDark: z.string(), accent: z.string(),
+      ink: z.string(), canvas: z.string(), muted: z.string(),
+      font: z.string(), radius: z.number().min(0).max(28), mode: z.enum(["light", "dark"]),
+      rationale: z.string().optional(),
+    }),
+  },
 } as const;
 
 export type PromptId = keyof typeof prompts;

@@ -53,8 +53,30 @@ export default function ThemeBuilder({ initial, canSave }: { initial: Theme; can
   const [t, setT] = useState<Theme>({ ...DEFAULT_THEME, ...initial });
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState<{ kind: "ok" | "err"; msg: string } | null>(null);
+  const [aiPrompt, setAiPrompt] = useState("");
+  const [aiBusy, setAiBusy] = useState(false);
+  const [rationale, setRationale] = useState<string | null>(null);
 
   const set = (k: keyof Theme, v: string | number) => setT((s) => ({ ...s, [k]: v }));
+
+  // Prompt-driven, agent-governed theme: describe the vibe → colours change live.
+  async function generate() {
+    if (!aiPrompt.trim() || aiBusy) return;
+    setAiBusy(true); setToast(null); setRationale(null);
+    try {
+      const res = await fetch("/api/theme/suggest", {
+        method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ prompt: aiPrompt.trim() }),
+      });
+      const d = await res.json();
+      if (d.ok && d.theme) {
+        const { rationale: r, ...theme } = d.theme;
+        setT((s) => ({ ...s, ...theme }));
+        setRationale(r || null);
+      } else setToast({ kind: "err", msg: d.error || "Could not generate a theme." });
+    } catch { setToast({ kind: "err", msg: "Could not reach the generation service." }); }
+    setAiBusy(false);
+  }
   const dirty = useMemo(() => JSON.stringify(t) !== JSON.stringify({ ...DEFAULT_THEME, ...initial }), [t, initial]);
 
   async function save() {
@@ -81,6 +103,27 @@ export default function ThemeBuilder({ initial, canSave }: { initial: Theme; can
     <div style={{ display: "grid", gridTemplateColumns: "minmax(0,360px) 1fr", gap: 26, alignItems: "start" }}>
       {/* ---- Controls ---- */}
       <div>
+        {/* Prompt-driven, agent-governed theme generation */}
+        <div style={{ border: "1.5px solid var(--studio-primary)", borderRadius: 14, padding: 14, marginBottom: 22, background: "var(--mint-pill)" }}>
+          <h3 style={{ fontSize: 14, fontWeight: 700, color: "var(--studio-teal-dark)", margin: "0 0 8px", display: "flex", alignItems: "center", gap: 7 }}>
+            <PaletteIcon size={16} color="var(--studio-teal-dark)" /> Describe your design
+          </h3>
+          <textarea
+            value={aiPrompt}
+            onChange={(e) => setAiPrompt(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); generate(); } }}
+            placeholder="e.g. a bold fintech look — deep navy, electric lime accent, sharp corners, dark mode"
+            rows={2}
+            style={{ width: "100%", border: "1px solid var(--hairline)", borderRadius: 10, padding: "9px 11px", fontSize: 13.5, color: "var(--ink)", outline: "none", resize: "vertical", background: "#fff" }}
+          />
+          <button onClick={generate} disabled={aiBusy || !aiPrompt.trim()}
+            style={{ width: "100%", height: 40, marginTop: 8, borderRadius: 10, border: "none", background: "var(--studio-primary)", color: "#fff", fontSize: 14, fontWeight: 700, cursor: aiBusy || !aiPrompt.trim() ? "default" : "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+            {aiBusy ? "Generating theme…" : "Generate theme with AI"}
+          </button>
+          {rationale && <div style={{ fontSize: 12, color: "var(--studio-teal-dark)", marginTop: 8, lineHeight: 1.5 }}>✨ {rationale}</div>}
+          <div style={{ fontSize: 11.5, color: "var(--muted)", marginTop: 8 }}>Generates a full palette, font &amp; radius — then fine-tune below.</div>
+        </div>
+
         <h3 style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", margin: "0 0 10px" }}>Presets</h3>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 22 }}>
           {PRESETS.map((p) => (

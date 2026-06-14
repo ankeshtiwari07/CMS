@@ -7,6 +7,9 @@ import Anthropic from "@anthropic-ai/sdk";
 import { getProvider } from "../providers/index.js";
 import { retrieveContext, getBrandGuidelines, auditAgentRun } from "./tools.js";
 import { SPECIALISTS, type SpecialistId } from "./specialists.js";
+import { prompts } from "../prompts/library.js";
+
+const stripJson = (s: string) => s.replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "").trim();
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY || "missing" });
 const provider = getProvider();
@@ -27,7 +30,15 @@ export type SseEvent =
   | { type: "delta"; text: string }
   | { type: "reset" }
   | { type: "status"; label: string }
-  | { type: "artifact"; kind: "html" | "doc"; html?: string; doc?: DocArtifact; title?: string }
+  | {
+      type: "artifact";
+      kind: "html" | "doc" | "video" | "image" | "brand" | "theme";
+      html?: string; doc?: DocArtifact;
+      script?: string; videoPrompt?: string;
+      imagePrompt?: string; ratio?: string;
+      brand?: any; theme?: any;
+      title?: string;
+    }
   | { type: "agents"; trace: TraceStep[] };
 
 // Single-file responsive site the Build Agent produces (rendered live in-chat).
@@ -48,6 +59,19 @@ const CONTENT_BUILDER_SYSTEM =
   '{"title": string, "summary": string (<=200 chars), "bodyMarkdown": string (the full piece in rich Markdown — headings, lists, tables, emphasis), ' +
   '"seo": {"title": string (<=60), "description": string (<=160), "keywords": string[]}, "tags": string[] (3-8), "category": string}\n' +
   "Write real, specific, substantial content — not placeholders. Match HUMAIN's confident, clear, forward-looking voice.";
+
+// Video package the Video Agent produces (rendered + one-click render in chat).
+const VIDEO_SYSTEM =
+  "You are the Video Agent for HUMAIN Create Studio, a creative director. Produce a production-ready video package in Markdown: " +
+  "Logline; Concept & tone; Target duration; Script (scene-by-scene — Visual / Voiceover / On-screen text); Shot list; Storyboard notes; Music & pacing. " +
+  "End with one line beginning 'VIDEO_PROMPT:' followed by a single vivid paragraph (<500 chars) for a text-to-video model.";
+
+// Brand guideline the Brand Agent produces (rendered as a verifiable card).
+const BRAND_SYSTEM =
+  "You are the Brand Agent for HUMAIN Create Studio. Produce a complete brand guideline. Return ONLY valid JSON (no fences): " +
+  '{"name": string, "summary": string, "palette": [{"name": string, "hex": "#RRGGBB", "usage": string}], ' +
+  '"sections": [{"title": string, "content": string (Markdown — voice, positioning, messaging pillars, typography, logo usage, imagery)}]}. ' +
+  "Be specific and usable, with concrete hex codes and font names.";
 
 // Publishable CMS modules the content can be sent to (slug → human label).
 export const PUBLISH_TARGETS: Record<string, string> = {
@@ -114,6 +138,50 @@ const TOOLS: Anthropic.Tool[] = [
         language: { type: "string", enum: ["en", "ar", "both"] },
       },
       required: ["contentType", "brief"],
+    },
+  },
+  {
+    name: "build_video",
+    description:
+      "Create a VIDEO: produce a production-ready script/storyboard and display it with a one-click Render control that generates a real video. Use whenever the user asks for a video, ad, teaser, reel or motion piece.",
+    input_schema: {
+      type: "object",
+      properties: { brief: { type: "string" }, title: { type: "string" } },
+      required: ["brief"],
+    },
+  },
+  {
+    name: "build_image",
+    description:
+      "Generate an IMAGE and display it inline. Use whenever the user asks for an image, picture, illustration, poster, graphic or visual. Write a vivid, detailed image prompt.",
+    input_schema: {
+      type: "object",
+      properties: {
+        prompt: { type: "string", description: "A vivid, detailed image description (subject, style, lighting, palette, composition)." },
+        ratio: { type: "string", description: "aspect ratio e.g. 1:1, 16:9, 3:4" },
+        title: { type: "string" },
+      },
+      required: ["prompt"],
+    },
+  },
+  {
+    name: "build_brand",
+    description:
+      "Create a BRAND GUIDELINE and display it as a verifiable card the user can edit, publish (set as the active brand or save to the library) or download. Use whenever the user asks for a brand, brand identity, brand guideline or visual identity.",
+    input_schema: {
+      type: "object",
+      properties: { brief: { type: "string" }, title: { type: "string" } },
+      required: ["brief"],
+    },
+  },
+  {
+    name: "build_theme",
+    description:
+      "Generate a DESIGN THEME (colour palette, font, radius, light/dark) from a description and display it with live swatches and an Apply control. Use whenever the user asks for a theme, colour scheme, design system or visual style for the product/site.",
+    input_schema: {
+      type: "object",
+      properties: { brief: { type: "string" }, title: { type: "string" } },
+      required: ["brief"],
     },
   },
 ];
@@ -190,6 +258,46 @@ async function execTool(
     onEvent?.({ type: "artifact", kind: "doc", doc, title: doc.title });
     return "The content has been produced and is shown to the user as an editable, publishable card. Do NOT repeat the content. In 1–2 short sentences, introduce it and suggest 2–3 next steps (e.g. adjust tone, translate, publish to a module).";
   }
+  if (name === "build_video") {
+    onEvent?.({ type: "status", label: "Video Agent" });
+    const out = await provider.complete({ system: VIDEO_SYSTEM, messages: [{ role: "user", content: String(input.brief || "") }], maxTokens: 4096 });
+    const m = out.match(/VIDEO_PROMPT:\s*([\s\S]+?)(?:\n\n|$)/i);
+    const videoPrompt = (m?.[1] || input.brief || "").trim().slice(0, 500);
+    trace.push({ kind: "agent", name: "Video Agent", detail: String(input.title || input.brief || "video").slice(0, 80) });
+    onEvent?.({ type: "artifact", kind: "video", script: out, videoPrompt, title: input.title });
+    return "The video script/storyboard is shown to the user with a one-click Render control (it produces a real video). Do NOT repeat the script. Briefly introduce it and suggest 2–3 tweaks (tone, length, scenes).";
+  }
+  if (name === "build_image") {
+    onEvent?.({ type: "status", label: "Image Agent" });
+    const prompt = String(input.prompt || input.brief || "").slice(0, 1000);
+    trace.push({ kind: "agent", name: "Image Agent", detail: prompt.slice(0, 80) });
+    onEvent?.({ type: "artifact", kind: "image", imagePrompt: prompt, ratio: input.ratio, title: input.title });
+    return "The image is being generated and is shown to the user inline. Do NOT describe the pixels. Briefly introduce it and offer 2–3 variations (style, palette, composition, ratio).";
+  }
+  if (name === "build_brand") {
+    onEvent?.({ type: "status", label: "Brand Agent" });
+    const raw = await provider.complete({ system: BRAND_SYSTEM, messages: [{ role: "user", content: String(input.brief || "") }], maxTokens: 3000 });
+    let brand: any;
+    try {
+      const j = JSON.parse(stripJson(raw));
+      brand = { name: j.name || input.title || "Brand Guideline", summary: j.summary || "", palette: Array.isArray(j.palette) ? j.palette : [], sections: Array.isArray(j.sections) ? j.sections : [] };
+    } catch {
+      brand = { name: input.title || "Brand Guideline", summary: "", palette: [], sections: [{ title: "Guideline", content: raw }] };
+    }
+    trace.push({ kind: "agent", name: "Brand Agent", detail: String(brand.name).slice(0, 80) });
+    onEvent?.({ type: "artifact", kind: "brand", brand, title: brand.name });
+    return "The brand guideline is shown to the user as a viewable card they can verify, publish (Active Brand / Library) or download. Do NOT repeat it. Briefly introduce it and suggest next steps.";
+  }
+  if (name === "build_theme") {
+    onEvent?.({ type: "status", label: "Design Agent" });
+    const raw = await provider.complete({ system: prompts["theme@v1"].system, messages: [{ role: "user", content: String(input.brief || "") }], maxTokens: 1024 });
+    let theme: any = null;
+    try { theme = JSON.parse(stripJson(raw)); } catch { theme = null; }
+    if (!theme) return "Could not generate a valid theme. Ask the user to rephrase the look & feel.";
+    trace.push({ kind: "agent", name: "Design Agent", detail: String(input.brief || "theme").slice(0, 80) });
+    onEvent?.({ type: "artifact", kind: "theme", theme, title: input.title });
+    return "The theme is shown to the user with live swatches and an Apply control. Do NOT list raw hex codes at length. Briefly explain the palette choices and invite tweaks.";
+  }
   return `Unknown tool: ${name}`;
 }
 
@@ -198,11 +306,15 @@ function buildSystem(deliverableSpec: string, conversational: boolean): string {
     "You are HUMAIN Create Studio — an agentic, bilingual (English / Arabic) content and experience assistant. " +
     "You are the Orchestrator of a team of specialist agents. Behave like an expert colleague having a real conversation.\n\n" +
     "How you work:\n" +
-    "- INTELLIGENTLY DECIDE what the user actually needs, then BUILD it as an interactive, usable outcome — never just describe it in chat. Choose the right tool:\n" +
-    "    • a website / landing page / web app  → build_site  (renders a live preview)\n" +
-    "    • any substantive content piece (article, blog, page, press release, event, product, case study, FAQ, email, campaign, social) → build_content (renders an editable, publishable card)\n" +
-    "    • a quick question, advice, or brainstorm → just answer conversationally.\n" +
-    "  When in doubt between chatting and building, BUILD — produce something the user can see, edit, publish or download.\n" +
+    "- FIRST decide if the user actually wants something made. Greetings, small talk, questions, advice and brainstorming → just reply naturally and warmly in chat (do NOT build anything, do NOT call tools). Only build when the user clearly asks to create/make/build/write/design something, or has given enough detail to.\n" +
+    "- When they do want something made, INTELLIGENTLY pick the right tool and BUILD it as an interactive outcome — never just describe it:\n" +
+    "    • website / landing page / web app → build_site (live preview)\n" +
+    "    • content piece (article, blog, page, press release, event, product, case study, FAQ, email, campaign, social) → build_content (editable, publishable card)\n" +
+    "    • video / ad / teaser / reel → build_video (script + one-click render)\n" +
+    "    • image / picture / illustration / poster / graphic → build_image (renders inline)\n" +
+    "    • brand / brand identity / brand guideline → build_brand (verifiable, publishable card)\n" +
+    "    • theme / colour scheme / design system → build_theme (live swatches + apply)\n" +
+    "  If the request is ambiguous, ask ONE short clarifying question before building.\n" +
     "- Plan, then ground: use retrieve_context for prior content/facts, and get_brand_guidelines before finalizing anything customer-facing.\n" +
     "- Delegate focused sub-tasks with delegate_to_specialist (drafting, localization EN/AR, brand_guardian, seo, editorial, research) when it improves quality.\n" +
     "- Be genuinely interactive, like Claude: after producing, briefly recommend concrete next steps or offer 2–3 options the user can pick from. Always invite refinement.\n" +

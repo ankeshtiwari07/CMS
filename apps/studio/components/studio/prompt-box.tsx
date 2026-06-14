@@ -34,6 +34,11 @@ type Turn = {
   streaming?: boolean;
   artifactHtml?: string; // a built website/app, rendered in an in-chat viewer
   doc?: DocArt; // a structured content piece, rendered as an editable/publishable card
+  videoScript?: string; // a video package (script/storyboard) + render control
+  imagePrompt?: string; // an image to generate inline
+  ratio?: string;
+  brandArt?: any; // a brand guideline card (publish/download)
+  themeArt?: any; // a design theme (swatches + apply)
 };
 
 type DocArt = {
@@ -94,7 +99,7 @@ function fmtSize(n: number) {
   return `${(n / 1024 / 1024).toFixed(1)} MB`;
 }
 
-export default function PromptBox() {
+export default function PromptBox({ onActive }: { onActive?: (active: boolean) => void } = {}) {
   const [prompt, setPrompt] = useState("");
   const [mode, setMode] = useState<Mode>("auto");
   const [ratio, setRatio] = useState("auto");
@@ -109,6 +114,10 @@ export default function PromptBox() {
   const [open, setOpen] = useState<null | "plus" | "ratio" | "style" | "model" | "suggest">(null);
 
   const current = models.find((m) => m.id === modelId) || models[0];
+  // A conversation is active once there are turns — the page switches to a focused
+  // chat view and the composer drops below the thread (Claude-style).
+  const active = turns.length > 0;
+  useEffect(() => { onActive?.(active); }, [active, onActive]);
 
   const recRef = useRef<any>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -202,18 +211,16 @@ export default function PromptBox() {
     });
   }
 
-  async function generate() {
-    if (!prompt.trim() || busy) return;
-    const userText = prompt.trim();
+  async function send(userText: string, addUserTurn = true) {
+    if (!userText.trim() || busy) return;
     setBusy(true);
     setOpen(null);
-    setPrompt(""); // clear the composer after sending, like Claude
     const aiMode = mode === "auto" ? "writing" : mode;
     const attachments = files.filter((f) => f.text).map((f) => ({ name: f.name, text: f.text }));
     // Build conversation context from the last few turns (text only, truncated).
     const history = turns.slice(-6).map((t) => ({ role: t.role, content: (t.text || "").slice(0, 6000) }));
     const options = { ratio, style, deckFormat, modelLabel: current?.label, files: files.map((f) => f.name), attachments };
-    setTurns((p) => [...p, { role: "user", text: userText, mode }]);
+    if (addUserTurn) setTurns((p) => [...p, { role: "user", text: userText, mode }]);
 
     // ---- Conversational, streaming, agentic path (text modes) ----
     if (STREAM_MODES.includes(mode)) {
@@ -249,6 +256,10 @@ export default function PromptBox() {
             else if (ev.type === "reset") patchLastAssistant((t) => ({ ...t, text: "" }));
             else if (ev.type === "artifact" && ev.kind === "html") patchLastAssistant((t) => ({ ...t, artifactHtml: ev.html }));
             else if (ev.type === "artifact" && ev.kind === "doc") patchLastAssistant((t) => ({ ...t, doc: ev.doc }));
+            else if (ev.type === "artifact" && ev.kind === "video") patchLastAssistant((t) => ({ ...t, video: true, videoPrompt: ev.videoPrompt, videoScript: ev.script }));
+            else if (ev.type === "artifact" && ev.kind === "image") patchLastAssistant((t) => ({ ...t, imagePrompt: ev.imagePrompt, ratio: ev.ratio }));
+            else if (ev.type === "artifact" && ev.kind === "brand") patchLastAssistant((t) => ({ ...t, brandArt: ev.brand }));
+            else if (ev.type === "artifact" && ev.kind === "theme") patchLastAssistant((t) => ({ ...t, themeArt: ev.theme }));
             else if (ev.type === "error") patchLastAssistant((t) => ({ ...t, text: `${t.text ? t.text + "\n\n" : ""}⚠️ ${ev.message}`, streaming: false }));
             else if (ev.type === "done") patchLastAssistant((t) => ({ ...t, model: ev.modelLabel || t.model, streaming: false }));
             // "status" / "agents" events carry agent activity — no visual change.
@@ -287,6 +298,19 @@ export default function PromptBox() {
     setBusy(false);
   }
 
+  function generate() {
+    const t = prompt.trim();
+    if (!t || busy) return;
+    setPrompt(""); // clear the composer after sending, like Claude
+    send(t, true);
+  }
+  // Re-answer the last question (the ↻ action under a reply).
+  function regenerate() {
+    if (busy) return;
+    const lastUser = [...turns].reverse().find((x) => x.role === "user");
+    if (lastUser) send(lastUser.text, false);
+  }
+
   function toggleMic() {
     const SR = (globalThis as any).webkitSpeechRecognition || (globalThis as any).SpeechRecognition;
     if (!SR) { setTurns((p) => [...p, { role: "assistant", text: "Voice input needs Chrome or Edge." }]); return; }
@@ -320,7 +344,7 @@ export default function PromptBox() {
   const hasText = prompt.trim().length > 0;
 
   return (
-    <div ref={rootRef} style={{ width: "100%", maxWidth: 840, margin: "0 auto", position: "relative" }}>
+    <div ref={rootRef} style={{ width: "100%", maxWidth: 840, margin: "0 auto", position: "relative", display: "flex", flexDirection: "column" }}>
       <input ref={fileRef} type="file" multiple hidden onChange={(e) => onFiles(e.target.files)} />
 
       <div style={{ border: "1.5px solid var(--studio-primary)", borderRadius: 16, background: "#fff", padding: "14px 16px 12px" }}>
@@ -484,7 +508,8 @@ export default function PromptBox() {
         </div>
       </div>
 
-      {/* quick-action buttons below the chat */}
+      {/* quick-action buttons below the chat (landing only) */}
+      {!active && (
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center", marginTop: 14 }}>
         {QUICK_ACTIONS.map((a) => {
           const on = mode === a.mode;
@@ -507,6 +532,7 @@ export default function PromptBox() {
           );
         })}
       </div>
+      )}
 
       {/* type-ahead suggestions */}
       {open === "suggest" && suggestions.length > 0 && !turns.length && (
@@ -524,16 +550,16 @@ export default function PromptBox() {
         </div>
       )}
 
-      {/* conversation thread — Claude-like multi-turn */}
+      {/* conversation thread — Claude-like multi-turn (sits ABOVE the composer when active) */}
       {(turns.length > 0 || busy) && (
-        <div style={{ marginTop: 18, display: "flex", flexDirection: "column", gap: 14 }}>
+        <div style={{ marginTop: active ? 0 : 18, marginBottom: active ? 18 : 0, order: active ? -1 : 0, display: "flex", flexDirection: "column", gap: 18 }}>
           {turns.map((t, i) =>
             t.role === "user" ? (
               <div key={i} style={{ alignSelf: "flex-end", maxWidth: "85%", background: "var(--mint-pill)", color: "var(--studio-teal-dark)", borderRadius: 14, padding: "10px 14px", fontSize: 14.5, lineHeight: 1.5, whiteSpace: "pre-wrap" }}>
                 {t.text}
               </div>
             ) : (
-              <AssistantTurn key={i} t={t} />
+              <AssistantTurn key={i} t={t} onRegen={i === turns.length - 1 ? regenerate : undefined} />
             ),
           )}
           {busy && turns[turns.length - 1]?.role !== "assistant" && (
@@ -550,29 +576,30 @@ export default function PromptBox() {
 }
 
 // One assistant message: text, live-HTML iframe, or video concept + render panel.
-function AssistantTurn({ t }: { t: Turn }) {
+// One assistant message — rendered as a natural, flowing chat reply (no framed
+// card), Claude-style. Only true artifacts (website/image/video/brand/theme) get
+// their own inline frame; a subtle action row sits underneath.
+function AssistantTurn({ t, onRegen }: { t: Turn; onRegen?: () => void }) {
+  const hasArtifact = t.preview || t.html || t.artifactHtml || t.doc || t.video || t.imagePrompt || t.brandArt || t.themeArt;
   return (
-    <div style={{ background: "#fff", border: "1px solid var(--hairline)", borderRadius: 18, padding: 18 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-        <span style={{ display: "inline-flex", gap: 8, alignItems: "center" }}>
-          {t.preview && <span style={badge}>CONCEPT PREVIEW</span>}
+    <div style={{ padding: "0 2px 2px" }}>
+      {hasArtifact && (
+        <div style={{ display: "flex", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
+          {t.preview && <span style={badge}>CONCEPT</span>}
           {t.html && <span style={badge}>LIVE HTML</span>}
           {t.artifactHtml && <span style={badge}>WEBSITE</span>}
           {t.doc && <span style={badge}>{(t.doc.type || "CONTENT").toUpperCase()}</span>}
           {t.video && <span style={badge}>VIDEO</span>}
-          <span style={{ fontSize: 12, color: "var(--muted)", fontWeight: 600 }}>{t.model ?? "Claude"}</span>
-        </span>
-        <span style={{ display: "flex", gap: 8 }}>
-          {t.html && (
-            <button onClick={() => { const w = window.open(); if (w) { w.document.write(t.text); w.document.close(); } }} style={btnSm}>Open</button>
-          )}
-          <button onClick={() => navigator.clipboard?.writeText(t.text)} style={btnSm}>Copy</button>
-        </span>
-      </div>
+          {t.imagePrompt && <span style={badge}>IMAGE</span>}
+          {t.brandArt && <span style={badge}>BRAND</span>}
+          {t.themeArt && <span style={badge}>THEME</span>}
+        </div>
+      )}
+
       {t.html ? (
         <iframe title="Website preview" srcDoc={t.text} style={{ width: "100%", height: 520, border: "1px solid var(--hairline)", borderRadius: 12, background: "#fff" }} />
       ) : (
-        <div style={{ color: "var(--ink)", lineHeight: 1.6, fontSize: 15 }}>
+        <div style={{ color: "var(--ink)", lineHeight: 1.65, fontSize: 15 }}>
           {t.streaming && !t.text ? (
             <span style={{ color: "var(--muted)" }}>Thinking…</span>
           ) : (
@@ -584,12 +611,30 @@ function AssistantTurn({ t }: { t: Turn }) {
           {t.streaming && <style>{`@keyframes humain-blink{0%,100%{opacity:1}50%{opacity:0}}.humain-caret{animation:humain-blink 1s step-end infinite}`}</style>}
         </div>
       )}
+
       {t.artifactHtml && <SiteViewer html={t.artifactHtml} />}
       {t.doc && <DocCard doc={t.doc} />}
-      {t.video && <VideoRender prompt={t.videoPrompt || t.text} />}
+      {t.videoScript && <VideoCard script={t.videoScript} prompt={t.videoPrompt || ""} />}
+      {t.video && !t.videoScript && <VideoRender prompt={t.videoPrompt || t.text} />}
+      {t.imagePrompt && <ImageRender prompt={t.imagePrompt} ratio={t.ratio} />}
+      {t.brandArt && <BrandArtifactCard brand={t.brandArt} />}
+      {t.themeArt && <ThemeArtifactCard theme={t.themeArt} />}
+
+      {!t.streaming && (t.text || hasArtifact) && (
+        <div style={{ display: "flex", alignItems: "center", gap: 2, marginTop: 8 }}>
+          <button onClick={() => navigator.clipboard?.writeText(t.text || "")} title="Copy" style={actionBtn}>Copy</button>
+          {onRegen && <button onClick={onRegen} title="Regenerate" style={actionBtn}>↻ Retry</button>}
+          <span style={{ fontSize: 11.5, color: "var(--muted)", marginLeft: 6 }}>{t.model ?? "Claude"}</span>
+        </div>
+      )}
     </div>
   );
 }
+
+const actionBtn: React.CSSProperties = {
+  border: "none", background: "transparent", color: "var(--muted)", cursor: "pointer",
+  fontSize: 12.5, fontWeight: 600, padding: "4px 8px", borderRadius: 7,
+};
 
 const badge: React.CSSProperties = {
   display: "inline-block", fontSize: 11.5, fontWeight: 700, letterSpacing: "0.06em",
@@ -711,6 +756,158 @@ function SiteViewer({ html }: { html: string }) {
         </span>
       </div>
       <iframe title="Built site preview" srcDoc={html} style={{ width: "100%", height: 560, border: "none", background: "#fff", display: "block" }} />
+    </div>
+  );
+}
+
+const pubBtn: React.CSSProperties = {
+  height: 34, padding: "0 16px", borderRadius: 8, border: "none",
+  background: "var(--studio-primary)", color: "#fff", fontSize: 13.5, fontWeight: 700, cursor: "pointer",
+};
+
+// Video package: the script/storyboard (rich) + a one-click real render.
+function VideoCard({ script, prompt }: { script: string; prompt: string }) {
+  return (
+    <div style={{ marginTop: 14, border: "1px solid var(--hairline)", borderRadius: 12, padding: 16 }}>
+      <Markdown text={script} />
+      <VideoRender prompt={prompt} />
+    </div>
+  );
+}
+
+// Inline image generation: auto-starts a render and polls until the image is ready.
+function ImageRender({ prompt, ratio }: { prompt: string; ratio?: string }) {
+  const [state, setState] = useState<{ status: string; id?: string; url?: string; message?: string }>({ status: "starting" });
+  const pollRef = useRef<any>(null);
+  const started = useRef(false);
+  useEffect(() => {
+    if (started.current) return; started.current = true;
+    (async () => {
+      try {
+        const res = await fetch("/api/image/render", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ prompt, ratio }) });
+        const d = await res.json(); setState(d);
+        if (d.status === "processing" && d.id) poll(d.id);
+      } catch { setState({ status: "failed", message: "Could not reach the image service." }); }
+    })();
+    return () => clearTimeout(pollRef.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  async function poll(id: string) {
+    try {
+      const res = await fetch(`/api/image/status/${id}`); const d = await res.json(); setState(d);
+      if (d.status === "processing") pollRef.current = setTimeout(() => poll(id), 3000);
+    } catch { setState({ status: "failed", message: "Lost connection to the image service." }); }
+  }
+  return (
+    <div style={{ marginTop: 14 }}>
+      {state.status === "succeeded" && state.url ? (
+        <>
+          <img src={state.url} alt={prompt} style={{ width: "100%", maxWidth: 520, borderRadius: 12, border: "1px solid var(--hairline)", display: "block" }} />
+          <a href={state.url} target="_blank" rel="noreferrer" style={{ ...btnSm, textDecoration: "none", display: "inline-block", marginTop: 8 }}>Open full size</a>
+        </>
+      ) : state.status === "failed" || state.status === "unconfigured" ? (
+        <div style={{ fontSize: 13, color: "var(--muted)", background: "#f8f9fa", border: "1px solid var(--hairline)", borderRadius: 10, padding: "10px 12px" }}>{state.message || "Image unavailable."}</div>
+      ) : (
+        <div style={{ display: "flex", alignItems: "center", gap: 10, color: "var(--studio-teal-dark)", fontSize: 13.5 }}>
+          <span className="humain-spin" style={{ width: 16, height: 16, border: "2.5px solid var(--mint-pill)", borderTopColor: "var(--studio-primary)", borderRadius: "50%", display: "inline-block" }} />
+          Generating image…
+          <style>{`@keyframes humain-spin{to{transform:rotate(360deg)}}.humain-spin{animation:humain-spin .7s linear infinite}`}</style>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Brand guideline card: palette + sections, publish (Active/Library) or download.
+function BrandArtifactCard({ brand }: { brand: any }) {
+  const [dest, setDest] = useState<"active" | "library">("active");
+  const [pub, setPub] = useState<{ s: string; m?: string }>({ s: "idle" });
+  const palette = brand.palette || [];
+  const sections = brand.sections || [];
+  function downloadMd() {
+    let md = `# ${brand.name}\n\n${brand.summary || ""}\n\n`;
+    if (palette.length) md += `## Palette\n\n${palette.map((c: any) => `- ${c.name} ${c.hex}${c.usage ? ` — ${c.usage}` : ""}`).join("\n")}\n\n`;
+    for (const s of sections) md += `## ${s.title}\n\n${s.content}\n\n`;
+    const blob = new Blob([md], { type: "text/markdown" }); const u = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href = u; a.download = `${(brand.name || "brand").replace(/[^\w]+/g, "-")}.md`; a.click(); setTimeout(() => URL.revokeObjectURL(u), 1000);
+  }
+  async function publish() {
+    setPub({ s: "busy" });
+    try {
+      const res = await fetch("/api/brand-guidelines", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name: brand.name, summary: brand.summary, source: "ai", data: { sections, palette }, active: dest === "active" }) });
+      const d = await res.json();
+      if (res.ok && d.ok) setPub({ s: "ok", m: dest === "active" ? "Set as the active brand the AI follows" : "Saved to Brand Library" });
+      else setPub({ s: "err", m: d.error || "Publish failed" });
+    } catch { setPub({ s: "err", m: "Could not reach publish service" }); }
+  }
+  return (
+    <div style={{ marginTop: 14, border: "1px solid var(--hairline)", borderRadius: 12, padding: 16 }}>
+      <div style={{ fontSize: 18, fontWeight: 800, marginBottom: brand.summary ? 4 : 10 }}>{brand.name}</div>
+      {brand.summary && <p style={{ color: "var(--muted)", fontSize: 13.5, margin: "0 0 12px" }}>{brand.summary}</p>}
+      {palette.length > 0 && (
+        <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 14 }}>
+          {palette.map((c: any, i: number) => (
+            <div key={i} style={{ textAlign: "center" }}>
+              <div style={{ width: 56, height: 56, borderRadius: 12, background: c.hex, border: "1px solid rgba(0,0,0,0.08)" }} />
+              <div style={{ fontSize: 11.5, fontWeight: 700, marginTop: 5 }}>{c.name}</div>
+              <div style={{ fontSize: 11, color: "var(--muted)" }}>{c.hex}</div>
+            </div>
+          ))}
+        </div>
+      )}
+      <div style={{ display: "grid", gap: 14 }}>
+        {sections.map((s: any, i: number) => (
+          <div key={i}><div style={{ fontSize: 15, fontWeight: 700, color: "var(--studio-teal-dark)", marginBottom: 4 }}>{s.title}</div><Markdown text={s.content} /></div>
+        ))}
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
+        <select value={dest} onChange={(e) => setDest(e.target.value as any)} style={{ height: 34, borderRadius: 8, border: "1px solid var(--hairline)", padding: "0 8px", fontSize: 13, background: "#fff" }}>
+          <option value="active">Active Brand (AI follows)</option>
+          <option value="library">Brand Library</option>
+        </select>
+        <button onClick={publish} disabled={pub.s === "busy"} style={pubBtn}>{pub.s === "busy" ? "Publishing…" : "Publish"}</button>
+        <button onClick={downloadMd} style={btnSm}>Download</button>
+        {pub.s === "ok" && <span style={{ fontSize: 13, color: "var(--studio-teal-dark)", fontWeight: 600 }}>✓ {pub.m}</span>}
+        {pub.s === "err" && <span style={{ fontSize: 13, color: "#c0392b" }}>⚠ {pub.m}</span>}
+      </div>
+    </div>
+  );
+}
+
+// Design theme card: live swatches + mini preview + apply to site settings.
+function ThemeArtifactCard({ theme }: { theme: any }) {
+  const [s, setS] = useState<{ st: string; m?: string }>({ st: "idle" });
+  const swatches = ([["Primary", theme.primary], ["Primary Dark", theme.primaryDark], ["Accent", theme.accent], ["Ink", theme.ink], ["Canvas", theme.canvas], ["Muted", theme.muted]] as [string, string][]).filter((x) => x[1]);
+  async function apply() {
+    setS({ st: "busy" });
+    try {
+      const res = await fetch("/api/settings", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ theme }) });
+      if (res.ok) setS({ st: "ok", m: "Applied to site settings" });
+      else { const d = await res.json().catch(() => ({})); setS({ st: "err", m: d.error || "Needs publisher/admin" }); }
+    } catch { setS({ st: "err", m: "Could not reach server" }); }
+  }
+  return (
+    <div style={{ marginTop: 14, border: "1px solid var(--hairline)", borderRadius: 12, padding: 16 }}>
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 12 }}>
+        {swatches.map(([n, c]) => (
+          <div key={n} style={{ textAlign: "center" }}>
+            <div style={{ width: 48, height: 48, borderRadius: 10, background: c, border: "1px solid rgba(0,0,0,0.08)" }} />
+            <div style={{ fontSize: 11, fontWeight: 700, marginTop: 4 }}>{n}</div>
+            <div style={{ fontSize: 10.5, color: "var(--muted)" }}>{c}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{ background: theme.canvas, color: theme.ink, border: "1px solid var(--hairline)", borderRadius: Math.max(10, theme.radius || 12), padding: 16 }}>
+        <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 8 }}>Preview</div>
+        <button style={{ height: 34, padding: "0 14px", borderRadius: 999, border: "none", background: theme.primary, color: "#fff", fontWeight: 700, marginRight: 8 }}>Primary</button>
+        <button style={{ height: 34, padding: "0 14px", borderRadius: 999, border: "none", background: theme.accent, color: theme.ink, fontWeight: 700 }}>Accent</button>
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12, flexWrap: "wrap" }}>
+        <button onClick={apply} disabled={s.st === "busy"} style={pubBtn}>{s.st === "busy" ? "Applying…" : "Apply theme"}</button>
+        <span style={{ fontSize: 12.5, color: "var(--muted)" }}>Font: {theme.font} · Radius {theme.radius}px · {theme.mode}</span>
+        {s.st === "ok" && <span style={{ fontSize: 13, color: "var(--studio-teal-dark)", fontWeight: 600 }}>✓ {s.m}</span>}
+        {s.st === "err" && <span style={{ fontSize: 13, color: "#c0392b" }}>⚠ {s.m}</span>}
+      </div>
     </div>
   );
 }

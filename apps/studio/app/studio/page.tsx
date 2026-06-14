@@ -1,9 +1,8 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser, payloadFetch } from "@/lib/payload";
 import Sidebar from "@/components/studio/sidebar";
-import PromptBox from "@/components/studio/prompt-box";
-import QuickCreate from "@/components/studio/quick-create";
-import ContinueCreating, { type Project } from "@/components/studio/continue-creating";
+import StudioWorkspace from "@/components/studio/studio-workspace";
+import { type Project } from "@/components/studio/continue-creating";
 
 export const metadata = { title: "Create Studio · HUMAIN" };
 export const dynamic = "force-dynamic";
@@ -45,13 +44,7 @@ export default async function StudioHome() {
             padding: "72px 40px 56px",
           }}
         >
-          <h1 style={{ textAlign: "center", fontSize: 30, fontWeight: 700, color: "var(--ink)", margin: "40px 0 34px" }}>
-            {greeting(user.name)} What do you want to create today?
-          </h1>
-
-          <PromptBox />
-          <ContinueCreating projects={projects} />
-          <QuickCreate />
+          <StudioWorkspace greeting={`${greeting(user.name)} What do you want to create today?`} projects={projects} />
         </div>
       </main>
     </div>

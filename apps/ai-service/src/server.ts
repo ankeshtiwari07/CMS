@@ -5,6 +5,7 @@ import { getProvider, resolveModel, listModels, providerByName } from "./provide
 import { parseStructured } from "./providers/types.js";
 import { prompts, type PromptId } from "./prompts/library.js";
 import { startRender, pollRender, videoConfigured } from "./providers/video.js";
+import { startImageRender, pollImageRender, imageConfigured } from "./providers/image.js";
 import { runOrchestrator } from "./agents/orchestrator.js";
 
 const app = Fastify({ logger: true, bodyLimit: 1_000_000 });
@@ -18,7 +19,7 @@ await app.register(rateLimit, {
 app.get("/health", async () => ({ ok: true, provider: provider.name, configured: provider.configured ?? false }));
 
 // Catalog of selectable models + whether each is configured (has its API key).
-app.get("/models", async () => ({ models: listModels(), videoConfigured }));
+app.get("/models", async () => ({ models: listModels(), videoConfigured, imageConfigured }));
 
 // ---- Video rendering (text-to-video) ----
 // Start a render from a text prompt (usually the VIDEO_PROMPT from /studio/generate).
@@ -30,6 +31,16 @@ app.post("/video/render", async (req) => {
 app.get("/video/status/:id", async (req) => {
   const { id } = z.object({ id: z.string().min(1) }).parse(req.params);
   return pollRender(id);
+});
+
+// ---- Image rendering (text-to-image, Replicate) ----
+app.post("/image/render", async (req) => {
+  const body = z.object({ prompt: z.string().min(1).max(2000), ratio: z.string().optional() }).parse(req.body);
+  return startImageRender(body.prompt, body.ratio);
+});
+app.get("/image/status/:id", async (req) => {
+  const { id } = z.object({ id: z.string().min(1) }).parse(req.params);
+  return pollImageRender(id);
 });
 
 // Run a versioned prompt with schema validation (human-in-the-loop: suggestion only).

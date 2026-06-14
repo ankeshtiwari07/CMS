@@ -37,10 +37,13 @@ export async function getBrandGuidelines(): Promise<ToolOutput> {
     "No brand guidelines record found. Apply HUMAIN defaults — voice: confident, clear, forward-looking; " +
     "colours: primary teal #00A18B, dark ink #0B1416, lime accent #C2E54B; generous whitespace, rounded corners.";
   try {
-    const res = await fetch(`${CMS}/api/brand-guidelines?limit=3&depth=0`);
+    // Prefer the brand the user marked active; otherwise fall back to any guideline.
+    const activeRes = await fetch(`${CMS}/api/brandGuidelines?where[isActive][equals]=true&limit=1&depth=0`);
+    const active = activeRes.ok ? ((await activeRes.json()) as any)?.docs ?? [] : [];
+    if (active.length) return { ok: true, text: `ACTIVE BRAND (follow this):\n${JSON.stringify(active[0]).slice(0, 3500)}` };
+    const res = await fetch(`${CMS}/api/brandGuidelines?limit=3&depth=0`);
     if (!res.ok) return { ok: false, text: fallback };
-    const data: any = await res.json();
-    const docs = data?.docs ?? [];
+    const docs = ((await res.json()) as any)?.docs ?? [];
     if (!docs.length) return { ok: true, text: fallback };
     return { ok: true, text: JSON.stringify(docs).slice(0, 3000) };
   } catch {

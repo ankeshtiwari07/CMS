@@ -15,6 +15,8 @@ export const BrandGuidelines: CollectionConfig = {
     { name: "summary", type: "textarea" },
     { name: "isArchetype", type: "checkbox", defaultValue: false,
       admin: { description: "System suggestion shown to everyone in the library." } },
+    { name: "isActive", type: "checkbox", defaultValue: false,
+      admin: { description: "The active brand the AI agents follow when generating on-brand content." } },
     { name: "source", type: "select", defaultValue: "custom",
       options: ["humain", "archetype", "ai", "custom"] },
     // { sections: [{ id, type, title, content, meta }], palette: [...], typography: {...} }

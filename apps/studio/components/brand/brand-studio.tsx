@@ -1,7 +1,8 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { SparkIcon, PlusIcon, TrashIcon, CheckIcon, XIcon, BookmarkIcon, PaletteIcon } from "@/components/icons";
+import { SparkIcon, TrashIcon, PlusIcon, BookmarkIcon, CheckIcon } from "@/components/icons";
+import Markdown from "@/components/studio/markdown";
 
 type Section = { id: string; type: string; title: string; content: string };
 type Swatch = { name: string; hex: string; usage?: string };
@@ -11,6 +12,7 @@ type Guideline = {
   industry?: string;
   summary?: string;
   source?: string;
+  isActive?: boolean;
   isArchetype?: boolean;
   data?: { sections?: Section[]; palette?: Swatch[]; typography?: any };
   sections?: Section[];
@@ -18,272 +20,228 @@ type Guideline = {
 };
 
 const uid = () => Math.random().toString(36).slice(2, 9);
-const secs = (g: Guideline): Section[] => g.sections || g.data?.sections || [];
-const pal = (g: Guideline): Swatch[] => g.palette || g.data?.palette || [];
+const secs = (g: Guideline | null): Section[] => (g ? g.sections || g.data?.sections || [] : []);
+const pal = (g: Guideline | null): Swatch[] => (g ? g.palette || g.data?.palette || [] : []);
 
-export default function BrandStudio({
-  archetypes, mine,
-}: { archetypes: Guideline[]; mine: Guideline[] }) {
+function toMarkdown(g: Guideline): string {
+  let md = `# ${g.name}\n\n`;
+  if (g.summary) md += `${g.summary}\n\n`;
+  const p = pal(g);
+  if (p.length) md += `## Colour Palette\n\n${p.map((c) => `- **${c.name}** \`${c.hex}\`${c.usage ? ` — ${c.usage}` : ""}`).join("\n")}\n\n`;
+  for (const s of secs(g)) md += `## ${s.title}\n\n${s.content}\n\n`;
+  return md.trim();
+}
+function toHtml(g: Guideline): string {
+  const p = pal(g);
+  const esc = (s: string) => String(s || "").replace(/</g, "&lt;");
+  return `<!doctype html><html><head><meta charset="utf-8"><title>${esc(g.name)}</title>
+<style>body{font-family:-apple-system,Segoe UI,Arial,sans-serif;max-width:820px;margin:40px auto;padding:0 20px;color:#16242F;line-height:1.6}
+h1{color:#0A5C58}h2{color:#0B7A75;border-bottom:2px solid #C8A45C;padding-bottom:4px;margin-top:32px}
+.sw{display:inline-flex;align-items:center;gap:8px;border:1px solid #e2e8ec;border-radius:999px;padding:4px 12px 4px 6px;margin:4px 6px 4px 0}
+.dot{width:18px;height:18px;border-radius:50%;display:inline-block;border:1px solid rgba(0,0,0,.1)}</style></head><body>
+<h1>${esc(g.name)}</h1>${g.summary ? `<p>${esc(g.summary)}</p>` : ""}
+${p.length ? `<h2>Colour Palette</h2><div>${p.map((c) => `<span class="sw"><span class="dot" style="background:${esc(c.hex)}"></span>${esc(c.name)} · ${esc(c.hex)}${c.usage ? " · " + esc(c.usage) : ""}</span>`).join("")}</div>` : ""}
+${secs(g).map((s) => `<h2>${esc(s.title)}</h2><div>${esc(s.content).replace(/\n/g, "<br>")}</div>`).join("")}
+</body></html>`;
+}
+function download(name: string, content: string, mime: string, ext: string) {
+  const blob = new Blob([content], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = `${name.replace(/[^\w]+/g, "-").slice(0, 60) || "brand"}.${ext}`; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+export default function BrandStudio({ archetypes, mine }: { archetypes: Guideline[]; mine: Guideline[] }) {
   const router = useRouter();
-  const [tab, setTab] = useState<"library" | "ai">("library");
-  const [viewing, setViewing] = useState<Guideline | null>(archetypes[0] || null);
+  const [tab, setTab] = useState<"recommend" | "library">("recommend");
+  const [brief, setBrief] = useState({ industry: "", audience: "", tone: "", notes: "" });
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [g, setG] = useState<Guideline | null>(null); // the guideline being viewed/verified
+  const [editing, setEditing] = useState(false);
+  const [dest, setDest] = useState<"library" | "active">("active");
+  const [pub, setPub] = useState<{ s: "idle" | "busy" | "ok" | "err"; m?: string }>({ s: "idle" });
 
-  // builder state
-  const [name, setName] = useState("My Brand Guideline");
-  const [industry, setIndustry] = useState("");
-  const [sections, setSections] = useState<Section[]>([]);
-  const [palette, setPalette] = useState<Swatch[]>([]);
-  const [editId, setEditId] = useState<string | number | undefined>(undefined);
-  const [saving, setSaving] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
-
-  // AI suggest state
-  const [ai, setAi] = useState({ industry: "", audience: "", tone: "", notes: "" });
-  const [aiBusy, setAiBusy] = useState(false);
-  const [aiResult, setAiResult] = useState<Guideline | null>(null);
-  const [aiErr, setAiErr] = useState<string | null>(null);
-
-  function addSection(s: Section) {
-    setSections((p) => [...p, { ...s, id: uid() }]);
-    setToast(`Added "${s.title}"`);
-    setTimeout(() => setToast(null), 1400);
-  }
-  function addAllFrom(g: Guideline) {
-    const ss = secs(g).map((s) => ({ ...s, id: uid() }));
-    setSections((p) => [...p, ...ss]);
-    const ps = pal(g);
-    if (ps.length) setPalette((p) => [...p, ...ps]);
-    setName(g.name ? `${g.name} (my version)` : name);
-    if (g.industry) setIndustry(g.industry);
-    setToast(`Added ${ss.length} sections from ${g.name}`);
-    setTimeout(() => setToast(null), 1600);
-  }
-  const move = (i: number, d: -1 | 1) =>
-    setSections((p) => {
-      const n = [...p]; const j = i + d;
-      if (j < 0 || j >= n.length) return n;
-      [n[i], n[j]] = [n[j], n[i]]; return n;
-    });
-
-  function loadMine(g: Guideline) {
-    setEditId(g.id);
-    setName(g.name);
-    setIndustry(g.industry || "");
-    setSections(secs(g).map((s) => ({ ...s, id: s.id || uid() })));
-    setPalette(pal(g));
-    setToast(`Loaded "${g.name}"`);
-    setTimeout(() => setToast(null), 1400);
-  }
-  function reset() {
-    setEditId(undefined); setName("My Brand Guideline"); setIndustry("");
-    setSections([]); setPalette([]);
+  async function recommend() {
+    setBusy(true); setErr(null); setPub({ s: "idle" });
+    try {
+      const res = await fetch("/api/brand-guidelines/suggest", {
+        method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(brief),
+      });
+      const d = await res.json();
+      if (d.ok) {
+        setG({ ...d.guideline, sections: (d.guideline.sections || []).map((s: Section) => ({ ...s, id: s.id || uid() })) });
+        setEditing(false);
+      } else setErr(d.message || "Could not generate.");
+    } catch { setErr("Could not reach the generation service."); }
+    setBusy(false);
   }
 
-  async function save() {
-    if (!sections.length) { setToast("Add at least one section first."); setTimeout(() => setToast(null), 1600); return; }
-    setSaving(true);
+  function view(src: Guideline) {
+    setG({ ...src, sections: secs(src).map((s) => ({ ...s, id: s.id || uid() })), palette: pal(src) });
+    setEditing(false); setPub({ s: "idle" });
+  }
+
+  function patchSection(id: string, k: "title" | "content", v: string) {
+    setG((cur) => cur ? { ...cur, sections: secs(cur).map((s) => s.id === id ? { ...s, [k]: v } : s) } : cur);
+  }
+
+  async function publish() {
+    if (!g) return;
+    setPub({ s: "busy" });
     try {
       const res = await fetch("/api/brand-guidelines", {
         method: "POST", headers: { "content-type": "application/json" },
-        body: JSON.stringify({ id: editId, name, industry, data: { sections, palette } }),
+        body: JSON.stringify({
+          id: g.id, name: g.name, industry: g.industry, summary: g.summary, source: g.source || "ai",
+          data: { sections: secs(g), palette: pal(g), typography: g.data?.typography },
+          active: dest === "active",
+        }),
       });
       const d = await res.json();
-      if (res.ok) { setEditId(d.doc?.id ?? editId); setToast("Saved ✓"); router.refresh(); }
-      else setToast("Save failed.");
-    } catch { setToast("Save failed."); }
-    setSaving(false);
-    setTimeout(() => setToast(null), 1600);
-  }
-
-  async function runAI() {
-    setAiBusy(true); setAiErr(null); setAiResult(null);
-    try {
-      const res = await fetch("/api/brand-guidelines/suggest", {
-        method: "POST", headers: { "content-type": "application/json" },
-        body: JSON.stringify(ai),
-      });
-      const d = await res.json();
-      if (d.ok) setAiResult(d.guideline);
-      else setAiErr(d.message || "Could not generate.");
-    } catch { setAiErr("Could not reach the generation service."); }
-    setAiBusy(false);
+      if (res.ok && d.ok) {
+        setG((cur) => cur ? { ...cur, id: d.doc?.id ?? cur.id, isActive: dest === "active" } : cur);
+        setPub({ s: "ok", m: dest === "active" ? "Published — now the active brand the AI follows" : "Saved to Brand Library" });
+        router.refresh();
+      } else setPub({ s: "err", m: d.error || "Publish failed" });
+    } catch { setPub({ s: "err", m: "Could not reach publish service" }); }
   }
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)", gap: 20, alignItems: "start" }}>
-      {/* ---------- LEFT: sources ---------- */}
-      <div style={card}>
-        <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
-          <button onClick={() => setTab("library")} style={pill(tab === "library")}><BookmarkIcon size={15} /> Library</button>
-          <button onClick={() => setTab("ai")} style={pill(tab === "ai")}><SparkIcon size={15} /> AI suggest</button>
-        </div>
-
-        {tab === "library" && (
-          <>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 14 }}>
-              {archetypes.map((g) => (
-                <button key={String(g.id)} onClick={() => setViewing(g)}
-                  style={{ ...chip(viewing?.id === g.id), maxWidth: "100%" }}>
-                  {g.name}
-                </button>
-              ))}
-            </div>
-            {viewing && (
-              <div>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
-                  <div>
-                    <div style={{ fontSize: 16, fontWeight: 700 }}>{viewing.name}</div>
-                    <div style={{ fontSize: 12.5, color: "var(--muted)" }}>{viewing.industry}</div>
-                  </div>
-                  <button onClick={() => addAllFrom(viewing)} style={addAllBtn}><PlusIcon size={15} color="#fff" /> Add all</button>
-                </div>
-                <p style={{ fontSize: 13, color: "var(--muted)", margin: "8px 0 12px" }}>{viewing.summary}</p>
-                {pal(viewing).length > 0 && (
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
-                    {pal(viewing).map((c, i) => <Swatchet key={i} c={c} />)}
-                  </div>
-                )}
-                <div style={{ display: "grid", gap: 8 }}>
-                  {secs(viewing).map((s) => (
-                    <div key={s.id} style={srcSec}>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 13.5, fontWeight: 600 }}>{s.title}</div>
-                        <div style={{ fontSize: 12.5, color: "var(--muted)", lineHeight: 1.5 }}>{s.content}</div>
-                      </div>
-                      <button onClick={() => addSection(s)} title="Add to my guideline" style={addBtn}><PlusIcon size={16} /></button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </>
-        )}
-
-        {tab === "ai" && (
-          <div>
-            <p style={{ fontSize: 13, color: "var(--muted)", margin: "0 0 12px" }}>Describe your brand and let Claude tailor a guideline. Add the sections you like to your own.</p>
-            <div style={{ display: "grid", gap: 10 }}>
-              <input placeholder="Industry (e.g. fintech, telecom, healthcare)" value={ai.industry} onChange={(e) => setAi({ ...ai, industry: e.target.value })} style={field} />
-              <input placeholder="Target audience" value={ai.audience} onChange={(e) => setAi({ ...ai, audience: e.target.value })} style={field} />
-              <input placeholder="Desired tone (e.g. bold, trustworthy, premium)" value={ai.tone} onChange={(e) => setAi({ ...ai, tone: e.target.value })} style={field} />
-              <textarea placeholder="Anything else? (values, competitors, must-haves)" value={ai.notes} onChange={(e) => setAi({ ...ai, notes: e.target.value })} rows={2} style={{ ...field, resize: "vertical" }} />
-              <button onClick={runAI} disabled={aiBusy} style={{ ...addAllBtn, justifyContent: "center", height: 42 }}>
-                <SparkIcon size={16} color="#fff" /> {aiBusy ? "Generating…" : "Generate with Claude"}
-              </button>
-            </div>
-            {aiErr && <div style={{ color: "#b42318", fontSize: 13, marginTop: 10 }}>{aiErr}</div>}
-            {aiResult && (
-              <div style={{ marginTop: 16 }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <div style={{ fontSize: 14, fontWeight: 700 }}>{aiResult.name}</div>
-                  <button onClick={() => addAllFrom(aiResult)} style={addAllBtn}><PlusIcon size={15} color="#fff" /> Add all</button>
-                </div>
-                {(aiResult.palette || []).length > 0 && (
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", margin: "10px 0" }}>
-                    {(aiResult.palette || []).map((c, i) => <Swatchet key={i} c={c} />)}
-                  </div>
-                )}
-                <div style={{ display: "grid", gap: 8, marginTop: 8 }}>
-                  {(aiResult.sections || []).map((s) => (
-                    <div key={s.id} style={srcSec}>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 13.5, fontWeight: 600 }}>{s.title}</div>
-                        <div style={{ fontSize: 12.5, color: "var(--muted)", lineHeight: 1.5, whiteSpace: "pre-wrap" }}>{s.content}</div>
-                      </div>
-                      <button onClick={() => addSection(s)} style={addBtn}><PlusIcon size={16} /></button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* ---------- RIGHT: builder ---------- */}
+    <div style={{ display: "grid", gridTemplateColumns: "320px minmax(0,1fr)", gap: 20, alignItems: "start" }}>
+      {/* LEFT: recommend / library */}
       <div style={{ ...card, position: "sticky", top: 12 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-          <div style={{ fontSize: 16, fontWeight: 700 }}>My brand guideline</div>
-          <div style={{ display: "flex", gap: 8 }}>
-            <button onClick={reset} style={ghostBtn}>New</button>
-            <button onClick={save} disabled={saving} style={addAllBtn}>{saving ? "Saving…" : (editId ? "Update" : "Save")}</button>
-          </div>
+        <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
+          <button onClick={() => setTab("recommend")} style={pill(tab === "recommend")}><SparkIcon size={15} /> Recommend</button>
+          <button onClick={() => setTab("library")} style={pill(tab === "library")}><BookmarkIcon size={15} /> Library</button>
         </div>
-
-        {mine.length > 0 && (
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
-            <span style={{ fontSize: 12, color: "var(--muted)", alignSelf: "center" }}>Open:</span>
-            {mine.map((g) => (
-              <span key={String(g.id)} style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                <button onClick={() => loadMine(g)} style={chip(editId === g.id)}>{g.name}</button>
-              </span>
-            ))}
-          </div>
-        )}
-
-        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Guideline name" style={{ ...field, fontWeight: 700, fontSize: 15, marginBottom: 8 }} />
-        <input value={industry} onChange={(e) => setIndustry(e.target.value)} placeholder="Industry" style={{ ...field, marginBottom: 12 }} />
-
-        {palette.length > 0 && (
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
-            {palette.map((c, i) => (
-              <span key={i} style={{ position: "relative" }}>
-                <Swatchet c={c} />
-                <button onClick={() => setPalette((p) => p.filter((_, j) => j !== i))} style={swatchX}><XIcon size={11} /></button>
-              </span>
-            ))}
-          </div>
-        )}
-
-        {sections.length === 0 ? (
-          <div style={{ textAlign: "center", color: "var(--muted)", fontSize: 13.5, padding: "30px 0", border: "1.5px dashed var(--hairline)", borderRadius: 12 }}>
-            Pick sections from the library or AI suggestions on the left to build your guideline.
+        {tab === "recommend" ? (
+          <div style={{ display: "grid", gap: 10 }}>
+            <p style={{ fontSize: 13, color: "var(--muted)", margin: 0 }}>Describe your brand — the AI recommends a full guideline you can review, edit, publish or download.</p>
+            <input placeholder="Industry (fintech, telecom, healthcare…)" value={brief.industry} onChange={(e) => setBrief({ ...brief, industry: e.target.value })} style={field} />
+            <input placeholder="Target audience" value={brief.audience} onChange={(e) => setBrief({ ...brief, audience: e.target.value })} style={field} />
+            <input placeholder="Desired tone (bold, trustworthy, premium…)" value={brief.tone} onChange={(e) => setBrief({ ...brief, tone: e.target.value })} style={field} />
+            <textarea placeholder="Anything else? (values, competitors, must-haves)" value={brief.notes} onChange={(e) => setBrief({ ...brief, notes: e.target.value })} rows={3} style={{ ...field, resize: "vertical" }} />
+            <button onClick={recommend} disabled={busy} style={{ ...primary, justifyContent: "center", height: 42 }}>
+              <SparkIcon size={16} color="#fff" /> {busy ? "Recommending…" : "Recommend brand guideline"}
+            </button>
+            {err && <div style={{ color: "#b42318", fontSize: 13 }}>{err}</div>}
           </div>
         ) : (
-          <div style={{ display: "grid", gap: 10 }}>
-            {sections.map((s, i) => (
-              <div key={s.id} style={{ border: "1px solid var(--hairline)", borderRadius: 12, padding: 12 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                  <input value={s.title}
-                    onChange={(e) => setSections((p) => p.map((x) => x.id === s.id ? { ...x, title: e.target.value } : x))}
-                    style={{ flex: 1, border: "none", outline: "none", fontWeight: 700, fontSize: 14, background: "transparent" }} />
-                  <button onClick={() => move(i, -1)} title="Up" style={iconMini}>▲</button>
-                  <button onClick={() => move(i, 1)} title="Down" style={iconMini}>▼</button>
-                  <button onClick={() => setSections((p) => p.filter((x) => x.id !== s.id))} title="Remove" style={{ ...iconMini, color: "#b42318" }}><TrashIcon size={14} /></button>
-                </div>
-                <textarea value={s.content}
-                  onChange={(e) => setSections((p) => p.map((x) => x.id === s.id ? { ...x, content: e.target.value } : x))}
-                  rows={3}
-                  style={{ width: "100%", border: "1px solid var(--hairline)", borderRadius: 8, padding: "8px 10px", fontSize: 13, color: "var(--ink)", outline: "none", resize: "vertical", lineHeight: 1.5 }} />
-              </div>
-            ))}
+          <div style={{ display: "grid", gap: 14 }}>
+            <div>
+              <div style={{ fontSize: 12, color: "var(--muted)", fontWeight: 600, marginBottom: 6 }}>YOUR GUIDELINES</div>
+              {mine.length ? mine.map((m) => (
+                <button key={String(m.id)} onClick={() => view(m)} style={{ ...rowBtn, ...(g?.id === m.id ? rowOn : {}) }}>
+                  {m.name}{m.isActive && <span style={activeTag}>ACTIVE</span>}
+                </button>
+              )) : <div style={{ fontSize: 13, color: "var(--muted)" }}>None yet — recommend one.</div>}
+            </div>
+            <div>
+              <div style={{ fontSize: 12, color: "var(--muted)", fontWeight: 600, marginBottom: 6 }}>ARCHETYPE LIBRARY</div>
+              {archetypes.map((a) => (
+                <button key={String(a.id)} onClick={() => view(a)} style={{ ...rowBtn, ...(g?.id === a.id ? rowOn : {}) }}>{a.name}</button>
+              ))}
+            </div>
           </div>
         )}
       </div>
 
-      {toast && (
-        <div style={{ position: "fixed", bottom: 22, left: "50%", transform: "translateX(-50%)", background: "var(--ink)", color: "#fff", padding: "10px 16px", borderRadius: 10, fontSize: 13.5, zIndex: 200 }}>{toast}</div>
-      )}
-    </div>
-  );
-}
+      {/* RIGHT: the viewable / verifiable guideline */}
+      <div style={card}>
+        {!g ? (
+          <div style={{ textAlign: "center", color: "var(--muted)", fontSize: 14, padding: "60px 0", border: "1.5px dashed var(--hairline)", borderRadius: 12 }}>
+            <SparkIcon size={26} /><div style={{ marginTop: 10 }}>Recommend a brand guideline, or open one from the library, to review it here.</div>
+          </div>
+        ) : (
+          <>
+            {/* action bar */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap", marginBottom: 16 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 12.5, fontWeight: 700, color: "var(--studio-teal-dark)", letterSpacing: "0.04em" }}>{editing ? "EDITING" : "BRAND GUIDELINE"}</span>
+                {g.isActive && <span style={activeTag}>ACTIVE</span>}
+              </div>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                <button onClick={() => setEditing((e) => !e)} style={ghost}>{editing ? "Done" : "Edit"}</button>
+                <button onClick={() => download(g.name, toMarkdown(g), "text/markdown", "md")} style={ghost}>Download .md</button>
+                <button onClick={() => download(g.name, toHtml(g), "text/html", "html")} style={ghost}>Download .html</button>
+                <select value={dest} onChange={(e) => setDest(e.target.value as any)} style={{ ...ghost, paddingRight: 8 }}>
+                  <option value="active">Active Brand (AI follows)</option>
+                  <option value="library">Brand Library</option>
+                </select>
+                <button onClick={publish} disabled={pub.s === "busy"} style={primary}>{pub.s === "busy" ? "Publishing…" : "Publish"}</button>
+              </div>
+            </div>
+            {pub.s === "ok" && <div style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--studio-teal-dark)", fontSize: 13.5, fontWeight: 600, marginBottom: 12 }}><CheckIcon size={15} /> {pub.m}</div>}
+            {pub.s === "err" && <div style={{ color: "#b42318", fontSize: 13.5, marginBottom: 12 }}>⚠ {pub.m}</div>}
 
-function Swatchet({ c }: { c: Swatch }) {
-  return (
-    <span title={`${c.name} ${c.hex}${c.usage ? " · " + c.usage : ""}`} style={{ display: "inline-flex", alignItems: "center", gap: 6, border: "1px solid var(--hairline)", borderRadius: 999, padding: "3px 9px 3px 4px", fontSize: 11.5 }}>
-      <span style={{ width: 16, height: 16, borderRadius: "50%", background: c.hex, border: "1px solid rgba(0,0,0,0.1)" }} />
-      <span style={{ fontVariantNumeric: "tabular-nums" }}>{c.hex}</span>
-    </span>
+            {/* title + summary */}
+            {editing ? (
+              <input value={g.name} onChange={(e) => setG({ ...g, name: e.target.value })} style={{ ...field, fontSize: 22, fontWeight: 700, marginBottom: 8 }} />
+            ) : (
+              <h1 style={{ fontSize: 26, fontWeight: 800, color: "var(--ink)", margin: "0 0 6px" }}>{g.name}</h1>
+            )}
+            {editing ? (
+              <textarea value={g.summary || ""} onChange={(e) => setG({ ...g, summary: e.target.value })} rows={2} style={{ ...field, marginBottom: 18, resize: "vertical" }} />
+            ) : (g.summary && <p style={{ color: "var(--muted)", fontSize: 14.5, margin: "0 0 18px" }}>{g.summary}</p>)}
+
+            {/* palette */}
+            {pal(g).length > 0 && (
+              <div style={{ marginBottom: 22 }}>
+                <div style={sectionH}>Colour Palette</div>
+                <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
+                  {pal(g).map((c, i) => (
+                    <div key={i} style={{ textAlign: "center" }}>
+                      <div style={{ width: 72, height: 72, borderRadius: 14, background: c.hex, border: "1px solid rgba(0,0,0,0.08)", boxShadow: "var(--shadow-card)" }} />
+                      <div style={{ fontSize: 12.5, fontWeight: 700, marginTop: 6 }}>{c.name}</div>
+                      <div style={{ fontSize: 11.5, color: "var(--muted)", fontVariantNumeric: "tabular-nums" }}>{c.hex}</div>
+                      {c.usage && <div style={{ fontSize: 11, color: "var(--muted)" }}>{c.usage}</div>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* sections */}
+            <div style={{ display: "grid", gap: 18 }}>
+              {secs(g).map((s) => (
+                <div key={s.id}>
+                  {editing ? (
+                    <>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                        <input value={s.title} onChange={(e) => patchSection(s.id, "title", e.target.value)} style={{ ...field, fontWeight: 700, fontSize: 15 }} />
+                        <button onClick={() => setG({ ...g, sections: secs(g).filter((x) => x.id !== s.id) })} title="Remove" style={{ ...ghost, color: "#b42318" }}><TrashIcon size={14} /></button>
+                      </div>
+                      <textarea value={s.content} onChange={(e) => patchSection(s.id, "content", e.target.value)} rows={5} style={{ ...field, resize: "vertical", lineHeight: 1.6 }} />
+                    </>
+                  ) : (
+                    <>
+                      <div style={sectionH}>{s.title}</div>
+                      <Markdown text={s.content} />
+                    </>
+                  )}
+                </div>
+              ))}
+              {editing && (
+                <button onClick={() => setG({ ...g, sections: [...secs(g), { id: uid(), type: "section", title: "New section", content: "" }] })} style={{ ...ghost, justifyContent: "center" }}>
+                  <PlusIcon size={15} /> Add section
+                </button>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+    </div>
   );
 }
 
 const card: React.CSSProperties = { background: "#fff", border: "1px solid var(--hairline)", borderRadius: 16, padding: 18 };
 const field: React.CSSProperties = { width: "100%", border: "1px solid var(--hairline)", borderRadius: 10, padding: "9px 11px", fontSize: 13.5, color: "var(--ink)", outline: "none", background: "#fff" };
+const sectionH: React.CSSProperties = { fontSize: 16, fontWeight: 700, color: "var(--studio-teal-dark)", margin: "0 0 6px", paddingBottom: 4, borderBottom: "2px solid var(--mint-pill)" };
 const pill = (a: boolean): React.CSSProperties => ({ display: "inline-flex", alignItems: "center", gap: 6, height: 34, padding: "0 14px", borderRadius: 999, border: "none", fontWeight: 600, fontSize: 13.5, cursor: "pointer", background: a ? "var(--studio-primary)" : "var(--mint-pill)", color: a ? "#fff" : "var(--studio-teal-dark)" });
-const chip = (a: boolean): React.CSSProperties => ({ height: 30, padding: "0 12px", borderRadius: 999, fontSize: 12.5, fontWeight: 600, cursor: "pointer", border: `1px solid ${a ? "var(--studio-primary)" : "var(--hairline)"}`, background: a ? "var(--mint-pill)" : "#fff", color: a ? "var(--studio-teal-dark)" : "var(--ink)" });
-const srcSec: React.CSSProperties = { display: "flex", alignItems: "flex-start", gap: 10, border: "1px solid var(--hairline)", borderRadius: 10, padding: "10px 12px" };
-const addBtn: React.CSSProperties = { flexShrink: 0, width: 30, height: 30, borderRadius: 8, border: "1px solid var(--studio-primary)", background: "var(--mint-pill)", color: "var(--studio-teal-dark)", display: "grid", placeItems: "center", cursor: "pointer" };
-const addAllBtn: React.CSSProperties = { display: "inline-flex", alignItems: "center", gap: 6, height: 34, padding: "0 14px", borderRadius: 10, border: "none", background: "var(--studio-primary)", color: "#fff", fontSize: 13.5, fontWeight: 700, cursor: "pointer" };
-const ghostBtn: React.CSSProperties = { height: 34, padding: "0 12px", borderRadius: 10, border: "1px solid var(--hairline)", background: "#fff", color: "var(--ink)", fontSize: 13.5, fontWeight: 600, cursor: "pointer" };
-const iconMini: React.CSSProperties = { width: 26, height: 26, borderRadius: 6, border: "1px solid var(--hairline)", background: "#fff", color: "var(--muted)", cursor: "pointer", fontSize: 11, display: "grid", placeItems: "center" };
-const swatchX: React.CSSProperties = { position: "absolute", top: -6, right: -6, width: 16, height: 16, borderRadius: "50%", border: "none", background: "var(--ink)", color: "#fff", display: "grid", placeItems: "center", cursor: "pointer" };
+const primary: React.CSSProperties = { display: "inline-flex", alignItems: "center", gap: 6, height: 34, padding: "0 16px", borderRadius: 10, border: "none", background: "var(--studio-primary)", color: "#fff", fontSize: 13.5, fontWeight: 700, cursor: "pointer" };
+const ghost: React.CSSProperties = { height: 34, padding: "0 12px", borderRadius: 10, border: "1px solid var(--hairline)", background: "#fff", color: "var(--ink)", fontSize: 13, fontWeight: 600, cursor: "pointer" };
+const rowBtn: React.CSSProperties = { display: "flex", alignItems: "center", gap: 8, width: "100%", textAlign: "left", padding: "9px 11px", borderRadius: 10, border: "1px solid var(--hairline)", background: "#fff", color: "var(--ink)", fontSize: 13.5, fontWeight: 600, cursor: "pointer", marginBottom: 6 };
+const rowOn: React.CSSProperties = { border: "1px solid var(--studio-primary)", background: "var(--mint-pill)", color: "var(--studio-teal-dark)" };
+const activeTag: React.CSSProperties = { marginLeft: "auto", fontSize: 10, fontWeight: 800, letterSpacing: "0.06em", color: "#fff", background: "var(--studio-primary)", padding: "2px 7px", borderRadius: 999 };

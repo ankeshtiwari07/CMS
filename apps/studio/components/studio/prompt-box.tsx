@@ -6,6 +6,7 @@ import {
   CodeIcon, CheckIcon, XIcon, FileIcon, SquareIcon, SparkIcon, CalendarIcon, MegaphoneIcon,
   BookmarkIcon, VideoIcon, BuildingIcon,
 } from "@/components/icons";
+import Markdown from "@/components/studio/markdown";
 
 type Mode =
   | "auto" | "image" | "deck" | "website" | "email" | "writing" | "translation" | "designSystem"
@@ -31,6 +32,7 @@ type Turn = {
   videoPrompt?: string;
   model?: string;
   streaming?: boolean;
+  artifactHtml?: string; // a built website/app, rendered in an in-chat viewer
 };
 
 // Text modes stream a conversational, agentic reply (token-by-token). The rich
@@ -233,6 +235,7 @@ export default function PromptBox() {
             try { ev = JSON.parse(line); } catch { continue; }
             if (ev.type === "delta") patchLastAssistant((t) => ({ ...t, text: (t.text || "") + ev.text }));
             else if (ev.type === "reset") patchLastAssistant((t) => ({ ...t, text: "" }));
+            else if (ev.type === "artifact" && ev.kind === "html") patchLastAssistant((t) => ({ ...t, artifactHtml: ev.html }));
             else if (ev.type === "error") patchLastAssistant((t) => ({ ...t, text: `${t.text ? t.text + "\n\n" : ""}⚠️ ${ev.message}`, streaming: false }));
             else if (ev.type === "done") patchLastAssistant((t) => ({ ...t, model: ev.modelLabel || t.model, streaming: false }));
             // "status" / "agents" events carry agent activity — no visual change.
@@ -541,6 +544,7 @@ function AssistantTurn({ t }: { t: Turn }) {
         <span style={{ display: "inline-flex", gap: 8, alignItems: "center" }}>
           {t.preview && <span style={badge}>CONCEPT PREVIEW</span>}
           {t.html && <span style={badge}>LIVE HTML</span>}
+          {t.artifactHtml && <span style={badge}>WEBSITE</span>}
           {t.video && <span style={badge}>VIDEO</span>}
           <span style={{ fontSize: 12, color: "var(--muted)", fontWeight: 600 }}>{t.model ?? "Claude"}</span>
         </span>
@@ -554,18 +558,19 @@ function AssistantTurn({ t }: { t: Turn }) {
       {t.html ? (
         <iframe title="Website preview" srcDoc={t.text} style={{ width: "100%", height: 520, border: "1px solid var(--hairline)", borderRadius: 12, background: "#fff" }} />
       ) : (
-        <div style={{ whiteSpace: "pre-wrap", color: "var(--ink)", lineHeight: 1.6, fontSize: 15 }}>
+        <div style={{ color: "var(--ink)", lineHeight: 1.6, fontSize: 15 }}>
           {t.streaming && !t.text ? (
             <span style={{ color: "var(--muted)" }}>Thinking…</span>
           ) : (
             <>
-              {t.text}
+              <Markdown text={t.text} />
               {t.streaming && <span className="humain-caret" style={{ color: "var(--studio-primary)", fontWeight: 700 }}>▌</span>}
             </>
           )}
           {t.streaming && <style>{`@keyframes humain-blink{0%,100%{opacity:1}50%{opacity:0}}.humain-caret{animation:humain-blink 1s step-end infinite}`}</style>}
         </div>
       )}
+      {t.artifactHtml && <SiteViewer html={t.artifactHtml} />}
       {t.video && <VideoRender prompt={t.videoPrompt || t.text} />}
     </div>
   );
@@ -579,6 +584,31 @@ const btnSm: React.CSSProperties = {
   border: "1px solid var(--hairline)", background: "#fff", borderRadius: 8, padding: "5px 10px",
   fontSize: 12.5, color: "var(--ink)", cursor: "pointer",
 };
+
+// In-chat viewer for a website/app the Build Agent produced: live iframe preview
+// with open-in-new-tab and download. Lets the user actually see and use the build.
+function SiteViewer({ html }: { html: string }) {
+  function openTab() { const w = window.open(); if (w) { w.document.write(html); w.document.close(); } }
+  function download() {
+    const blob = new Blob([html], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = "humain-site.html"; a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+  return (
+    <div style={{ marginTop: 14, border: "1px solid var(--hairline)", borderRadius: 12, overflow: "hidden" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 12px", background: "var(--mint-pill)" }}>
+        <span style={{ fontSize: 12.5, fontWeight: 700, color: "var(--studio-teal-dark)", letterSpacing: "0.04em" }}>LIVE PREVIEW</span>
+        <span style={{ display: "flex", gap: 8 }}>
+          <button onClick={openTab} style={btnSm}>Open</button>
+          <button onClick={download} style={btnSm}>Download</button>
+        </span>
+      </div>
+      <iframe title="Built site preview" srcDoc={html} style={{ width: "100%", height: 560, border: "none", background: "#fff", display: "block" }} />
+    </div>
+  );
+}
 
 // Real text-to-video render panel: starts a render job and polls until done.
 function VideoRender({ prompt }: { prompt: string }) {

@@ -11,6 +11,11 @@ export const dynamic = "force-dynamic";
 
 function deriveTitle(artifact: string, prompt: string): string {
   const text = String(artifact || "");
+  if (/^\s*<!doctype|^\s*<html/i.test(text)) {
+    const t = text.match(/<title[^>]*>([^<]+)<\/title>/i)?.[1] || text.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i)?.[1];
+    const clean = (t || "").replace(/<[^>]+>/g, "").trim();
+    return (clean || String(prompt || "Website")).slice(0, 80);
+  }
   const heading = text.split("\n").map((l) => l.match(/^\s*#{1,3}\s+(.+)$/)?.[1]).find(Boolean);
   if (heading) return heading.replace(/[*_`>#]/g, "").trim().slice(0, 80);
   const firstLine = text
@@ -47,24 +52,25 @@ export async function POST(req: Request) {
   let buffer = "";
   let artifact = "";
   let modelLabel = "";
+  let builtHtml = "";
 
   const stream = new ReadableStream({
     async pull(controller) {
       const { value, done } = await reader.read();
       if (done) {
-        if (artifact && !/^\s*[⚠⚙]/.test(artifact)) {
+        if ((artifact && !/^\s*[⚠⚙]/.test(artifact)) || builtHtml) {
           try {
             await fetch(`${CMS_URL}/api/projects`, {
               method: "POST",
               cache: "no-store",
               headers: { "content-type": "application/json", ...(token ? { Authorization: `JWT ${token}` } : {}) },
               body: JSON.stringify({
-                title: deriveTitle(artifact, prompt),
-                type: mode && mode !== "auto" ? mode : "writing",
+                title: deriveTitle(builtHtml || artifact, prompt),
+                type: builtHtml ? "websiteBuild" : mode && mode !== "auto" ? mode : "writing",
                 prompt,
                 model: modelLabel || body.model,
                 options,
-                asset: { text: artifact },
+                asset: { text: artifact, ...(builtHtml ? { html: true } : {}) },
                 status: "ready",
                 owner: user.id,
               }),
@@ -87,6 +93,7 @@ export async function POST(req: Request) {
         try {
           const ev = JSON.parse(line);
           if (ev.type === "done") { artifact = ev.artifact || artifact; modelLabel = ev.modelLabel || modelLabel; }
+          else if (ev.type === "artifact" && ev.kind === "html") builtHtml = ev.html || builtHtml;
         } catch {
           /* ignore partial */
         }

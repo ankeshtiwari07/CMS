@@ -17,7 +17,19 @@ export type SseEvent =
   | { type: "delta"; text: string }
   | { type: "reset" }
   | { type: "status"; label: string }
+  | { type: "artifact"; kind: "html"; html: string; title?: string }
   | { type: "agents"; trace: TraceStep[] };
+
+// Single-file responsive site the Build Agent produces (rendered live in-chat).
+const SITE_BUILDER_SYSTEM =
+  "You are the Build Agent — an expert front-end engineer for HUMAIN Create Studio. " +
+  "Build a COMPLETE, polished, responsive, single-file landing page or web app. " +
+  "Return ONLY valid HTML starting with <!doctype html> and nothing else (no markdown fences, no commentary). " +
+  "Use inline <style> with modern CSS (flex/grid, system font stack), genuinely on-brand for HUMAIN " +
+  "(primary teal #00A18B, dark ink #0B1416, lime accent #C2E54B, generous whitespace, rounded corners, tasteful gradients and motion). " +
+  "Include real, specific copy (not lorem) for: a sticky header with the HUMAIN wordmark + nav, a hero with headline/subhead/CTA, " +
+  "a 3-up features section, a stats or logos strip, a testimonial, a closing CTA band, and a footer. " +
+  "For Arabic, set dir=\"rtl\" and lang=\"ar\". Make it visually impressive and production-ready.";
 
 const TOOLS: Anthropic.Tool[] = [
   {
@@ -48,6 +60,20 @@ const TOOLS: Anthropic.Tool[] = [
         context: { type: "string" },
       },
       required: ["agent", "instruction"],
+    },
+  },
+  {
+    name: "build_site",
+    description:
+      "Actually BUILD a website / landing page / web app and display it live to the user (rendered in an in-chat preview). Use this whenever the user asks to build, create, make or design a website/landing page/site/web app — do not describe it in text, build it. The user sees the rendered result; you only briefly introduce it.",
+    input_schema: {
+      type: "object",
+      properties: {
+        brief: { type: "string", description: "A rich brief: purpose, audience, sections, tone, key copy." },
+        language: { type: "string", enum: ["en", "ar", "both"] },
+        title: { type: "string" },
+      },
+      required: ["brief"],
     },
   },
 ];
@@ -82,6 +108,21 @@ async function execTool(
     trace.push({ kind: "agent", name: sp.label, detail: String(input.instruction || "").slice(0, 80) });
     return out;
   }
+  if (name === "build_site") {
+    onEvent?.({ type: "status", label: "Build Agent" });
+    const lang = input.language === "ar" ? "Language: Arabic (RTL)." : input.language === "both" ? "Provide a bilingual EN/AR page." : "Language: English.";
+    let html = await provider.complete({
+      system: SITE_BUILDER_SYSTEM,
+      messages: [{ role: "user", content: `${input.brief}\n\n${lang}` }],
+      maxTokens: 8192,
+    });
+    html = html.replace(/^```html\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "").trim();
+    trace.push({ kind: "agent", name: "Build Agent", detail: String(input.title || input.brief || "site").slice(0, 80) });
+    // Show the built site to the user immediately; do NOT feed the HTML back to
+    // the model — just tell it the site is rendered so it can introduce it.
+    onEvent?.({ type: "artifact", kind: "html", html, title: input.title });
+    return "The website has been BUILT and is now displayed to the user in a live preview. Do NOT output any HTML. In 1–2 short sentences, introduce it warmly and then suggest 2–3 concrete improvements the user could ask for next (e.g. change the hero, add a pricing section, translate to Arabic).";
+  }
   return `Unknown tool: ${name}`;
 }
 
@@ -92,6 +133,9 @@ function buildSystem(deliverableSpec: string, conversational: boolean): string {
     "How you work:\n" +
     "- Plan the task, then ground it: use retrieve_context for prior content/facts, and call get_brand_guidelines before finalizing any customer-facing copy or design.\n" +
     "- Delegate focused sub-tasks with delegate_to_specialist (drafting, localization for EN/AR, brand_guardian, seo, editorial, research) when that improves quality.\n" +
+    "- When the user asks to build/create/make/design a website, landing page, site or web app, you MUST call build_site to actually build it (it renders live for the user). Never paste raw HTML or a markdown outline as the reply — build it.\n" +
+    "- Be genuinely interactive, like Claude: after producing, briefly recommend concrete next steps or offer 2–3 options the user can pick from. Invite refinement.\n" +
+    "- Format every reply in clean, well-structured Markdown (headings, short paragraphs, bullet lists, tables where useful, bold for emphasis). It is rendered as rich text.\n" +
     "- Never mention these tools, agents, or your internal process in your reply. Write naturally, as one assistant.\n" +
     "- House brand: confident, clear, forward-looking. Primary teal #00A18B, dark ink #0B1416, lime accent #C2E54B.\n";
   const convo = conversational

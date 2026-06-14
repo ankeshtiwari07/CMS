@@ -68,10 +68,12 @@ const VIDEO_SYSTEM =
 
 // Brand guideline the Brand Agent produces (rendered as a verifiable card).
 const BRAND_SYSTEM =
-  "You are the Brand Agent for HUMAIN Create Studio. Produce a complete brand guideline. Return ONLY valid JSON (no fences): " +
-  '{"name": string, "summary": string, "palette": [{"name": string, "hex": "#RRGGBB", "usage": string}], ' +
-  '"sections": [{"title": string, "content": string (Markdown — voice, positioning, messaging pillars, typography, logo usage, imagery)}]}. ' +
-  "Be specific and usable, with concrete hex codes and font names.";
+  "You are the Brand Agent for HUMAIN Create Studio. Produce a brand guideline as COMPACT, valid JSON (no fences, no commentary). " +
+  "ALWAYS include a palette of 4–6 colours. Schema: " +
+  '{"name": string, "summary": string (<=160 chars), "palette": [{"name": string, "hex": "#RRGGBB", "usage": string}], ' +
+  '"sections": [{"title": string, "content": string}]}. ' +
+  "Cover 5–7 sections (Voice & Tone, Positioning, Messaging Pillars, Typography, Logo Usage, Imagery), each 2–4 sentences of concise Markdown. " +
+  "Use concrete hex codes and real font names. Keep it tight so the JSON is complete.";
 
 // Publishable CMS modules the content can be sent to (slug → human label).
 export const PUBLISH_TARGETS: Record<string, string> = {
@@ -276,7 +278,7 @@ async function execTool(
   }
   if (name === "build_brand") {
     onEvent?.({ type: "status", label: "Brand Agent" });
-    const raw = await provider.complete({ system: BRAND_SYSTEM, messages: [{ role: "user", content: String(input.brief || "") }], maxTokens: 3000 });
+    const raw = await provider.complete({ system: BRAND_SYSTEM, messages: [{ role: "user", content: String(input.brief || "") }], maxTokens: 4096 });
     let brand: any;
     try {
       const j = JSON.parse(stripJson(raw));

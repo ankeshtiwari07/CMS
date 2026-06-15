@@ -1,30 +1,30 @@
-ID,Sprint,Epic,Task,Area,Points,Release,Status
-CS-1,S1,Agentic Core,Orchestrator agent + Claude tool-use loop,BE,8,R1,Done
-CS-2,S1,Agentic Core,Governed tools (RAG + brand),BE,5,R1,Done
-CS-3,S1,Agentic Core,Specialist agents,BE,5,R1,Done
-CS-4,S1,Agentic Core,Per-run audit logging,BE,2,R1,Done
-CS-5,S1,Conversational Chat & UX,Streaming chat endpoint (SSE),BE,5,R1,Done
-CS-6,S1,Conversational Chat & UX,Converse-then-produce,BE,3,R1,Done
-CS-7,S2,Conversational Chat & UX,Rich Markdown rendering,FE,3,R2,Done
-CS-11,S2,Build-Anything,build_site,BE/FE,5,R2,Done
-CS-10,S2,Conversational Chat & UX,Intent routing + recommendations,BE,5,R3,Done
-CS-12,S2,Build-Anything,build_content,BE/FE,5,R3,Done
-CS-13,S2,Build-Anything,Publish-to-module,BE/FE,5,R3,Done
-CS-18,S3,Brand Studio,Recommend→view→verify→publish flow,FE/BE,5,R4,Done
-CS-19,S3,Brand Studio,Active Brand governance,BE,3,R4,Done
-CS-20,S3,Design System,Prompt-driven theme,BE/FE,5,R5,Done
-CS-8,S4,Conversational Chat & UX,Natural messages + action row,FE,3,R6,Done
-CS-9,S4,Conversational Chat & UX,Focused chat view,FE,3,R6,Done
-CS-14,S4,Build-Anything,build_video,BE/FE,5,R6,Done
-CS-15,S4,Build-Anything,build_image,BE/FE,5,R6,Done
-CS-16,S4,Build-Anything,build_brand,BE/FE,3,R6,Done
-CS-17,S4,Build-Anything,build_theme,BE/FE,3,R6,Done
-CS-23,S4,Platform / Cost / Infra,Render pipeline,BE,3,R6,Done
-CS-22,S5,Platform / Cost / Infra,Cost optimization,BE,3,R7,Done
-CS-25,S5,Documentation,Product Requirements Document,DOC,3,R8,Done
-CS-26,S5,Documentation,UI/UX and User Journeys,DOC,3,R8,Done
-CS-27,S5,Documentation,High-Level Architecture,DOC,3,R8,Done
-CS-28,S5,Documentation,Combined Master Deck,DOC,1,R8,Done
-CS-29,S5,Documentation,Build pipeline + repo commit,DOC/INF,2,R8,Done
-CS-21,S5,Bilingual UI,EN/Arabic language switch,FE,5,R9,Done
-CS-24,S5,Platform / Cost / Infra,Deploy + verification cycles,INF,5,R1–R9,Done
+ID,Sprint,Epic,Task,Objective,Outcome,Area,Points,Release,Status
+CS-1,S1,Agentic Core,Orchestrator agent + Claude tool-use loop,Coordinate multi-step agent work on Claude.,"Tool-use loop plans, calls tools and assembles deliverables.",BE,8,R1,Done
+CS-2,S1,Agentic Core,Governed tools (RAG + brand),"Ground agents in HUMAIN content and brand, safely.","Read-only RAG + brand tools, permission-scoped.",BE,5,R1,Done
+CS-3,S1,Agentic Core,Specialist agents,Divide complex work across focused agents.,6 specialists (draft/localize/brand/SEO/editorial/research) delegated.,BE,5,R1,Done
+CS-4,S1,Agentic Core,Per-run audit logging,Make every agent action traceable.,Each run written to the audit log.,BE,2,R1,Done
+CS-5,S1,Conversational Chat & UX,Streaming chat endpoint (SSE),"Deliver live, Claude-style responses.",/studio/chat streams tokens via SSE.,BE,5,R1,Done
+CS-6,S1,Conversational Chat & UX,Converse-then-produce,Avoid guessing on ambiguous requests.,"Agent asks one clarifying question, else produces.",BE,3,R1,Done
+CS-7,S2,Conversational Chat & UX,Rich Markdown rendering,"Show formatted output, not raw markdown.",Replies render as rich text (headings/lists/tables).,FE,3,R2,Done
+CS-11,S2,Build-Anything,build_site,"Build real websites, not descriptions.",Responsive site built and previewed live in chat.,BE/FE,5,R2,Done
+CS-10,S2,Conversational Chat & UX,Intent routing + recommendations,Decide what to build and guide the user.,Agent routes intent and recommends next steps.,BE,5,R3,Done
+CS-12,S2,Build-Anything,build_content,"Produce usable, editable content.",Editable content card (title/body/tags).,BE/FE,5,R3,Done
+CS-13,S2,Build-Anything,Publish-to-module,Get agent output into the CMS safely.,Markdown→Lexical draft published to a chosen module for review.,BE/FE,5,R3,Done
+CS-18,S3,Brand Studio,Recommend→view→verify→publish flow,Complete the brand recommend→publish loop.,Recommend → view → verify → publish / download.,FE/BE,5,R4,Done
+CS-19,S3,Brand Studio,Active Brand governance,Steer all generations by one brand.,Active brand (isActive) governs the agents.,BE,3,R4,Done
+CS-20,S3,Design System,Prompt-driven theme,Generate design from a description.,Theme (palette/font/radius) with live preview and apply.,BE/FE,5,R5,Done
+CS-8,S4,Conversational Chat & UX,Natural messages + action row,Make replies feel conversational.,In-thread messages with Copy/Retry; no framed cards.,FE,3,R6,Done
+CS-9,S4,Conversational Chat & UX,Focused chat view,Centre the conversation.,Composer below thread; landing rails hide when chatting.,FE,3,R6,Done
+CS-14,S4,Build-Anything,build_video,Create videos from chat.,Script/storyboard + one-click render.,BE/FE,5,R6,Done
+CS-15,S4,Build-Anything,build_image,Generate images inline.,"Real image via Replicate/Flux, shown inline.",BE/FE,5,R6,Done
+CS-16,S4,Build-Anything,build_brand,Create brand guidelines from chat.,Verifiable brand card to publish or download.,BE/FE,3,R6,Done
+CS-17,S4,Build-Anything,build_theme,Create themes from chat.,Theme with live swatches and apply.,BE/FE,3,R6,Done
+CS-23,S4,Platform / Cost / Infra,Render pipeline,Render real media reliably.,Replicate image/video service + proxy routes + graceful states.,BE,3,R6,Done
+CS-22,S5,Platform / Cost / Infra,Cost optimization,Reduce per-request cost.,"Sub-agents on Haiku, orchestrator on Opus (~5–10× cheaper).",BE,3,R7,Done
+CS-25,S5,Documentation,Product Requirements Document,Define the product for the customer.,PRD with architecture/integration diagrams and snapshots.,DOC,3,R8,Done
+CS-26,S5,Documentation,UI/UX and User Journeys,Show the experience and journeys.,UI/UX doc with per-feature journeys and screenshots.,DOC,3,R8,Done
+CS-27,S5,Documentation,High-Level Architecture,Explain the system at a high level.,"HLD: context, agent core, sequence, integration, deployment.",DOC,3,R8,Done
+CS-28,S5,Documentation,Combined Master Deck,Combine the docs for one share.,Master deck (PRD + UI/UX + Architecture).,DOC,1,R8,Done
+CS-29,S5,Documentation,Build pipeline + repo commit,Make collateral reproducible and versioned.,Branded PDF pipeline committed to docs/sales (PR #1).,DOC/INF,2,R8,Done
+CS-21,S5,Bilingual UI,EN/Arabic language switch,Serve the platform UI in Arabic.,One-click EN/AR switch with full RTL.,FE,5,R9,Done
+CS-24,S5,Platform / Cost / Infra,Deploy + verification cycles,Ship and verify continuously.,"9 live releases, each built, deployed and verified.",INF,5,R1–R9,Done

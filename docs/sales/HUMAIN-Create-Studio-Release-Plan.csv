@@ -1,11 +1,11 @@
-Release,Date,Commit,Sprint,Scope,Status
-R1,2026-06-14,aafdcf3,S1,Agentic core + conversational + live streaming,Released
-R2,2026-06-14,5e3b400,S2,Rich Markdown rendering + website build + recommendations,Released
-R3,2026-06-14,3876aed,S2,Intent router + content artifact + publish-to-module,Released
-R4,2026-06-14,262e861,S3,Brand Studio loop + active-brand governance,Released
-R5,2026-06-14,7792480,S3,Design System — prompt-driven theme,Released
-R6,2026-06-14,c21fb2b,S4,Build set (video/image/brand/theme) + Claude-like chat UX,Released
-R6.1,2026-06-14,249a98d,S4,Brand-guideline palette fix,Released
-R7,2026-06-14,f734a2a,S5,Cost optimization (Haiku sub-agents),Released
-R8,2026-06-15,4321000,S5,Customer collateral docs + build pipeline (PR #1),Released
-R9,2026-06-15,3a61950,S5,English/Arabic UI language switcher,Released
+Release,Date,Commit,Sprint,Objective,Outcome,Status
+R1,2026-06-14,aafdcf3,S1,"Establish the agentic, conversational foundation.",Agentic core + streaming chat live and audited.,Released
+R2,2026-06-14,5e3b400,S2,Render structured output and build real websites.,Rich Markdown rendering + in-chat website build with recommendations.,Released
+R3,2026-06-14,3876aed,S2,Decide intent and produce publishable content.,Intent router + content cards + publish-to-module drafts.,Released
+R4,2026-06-14,262e861,S3,Govern output with a single source of brand truth.,Brand Studio loop + active-brand governance.,Released
+R5,2026-06-14,7792480,S3,Generate design from intent.,Prompt-driven theme with live preview and apply.,Released
+R6,2026-06-14,c21fb2b,S4,"Build any artifact from one chat, Claude-style.",Video / image / brand / theme tools + natural chat UX.,Released
+R6.1,2026-06-14,249a98d,S4,Harden brand output.,Reliable brand palette (JSON truncation fix).,Released
+R7,2026-06-14,f734a2a,S5,Make the agent economical to run.,"Sub-agents on Haiku, orchestrator on Opus (~5–10× cheaper).",Released
+R8,2026-06-15,4321000,S5,Package the platform for the customer.,"PRD, UI/UX, Architecture and Deck + reproducible pipeline (PR #1).",Released
+R9,2026-06-15,3a61950,S5,Serve the platform in Arabic.,One-click English/Arabic UI switch with full RTL.,Released

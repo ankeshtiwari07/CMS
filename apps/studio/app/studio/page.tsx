@@ -1,5 +1,7 @@
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { getCurrentUser, payloadFetch } from "@/lib/payload";
+import { tr, type Locale } from "@/lib/i18n";
 import Sidebar from "@/components/studio/sidebar";
 import StudioWorkspace from "@/components/studio/studio-workspace";
 import { type Project } from "@/components/studio/continue-creating";
@@ -7,9 +9,9 @@ import { type Project } from "@/components/studio/continue-creating";
 export const metadata = { title: "Create Studio · HUMAIN" };
 export const dynamic = "force-dynamic";
 
-function greeting(name?: string) {
+function greeting(name: string | undefined, locale: Locale) {
   const h = new Date().getHours();
-  const part = h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
+  const part = tr(locale, h < 12 ? "greet.morning" : h < 18 ? "greet.afternoon" : "greet.evening");
   const first = (name || "").split(" ")[0];
   return first ? `${part} ${first}!` : `${part}!`;
 }
@@ -29,6 +31,7 @@ export default async function StudioHome() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   const projects = await recentProjects();
+  const locale: Locale = (await cookies()).get("humain-locale")?.value === "ar" ? "ar" : "en";
 
   return (
     <div style={{ display: "flex", minHeight: "100vh", background: "#eef4f3" }}>
@@ -44,7 +47,7 @@ export default async function StudioHome() {
             padding: "72px 40px 56px",
           }}
         >
-          <StudioWorkspace greeting={`${greeting(user.name)} What do you want to create today?`} projects={projects} />
+          <StudioWorkspace greeting={`${greeting(user.name, locale)} ${tr(locale, "home.q")}`} projects={projects} />
         </div>
       </main>
     </div>

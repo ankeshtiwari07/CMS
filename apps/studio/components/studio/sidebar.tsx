@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { HumainLockup, HumainMark } from "@/components/brand";
 import NotificationsBell from "@/components/notifications/notifications-bell";
+import { useT, LanguageSwitcher } from "@/lib/i18n-client";
 import {
   PlusIcon,
   SearchIcon,
@@ -23,16 +24,16 @@ import {
 } from "@/components/icons";
 
 // Create-new menu (mirrors the Figma "+" menu).
-const CREATE_OPTIONS: { label: string; Icon: any; mode?: string; href?: string; action?: string }[] = [
-  { label: "Add photos & files", Icon: PaperclipIcon, action: "addfiles" },
-  { label: "Recent projects", Icon: ClockIcon, href: "/projects" },
-  { label: "Create Deck", Icon: MonitorIcon, mode: "deck" },
-  { label: "Create Image", Icon: ImageIcon, mode: "image" },
-  { label: "Create Website", Icon: GlobeIcon, mode: "website" },
-  { label: "Create Email", Icon: MailIcon, mode: "email" },
-  { label: "Use template", Icon: GridIcon, href: "/cms" },
-  { label: "Design System", Icon: PaletteIcon, mode: "designSystem" },
-  { label: "Translate", Icon: TranslateIcon, mode: "translation" },
+const CREATE_OPTIONS: { tkey: string; Icon: any; mode?: string; href?: string; action?: string }[] = [
+  { tkey: "create.addfiles", Icon: PaperclipIcon, action: "addfiles" },
+  { tkey: "create.recent", Icon: ClockIcon, href: "/projects" },
+  { tkey: "create.deck", Icon: MonitorIcon, mode: "deck" },
+  { tkey: "create.image", Icon: ImageIcon, mode: "image" },
+  { tkey: "create.website", Icon: GlobeIcon, mode: "website" },
+  { tkey: "create.email", Icon: MailIcon, mode: "email" },
+  { tkey: "create.template", Icon: GridIcon, href: "/cms" },
+  { tkey: "create.designSystem", Icon: PaletteIcon, mode: "designSystem" },
+  { tkey: "create.translation", Icon: TranslateIcon, mode: "translation" },
 ];
 
 function initials(name?: string, email?: string) {
@@ -67,6 +68,7 @@ export default function Sidebar({
   active?: string;
 }) {
   const router = useRouter();
+  const t = useT();
   const [collapsed, setCollapsed] = useState(false);
   const [menu, setMenu] = useState(false);
   const [createMenu, setCreateMenu] = useState(false);
@@ -187,14 +189,14 @@ export default function Sidebar({
             return (
               <div key={key} ref={createRef} style={{ position: "relative" }}>
                 <button
-                  title={collapsed ? "Create new" : undefined}
+                  title={collapsed ? t("nav.create") : undefined}
                   onClick={() => setCreateMenu((v) => !v)}
                   onMouseEnter={() => setHover(key)}
                   onMouseLeave={() => setHover(null)}
                   style={row(createMenu || hover === key)}
                 >
                   <Icon size={21} color={createMenu ? "var(--studio-teal-dark)" : "var(--ink)"} />
-                  {!collapsed && <span style={{ flex: 1, textAlign: "left" }}>{label}</span>}
+                  {!collapsed && <span style={{ flex: 1, textAlign: "start" }}>{t("nav.create")}</span>}
                   {!collapsed && <DotsVerticalIcon size={4} color="transparent" />}
                 </button>
                 {createMenu && (
@@ -213,13 +215,13 @@ export default function Sidebar({
                     }}
                   >
                     {CREATE_OPTIONS.map((o, i) => (
-                      <div key={o.label}>
+                      <div key={o.tkey}>
                         {i === 2 && <div style={{ height: 1, background: "var(--hairline)", margin: "4px 6px" }} />}
                         <button
                           onClick={() => runCreate(o)}
                           style={{ display: "flex", alignItems: "center", gap: 11, width: "100%", padding: "9px 10px", border: "none", background: "transparent", borderRadius: 8, fontSize: 14, color: "var(--ink)", cursor: "pointer", textAlign: "left" }}
                         >
-                          <o.Icon size={17} color="var(--muted)" /> {o.label}
+                          <o.Icon size={17} color="var(--muted)" /> {t(o.tkey)}
                         </button>
                       </div>
                     ))}
@@ -231,14 +233,14 @@ export default function Sidebar({
           return (
             <button
               key={key}
-              title={collapsed ? label : undefined}
+              title={collapsed ? t(`nav.${key}`) : undefined}
               onClick={() => router.push(href)}
               onMouseEnter={() => setHover(key)}
               onMouseLeave={() => setHover(null)}
               style={row(key === active || (hover === key && key !== active))}
             >
               <Icon size={21} color={key === active ? "var(--studio-teal-dark)" : "var(--ink)"} />
-              {!collapsed && <span>{label}</span>}
+              {!collapsed && <span>{t(`nav.${key}`)}</span>}
             </button>
           );
         })}
@@ -309,11 +311,14 @@ export default function Sidebar({
             }}
           >
             <div style={{ padding: "6px 10px", fontSize: 12, color: "var(--muted)" }}>{user.email}</div>
+            <div style={{ padding: "4px 10px 2px", fontSize: 11, fontWeight: 700, letterSpacing: ".04em", color: "var(--muted)", textTransform: "uppercase" }}>{t("menu.language")}</div>
+            <LanguageSwitcher />
+            <div style={{ height: 1, background: "var(--hairline)", margin: "4px 6px" }} />
             <button
               onClick={() => router.push("/settings")}
-              style={{ width: "100%", textAlign: "left", padding: "9px 10px", border: "none", borderRadius: 8, background: "transparent", color: "var(--ink)", fontSize: 13.5, fontWeight: 600 }}
+              style={{ width: "100%", textAlign: "start", padding: "9px 10px", border: "none", borderRadius: 8, background: "transparent", color: "var(--ink)", fontSize: 13.5, fontWeight: 600 }}
             >
-              Settings
+              {t("menu.settings")}
             </button>
             <button
               onClick={async () => {
@@ -321,9 +326,9 @@ export default function Sidebar({
                 router.replace("/login");
                 router.refresh();
               }}
-              style={{ width: "100%", textAlign: "left", padding: "9px 10px", border: "none", borderRadius: 8, background: "transparent", color: "#b42318", fontSize: 13.5, fontWeight: 600 }}
+              style={{ width: "100%", textAlign: "start", padding: "9px 10px", border: "none", borderRadius: 8, background: "transparent", color: "#b42318", fontSize: 13.5, fontWeight: 600 }}
             >
-              Sign out
+              {t("menu.signout")}
             </button>
           </div>
         )}

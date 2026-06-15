@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { Inter, IBM_Plex_Sans_Arabic } from "next/font/google";
 import "./globals.css";
+import { LocaleProvider } from "@/lib/i18n-client";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
 const plexAr = IBM_Plex_Sans_Arabic({
@@ -21,7 +22,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const dir = locale === "ar" ? "rtl" : "ltr";
   return (
     <html lang={locale} dir={dir} className={`${inter.variable} ${plexAr.variable}`}>
-      <body>{children}</body>
+      <body><LocaleProvider locale={locale}>{children}</LocaleProvider></body>
     </html>
   );
 }

@@ -7,6 +7,7 @@ import {
   BookmarkIcon, VideoIcon, BuildingIcon,
 } from "@/components/icons";
 import Markdown from "@/components/studio/markdown";
+import { useT } from "@/lib/i18n-client";
 
 type Mode =
   | "auto" | "image" | "deck" | "website" | "email" | "writing" | "translation" | "designSystem"
@@ -100,6 +101,7 @@ function fmtSize(n: number) {
 }
 
 export default function PromptBox({ onActive }: { onActive?: (active: boolean) => void } = {}) {
+  const t = useT();
   const [prompt, setPrompt] = useState("");
   const [mode, setMode] = useState<Mode>("auto");
   const [ratio, setRatio] = useState("auto");
@@ -373,7 +375,7 @@ export default function PromptBox({ onActive }: { onActive?: (active: boolean) =
           value={prompt}
           onChange={(e) => { setPrompt(e.target.value); setOpen(e.target.value.trim().length >= 3 ? "suggest" : null); }}
           onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); generate(); } }}
-          placeholder={turns.length ? "Ask a follow-up or refine…" : "Describe what you want to create"}
+          placeholder={turns.length ? t("prompt.followup") : t("prompt.placeholder")}
           rows={1}
           style={{ width: "100%", border: "none", outline: "none", resize: "none", fontSize: 16, color: "var(--ink)", minHeight: 26, lineHeight: 1.5 }}
         />
@@ -527,7 +529,7 @@ export default function PromptBox({ onActive }: { onActive?: (active: boolean) =
                 transition: "background .15s, color .15s",
               }}
             >
-              <I size={16} /> {a.label}
+              <I size={16} /> {t(`qa.${a.key}`)}
             </button>
           );
         })}
@@ -565,7 +567,7 @@ export default function PromptBox({ onActive }: { onActive?: (active: boolean) =
           {busy && turns[turns.length - 1]?.role !== "assistant" && (
             <div style={{ background: "#fff", border: "1px solid var(--hairline)", borderRadius: 18, padding: 18, display: "flex", alignItems: "center", gap: 12, color: "var(--studio-teal-dark)" }}>
               <span className="humain-spin" style={{ width: 18, height: 18, border: "2.5px solid var(--mint-pill)", borderTopColor: "var(--studio-primary)", borderRadius: "50%", display: "inline-block" }} />
-              <span style={{ fontWeight: 600 }}>Generating with {current?.label ?? "Claude"}…</span>
+              <span style={{ fontWeight: 600 }}>{t("prompt.generating")} {current?.label ?? "Claude"}…</span>
               <style>{`@keyframes humain-spin{to{transform:rotate(360deg)}}.humain-spin{animation:humain-spin .7s linear infinite}`}</style>
             </div>
           )}
@@ -580,6 +582,7 @@ export default function PromptBox({ onActive }: { onActive?: (active: boolean) =
 // card), Claude-style. Only true artifacts (website/image/video/brand/theme) get
 // their own inline frame; a subtle action row sits underneath.
 function AssistantTurn({ t, onRegen }: { t: Turn; onRegen?: () => void }) {
+  const tr = useT();
   const hasArtifact = t.preview || t.html || t.artifactHtml || t.doc || t.video || t.imagePrompt || t.brandArt || t.themeArt;
   return (
     <div style={{ padding: "0 2px 2px" }}>
@@ -601,7 +604,7 @@ function AssistantTurn({ t, onRegen }: { t: Turn; onRegen?: () => void }) {
       ) : (
         <div style={{ color: "var(--ink)", lineHeight: 1.65, fontSize: 15 }}>
           {t.streaming && !t.text ? (
-            <span style={{ color: "var(--muted)" }}>Thinking…</span>
+            <span style={{ color: "var(--muted)" }}>{tr("prompt.thinking")}</span>
           ) : (
             <>
               <Markdown text={t.text} />

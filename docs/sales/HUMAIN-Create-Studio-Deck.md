@@ -146,6 +146,7 @@ The platform is **role-governed**. Each persona sees only what their role permit
 - **FR-9** Every content field **shall** support per-locale values (EN/AR) with independent draft/published state.
 - **FR-10** The system **shall** provide AI-assisted EN⇄AR translation that preserves meaning and tone, always followed by human review.
 - **FR-11** The delivery layer **shall** render Arabic right-to-left with correct typography.
+- **FR-11a** The **platform UI itself shall be switchable between English and Arabic** — one click, with full right-to-left layout and Arabic typography — independently of the content locale.
 
 ### 7.4 Editorial Workflow and Governance
 - **FR-12** Content **shall** progress through an editorial gate: **Draft → In Review → Approved**, with only authorised roles able to advance it.
@@ -363,22 +364,20 @@ flowchart TB
 - **Every agent tool call is written to the audit log**, giving a complete, queryable record of what each agent did and why.
 - The agent runtime is **provider-abstracted** — HUMAIN is never locked to a single model vendor, and the strongest model can be assigned per task.
 
-### 12.4 Underlying AI capabilities
+### 12.4 What the agent builds
 
-The skills the agents draw on — each also available as a direct, human-invoked action:
+From one conversation, the agent decides what is needed and **builds a complete, interactive, usable outcome** — not just a suggestion of copy:
 
-| Capability | Business value |
+| Outcome | What the user gets |
 |---|---|
-| **Drafting from brief** | Turns intent into a structured first draft in minutes |
-| **EN⇄AR translation** | Tone- and meaning-preserving bilingual parity |
-| **SEO metadata** | Auto title, description and keywords for discoverability |
-| **Summarisation** | Concise abstracts for listings and previews |
-| **Headline variants** | Multiple on-brand options to choose from |
-| **FAQ generation** | Auto-derives question-and-answer pairs from source content |
-| **Taxonomy tagging** | Consistent, searchable content classification |
-| **Image alt-text** | Accessibility and SEO compliance by default |
-| **Marketing copy** | On-brand promotional copy from a short brief |
-| **Semantic search** | Meaning-based retrieval, including Arabic |
+| **Website / landing page / app** | A complete, responsive site **built and previewed live in chat**, with Open / Download |
+| **Structured content** | Article, blog, page, press release, event, product, case study, FAQ, email, campaign or social post — an **editable card** that can be **published to a CMS module** (as a draft for review) or downloaded |
+| **Video** | A production-ready script / storyboard with a **one-click render** to a real video |
+| **Image** | A **generated image**, rendered inline |
+| **Brand guideline** | A full guideline to verify, **publish as the active brand the agents follow**, or download |
+| **Design theme** | A complete colour / type / radius theme with live preview, **applied to the platform** |
+
+The agent draws on direct assist skills too — each also a one-click action: **drafting, EN⇄AR translation, SEO metadata, summarisation, headline variants, FAQ generation, taxonomy tagging, image alt-text** and **semantic, Arabic-aware search**.
 
 > **Agents act; humans decide.** No content reaches the public without human approval, and every agent action is permission-scoped and logged.
 
@@ -433,19 +432,21 @@ flowchart LR
 
 ---
 
-## 15. Delivery Roadmap (Indicative)
+## 15. Delivery Roadmap and Status
+
+The core programme (Phases 1–2) is **delivered and live** in-Kingdom; Phase 3 is **underway** (the agentic build set and MCP tool surface are already shipped).
 
 ```mermaid
 flowchart LR
-    P1[Phase 1<br/>Core Platform<br/>Authoring · CMS · Bilingual · AI assist] --> P2[Phase 2<br/>Scale and Reach<br/>Semantic search · Media/Video · Public delivery]
-    P2 --> P3[Phase 3<br/>Ecosystem<br/>Agent tools · Integrations · Advanced analytics]
+    P1[Phase 1 · Core Platform<br/>Delivered<br/>Authoring · CMS · Bilingual · Agents] --> P2[Phase 2 · Scale and Reach<br/>Delivered<br/>Search · Media/Video · Delivery]
+    P2 --> P3[Phase 3 · Ecosystem<br/>Underway<br/>Integrations · Webhooks · Analytics]
 ```
 
-| Phase | Outcome | Indicative focus |
-|---|---|---|
-| **Phase 1 — Core Platform** | Teams author, translate and govern bilingual content | Studio, CMS, RBAC, workflow, AI assist, brand tokens |
-| **Phase 2 — Scale and Reach** | Content is discoverable and richly delivered | Arabic-aware semantic search, media/video, cached public delivery |
-| **Phase 3 — Ecosystem** | Platform extends across HUMAIN's stack | Agent/MCP integrations, signed webhooks, analytics |
+| Phase | Outcome | Focus | Status |
+|---|---|---|---|
+| **Phase 1 — Core Platform** | Teams author, translate and govern bilingual content | Studio, CMS, RBAC, workflow, agentic AI, brand tokens | ✅ Delivered |
+| **Phase 2 — Scale and Reach** | Content is discoverable and richly delivered | Arabic-aware semantic search, media/video, cached public delivery | ✅ Delivered |
+| **Phase 3 — Ecosystem** | Platform extends across HUMAIN's stack | Agent/MCP integrations, signed webhooks, advanced analytics | ◑ Underway |
 
 ---
 

@@ -1,0 +1,11 @@
+Release,Date,Commit,Scope,Status
+R1,2026-06-14,aafdcf3,Agentic core + conversational + live streaming,Released
+R2,2026-06-14,5e3b400,Rich Markdown rendering + website build + recommendations,Released
+R3,2026-06-14,3876aed,Intent router + content artifact + publish-to-module,Released
+R4,2026-06-14,262e861,Brand Studio loop + active-brand governance,Released
+R5,2026-06-14,7792480,Design System - prompt-driven theme,Released
+R6,2026-06-14,c21fb2b,Build set (video/image/brand/theme) + Claude-like chat UX,Released
+R6.1,2026-06-14,249a98d,Brand-guideline palette fix,Released
+R7,2026-06-14,f734a2a,Cost optimization (Haiku sub-agents),Released
+R8,2026-06-15,4321000,Customer collateral docs + build pipeline (PR #1),Released
+R9,2026-06-15,3a61950,English/Arabic UI language switcher,Released

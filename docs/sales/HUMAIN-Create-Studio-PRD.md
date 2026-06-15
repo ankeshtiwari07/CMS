@@ -518,6 +518,12 @@ Describe a look and the agent generates a complete theme (palette, type, radius,
 
 The AI recommends a full brand guideline to review and verify, then publish as the **active brand the agents follow**, or download.
 
+### A.7 Bilingual platform UI — English / Arabic
+
+![Studio in Arabic, right-to-left](shots/10-arabic.png)
+
+A one-click language switch turns the entire platform UI to **Arabic with full right-to-left layout** (and back to English) — navigation, prompts and actions all localised. The same content store serves both languages.
+
 ---
 
 *Prepared for HUMAIN — Confidential. This document describes the HUMAIN Create Studio platform; Appendix A shows snapshots of the working product.*

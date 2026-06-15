@@ -1,0 +1,30 @@
+ID,Epic,Task,Area,Points,Status
+CS-1,Agentic Core,Orchestrator agent + Claude tool-use loop,BE,8,Done
+CS-2,Agentic Core,Governed tools: RAG retrieve_context + get_brand_guidelines,BE,5,Done
+CS-3,Agentic Core,Specialist agents (drafting/localization/brand-guardian/SEO/editorial/research),BE,5,Done
+CS-4,Agentic Core,Per-run audit logging (agent-orchestrator),BE,2,Done
+CS-5,Conversational Chat and UX,Streaming chat endpoint (/studio/chat SSE),BE,5,Done
+CS-6,Conversational Chat and UX,Converse-then-produce + clarifying questions,BE,3,Done
+CS-7,Conversational Chat and UX,Rich Markdown rendering (remove raw-markdown bug),FE,3,Done
+CS-8,Conversational Chat and UX,Claude-like natural messages + Copy/Retry action row,FE,3,Done
+CS-9,Conversational Chat and UX,Focused chat view (composer below thread),FE,3,Done
+CS-10,Conversational Chat and UX,Intelligent intent routing + recommendations,BE,5,Done
+CS-11,Build-Anything,build_site -> live in-chat website preview,BE/FE,5,Done
+CS-12,Build-Anything,build_content -> editable downloadable content card,BE/FE,5,Done
+CS-13,Build-Anything,Publish-to-module (Markdown->Lexical draft + dropdown),BE/FE,5,Done
+CS-14,Build-Anything,build_video -> script/storyboard + render control,BE/FE,5,Done
+CS-15,Build-Anything,build_image -> real image generation (Replicate/Flux),BE/FE,5,Done
+CS-16,Build-Anything,build_brand -> verifiable brand card,BE/FE,3,Done
+CS-17,Build-Anything,build_theme -> live swatches + apply,BE/FE,3,Done
+CS-18,Brand Studio,Recommend -> view -> verify -> publish/download flow,FE/BE,5,Done
+CS-19,Brand Studio,Active Brand governs the agents (isActive + schema),BE,3,Done
+CS-20,Design System,Prompt-driven theme + live preview + apply,BE/FE,5,Done
+CS-21,Bilingual UI,English/Arabic UI language switcher (RTL + translations),FE,5,Done
+CS-22,Platform/Cost/Infra,Cost optimization - sub-agents on Haiku,BE,3,Done
+CS-23,Platform/Cost/Infra,Image/video render pipeline (Replicate) + proxy routes,BE,3,Done
+CS-24,Platform/Cost/Infra,Deploy + verification cycles (9 releases),INF,5,Done
+CS-25,Documentation,Product Requirements Document (diagrams + snapshots),DOC,3,Done
+CS-26,Documentation,UI/UX and User Journeys document,DOC,3,Done
+CS-27,Documentation,High-Level Architecture document,DOC,3,Done
+CS-28,Documentation,Combined Master Deck,DOC,1,Done
+CS-29,Documentation,Branded PDF build pipeline + repo commit (PR #1),DOC/INF,2,Done

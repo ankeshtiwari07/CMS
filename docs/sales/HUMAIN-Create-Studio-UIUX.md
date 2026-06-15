@@ -119,6 +119,12 @@ Each journey below is shown as it appears in the product, with the step-by-step 
 
 **Journey:** 1) Everything the user creates is saved as a **Project** asset. 2) They browse, search and reopen prior work. 3) Each project is typed (website, content, brand, video…) and ready to promote into the CMS.
 
+### 5.9 Switch the platform language (English / Arabic)
+
+![Studio in Arabic, right-to-left](shots/10-arabic.png)
+
+**Journey:** 1) From the sidebar user menu the user picks **English** or **العربية**. 2) The entire platform UI switches instantly — selecting Arabic flips everything to **right-to-left** with the Arabic type system. 3) Navigation, greeting, prompt, quick actions and menus are localised. 4) The choice persists across sessions.
+
 ---
 
 ## 6. Accessibility and Localization

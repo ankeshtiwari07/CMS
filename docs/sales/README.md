@@ -13,6 +13,8 @@ real product screenshots.
 | `HUMAIN-Create-Studio-UIUX` | UI/UX & User Journeys — design system, navigation, and a step-by-step journey (with screenshots) for every capability |
 | `HUMAIN-Create-Studio-Architecture` | High-Level Architecture — system context, agentic core, request-flow sequence, data, integration, deployment, security |
 | `HUMAIN-Create-Studio-Deck` | Combined master deck — all three, one cover + part dividers |
+| `HUMAIN-Create-Studio-Sprint-Release-Plan` | Sprint 1 plan + release sheet (29 tasks, R1–R9) — branded PDF |
+| `HUMAIN-Create-Studio-Sprint-Tasks.csv` / `-Release-Plan.csv` | The task sheet and release sheet as spreadsheets (Jira/Excel import) |
 
 ## Build pipeline
 

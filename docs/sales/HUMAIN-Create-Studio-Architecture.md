@@ -316,7 +316,7 @@ The platform's content backend is **Payload CMS v3 (3.85.0)**. Payload v3 is a s
 | Area | Configuration |
 |---|---|
 | **Transport** | HTTPS/TLS · `COOKIE_SECURE=true` · secure session cookies |
-| **Access control** | **RBAC (6 roles)** + **ABAC** (site, department, locale) at collection and field level |
+| **Access control** | **RBAC (7 roles)** + **ABAC** (site, department, locale) at collection and field level |
 | **Secrets** | `PAYLOAD_SECRET` and provider keys held in environment, **not committed** to source |
 | **Governance** | Editorial gating (draft → review → publish) · **immutable audit log** |
 | **Agentic safety** | Agents **propose drafts**; a human approves before publish |

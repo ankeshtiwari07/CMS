@@ -37,7 +37,7 @@
 | Area | Configuration in HUMAIN Create Studio |
 |---|---|
 | **Transport** | HTTPS/TLS everywhere · `COOKIE_SECURE=true` · secure session cookies |
-| **Access control** | **RBAC (6 roles)** + **ABAC** (site-scope, department, locale) enforced at collection and field level |
+| **Access control** | **RBAC (7 roles)** + **ABAC** (site-scope, department, locale) enforced at collection and field level |
 | **Secrets** | `PAYLOAD_SECRET` and provider keys held in environment (`.env.production`), **not committed** to source |
 | **Governance** | **Editorial gating** (draft → review → publish) · **immutable audit log** of content and agent actions |
 | **Agentic safety** | Agents **propose drafts**; a human approves before anything is published |

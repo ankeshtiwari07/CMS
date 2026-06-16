@@ -53,6 +53,7 @@ const NAV = [
 
 const ROLE_LABEL: Record<string, string> = {
   admin: "Administrator",
+  siteAdmin: "Site Administrator",
   publisher: "Publisher",
   reviewer: "Reviewer",
   author: "Author",

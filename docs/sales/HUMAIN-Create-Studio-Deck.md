@@ -112,19 +112,21 @@ Both surfaces are powered by an **agentic AI backbone**: orchestrated agents tha
 
 ## 6. Personas and Roles
 
-The platform is **role-governed**. Each persona sees only what their role permits.
+The platform is **role-governed**. Each persona sees only what their role permits. The model is **7 roles realising 9 personas** — the same role is specialised into distinct personas by **ABAC scope attributes** (site, department, and content locale) rather than by minting a separate role per scope. This keeps the permission surface small and auditable while still giving each persona a precise remit.
 
-| Persona | Role | Primary jobs-to-be-done |
-|---|---|---|
-| **Platform Administrator** | `admin` | Configure platform, manage users, oversee all content and settings |
-| **Site Administrator** | `admin` (site-scoped) | Own a specific site/brand surface end-to-end |
-| **Author (EN)** | `author` | Draft and edit English content with AI assistance |
-| **Author (AR)** | `author` | Draft and edit Arabic content with AI assistance |
-| **Reviewer** | `reviewer` | Move content through editorial gates; quality-check |
-| **Publisher** | `publisher` | Approve and publish to live channels |
-| **Brand Manager** | `brand` | Own brand guidelines and design tokens |
-| **Department Author (e.g. HR)** | `author` (dept-scoped) | Produce department content within guardrails |
-| **Viewer** | `viewer` | Read-only access to content and dashboards |
+| Persona | Role | Scope (ABAC) | Primary jobs-to-be-done |
+|---|---|---|---|
+| **Platform Administrator** | `admin` | Global, unrestricted | Configure platform, manage users and roles, oversee all content and settings |
+| **Site Administrator** | `siteAdmin` | Site-scoped (`sites`) | Own a specific site/brand surface end-to-end — create, review and publish within that site; **cannot** manage users or global settings |
+| **Author (EN)** | `author` | Locale = EN | Draft and edit English content with AI assistance |
+| **Author (AR)** | `author` | Locale = AR | Draft and edit Arabic content with AI assistance |
+| **Reviewer** | `reviewer` | Site-scoped | Move content through editorial gates; quality-check |
+| **Publisher** | `publisher` | Site-scoped | Approve and publish to live channels |
+| **Brand Manager** | `brand` | Global brand assets | Own brand guidelines and design tokens |
+| **Department Author (e.g. HR)** | `author` | Department-scoped (`department`) | Produce department content within guardrails (e.g. HR owns Careers) |
+| **Viewer** | `viewer` | Read-only | Read-only access to published content and dashboards |
+
+**The 7 roles** are `admin`, `siteAdmin`, `author`, `reviewer`, `publisher`, `brand`, and `viewer`. **The 9 personas** above are these roles combined with scope attributes — e.g. *Author (EN)* and *Author (AR)* are both the `author` role distinguished by their **locale** scope, and *Department Author* is `author` distinguished by its **department** scope. `siteAdmin` is the one genuinely distinct authority introduced for the Site Administrator persona: site-scoped admin powers (create / review / publish within its sites) without platform-level user, role, or global-settings control, so it cannot escalate privileges.
 
 ---
 
@@ -285,6 +287,7 @@ Every transition is **role-gated** and **logged**.
 flowchart TB
     subgraph Roles
         ADM[Admin]
+        SAD[Site Admin]
         PUB[Publisher]
         REV[Reviewer]
         AUT[Author]
@@ -292,6 +295,7 @@ flowchart TB
         VWR[Viewer]
     end
     ADM -->|Full control| ALL[All content and settings]
+    SAD -->|Create review publish in scope| SITE[Own sites end-to-end]
     PUB -->|Publish| LIVE[Go-live]
     REV -->|Advance workflow| GATE[Draft→Review→Approved]
     AUT -->|Create / edit| DRAFT[Drafts in scope]
@@ -299,8 +303,10 @@ flowchart TB
     VWR -->|Read-only| VIEW[Content and dashboards]
 ```
 
-- **Site scoping (ABAC):** authors and editors act only on the sites assigned to them.
+- **7 roles → 9 personas:** `admin`, `siteAdmin`, `author`, `reviewer`, `publisher`, `brand`, `viewer` cover all nine personas (see §6); locale and department personas are the `author` role differentiated by ABAC scope.
+- **Site scoping (ABAC):** site admins, authors and editors act only on the sites assigned to them (empty = all).
 - **Department scoping:** departmental authors are confined to their department's content.
+- **No privilege escalation:** `siteAdmin` has site-scoped editorial authority but cannot manage users, roles or global settings — only `admin` can.
 
 ---
 
@@ -493,43 +499,43 @@ The following snapshots are taken from the working HUMAIN Create Studio platform
 
 ### A.1 Secure bilingual sign-in
 
-![HUMAIN Create Studio login](shots/01-login.png)
+![HUMAIN Create Studio login](/Users/ankeshtiwari/Downloads/.prd-build/shots/01-login.png)
 
 Branded, HTTPS sign-in backed by role-based access (OIDC-ready). Every session is permission-scoped.
 
 ### A.2 Create Studio — one prompt box for everything
 
-![Create Studio home](shots/02-studio.png)
+![Create Studio home](/Users/ankeshtiwari/Downloads/.prd-build/shots/02-studio.png)
 
 A single conversational entry point. The agent decides what to build; recent work and quick-create paths sit alongside.
 
 ### A.3 Conversational, on-brand assistant
 
-![Conversational agent reply](shots/03-chat.png)
+![Conversational agent reply](/Users/ankeshtiwari/Downloads/.prd-build/shots/03-chat.png)
 
 Natural, streaming replies (not form dumps) with rich formatting — the assistant explains what it can build, recommends next steps, and works bilingually (EN/AR), grounded in the active brand.
 
 ### A.4 Build a website — live, in-chat preview
 
-![Website built live in chat](shots/04-website.png)
+![Website built live in chat](/Users/ankeshtiwari/Downloads/.prd-build/shots/04-website.png)
 
 Ask for a site and the agent **builds it**, rendered live in the conversation with Open / Download — not a description. The same pattern produces editable, publishable content, images and video.
 
 ### A.5 Design System — prompt-driven, agent-governed theme
 
-![Design System theme generation](shots/05-design.png)
+![Design System theme generation](/Users/ankeshtiwari/Downloads/.prd-build/shots/05-design.png)
 
 Describe a look and the agent generates a complete theme (palette, type, radius, light/dark) with a live preview; tokens are shared across every surface, EN + AR.
 
 ### A.6 Brand Studio — recommend → review → publish
 
-![Brand Studio](shots/06-brand.png)
+![Brand Studio](/Users/ankeshtiwari/Downloads/.prd-build/shots/06-brand.png)
 
 The AI recommends a full brand guideline to review and verify, then publish as the **active brand the agents follow**, or download.
 
 ### A.7 Bilingual platform UI — English / Arabic
 
-![Studio in Arabic, right-to-left](shots/10-arabic.png)
+![Studio in Arabic, right-to-left](/Users/ankeshtiwari/Downloads/.prd-build/shots/10-arabic.png)
 
 A one-click language switch turns the entire platform UI to **Arabic with full right-to-left layout** (and back to English) — navigation, prompts and actions all localised. The same content store serves both languages.
 
@@ -552,7 +558,7 @@ The experience is built on six principles, each visible in the product:
 
 A single token system (colour, typography, spacing, radius) drives every surface, in light and dark, EN and AR. It is itself **prompt-driven** — a user can describe a look and the agent generates a complete, accessible theme with a live preview.
 
-![Design System — tokens + AI theme generation](shots/05-design.png)
+![Design System — tokens + AI theme generation](/Users/ankeshtiwari/Downloads/.prd-build/shots/05-design.png)
 
 - **Palette:** primary teal, primary-dark, lime accent, ink, canvas, muted — each with usage.
 - **Typography:** Inter (Latin) + IBM Plex Sans Arabic (Arabic), shared scale.
@@ -573,7 +579,7 @@ A persistent left sidebar gives one-click access to every capability; the worksp
 
 The Studio home is a **single prompt box**: the user types intent and the agent routes to the right outcome — no need to pick a tool first.
 
-![Create Studio home — one prompt box for everything](shots/02-studio.png)
+![Create Studio home — one prompt box for everything](/Users/ankeshtiwari/Downloads/.prd-build/shots/02-studio.png)
 
 ---
 
@@ -593,55 +599,55 @@ Each journey below is shown as it appears in the product, with the step-by-step 
 
 ### 5.1 Sign in
 
-![Sign-in](shots/01-login.png)
+![Sign-in](/Users/ankeshtiwari/Downloads/.prd-build/shots/01-login.png)
 
 **Journey:** 1) The user opens the branded sign-in over HTTPS. 2) Enters email + password (OIDC-ready for SSO). 3) On success a secure, role-scoped session starts and they land in Create Studio — seeing only what their role permits.
 
 ### 5.2 Converse with the assistant
 
-![Conversational reply](shots/03-chat.png)
+![Conversational reply](/Users/ankeshtiwari/Downloads/.prd-build/shots/03-chat.png)
 
 **Journey:** 1) The user types a question or a greeting. 2) The assistant **replies conversationally** (it does not over-build) — here it explains what it can create, in a richly formatted, scannable message. 3) It recommends concrete next steps and invites a follow-up. 4) The user can Copy or Retry the reply. *UX note: simple input → conversation, not a form dump.*
 
 ### 5.3 Build a website
 
-![Website built live in chat](shots/04-website.png)
+![Website built live in chat](/Users/ankeshtiwari/Downloads/.prd-build/shots/04-website.png)
 
 **Journey:** 1) The user asks for a site ("build a launch page for our summit"). 2) If details are missing the agent asks one quick question; otherwise it **builds it**. 3) The finished site renders **live in the conversation** with **Open** and **Download**. 4) The agent introduces it and suggests edits ("translate to Arabic", "add a pricing section"). 5) A follow-up refines the same site in place.
 
 ### 5.4 Create and publish content
 
-![Content card — edit and publish](shots/07-content.png)
+![Content card — edit and publish](/Users/ankeshtiwari/Downloads/.prd-build/shots/07-content.png)
 
 **Journey:** 1) The user asks for content (blog post, article, press release, FAQ, email…). 2) The agent returns an **editable content card** — title, body (rich), summary, auto-tags. 3) The user can **Edit** (manual override), **Copy** or **Download**. 4) They choose a destination module from the **Publish to** dropdown and publish — it lands as a **draft for review** (agents propose, humans approve).
 
 ### 5.5 Generate a video
 
-![Video package + render control](shots/08-video.png)
+![Video package + render control](/Users/ankeshtiwari/Downloads/.prd-build/shots/08-video.png)
 
 **Journey:** 1) The user asks for a video/teaser. 2) The agent produces a **production-ready package** — logline, concept, scene-by-scene script, shot list, storyboard. 3) A one-click **Render** control turns the script into a real video. 4) The user can refine tone, length or scenes in a follow-up.
 
 ### 5.6 Recommend and activate a brand
 
-![Brand Studio — recommend](shots/06-brand.png)
+![Brand Studio — recommend](/Users/ankeshtiwari/Downloads/.prd-build/shots/06-brand.png)
 
 **Journey:** 1) The user describes the brand (industry, audience, tone) — or opens an archetype from the Library. 2) The AI **recommends a full guideline** (essence, voice, palette, typography, messaging). 3) The user **reviews and verifies**, editing any section. 4) They **Publish** it — as the **active brand the agents follow**, or to the library — or **Download** it.
 
 ### 5.7 Generate a design theme
 
-![Design System — prompt-driven theme](shots/05-design.png)
+![Design System — prompt-driven theme](/Users/ankeshtiwari/Downloads/.prd-build/shots/05-design.png)
 
 **Journey:** 1) In **Describe your design**, the user types a vibe ("bold fintech — deep navy, electric lime, dark mode"). 2) The agent generates a **complete theme** (palette, font, radius, light/dark). 3) The **live preview** updates instantly; the user fine-tunes any token by hand. 4) **Apply** saves it to site settings.
 
 ### 5.8 Manage projects
 
-![Projects](shots/09-projects.png)
+![Projects](/Users/ankeshtiwari/Downloads/.prd-build/shots/09-projects.png)
 
 **Journey:** 1) Everything the user creates is saved as a **Project** asset. 2) They browse, search and reopen prior work. 3) Each project is typed (website, content, brand, video…) and ready to promote into the CMS.
 
 ### 5.9 Switch the platform language (English / Arabic)
 
-![Studio in Arabic, right-to-left](shots/10-arabic.png)
+![Studio in Arabic, right-to-left](/Users/ankeshtiwari/Downloads/.prd-build/shots/10-arabic.png)
 
 **Journey:** 1) From the sidebar user menu the user picks **English** or **العربية**. 2) The entire platform UI switches instantly — selecting Arabic flips everything to **right-to-left** with the Arabic type system. 3) Navigation, greeting, prompt, quick actions and menus are localised. 4) The choice persists across sessions.
 
@@ -972,7 +978,7 @@ The platform's content backend is **Payload CMS v3 (3.85.0)**. Payload v3 is a s
 | Area | Configuration |
 |---|---|
 | **Transport** | HTTPS/TLS · `COOKIE_SECURE=true` · secure session cookies |
-| **Access control** | **RBAC (6 roles)** + **ABAC** (site, department, locale) at collection and field level |
+| **Access control** | **RBAC (7 roles)** + **ABAC** (site, department, locale) at collection and field level |
 | **Secrets** | `PAYLOAD_SECRET` and provider keys held in environment, **not committed** to source |
 | **Governance** | Editorial gating (draft → review → publish) · **immutable audit log** |
 | **Agentic safety** | Agents **propose drafts**; a human approves before publish |

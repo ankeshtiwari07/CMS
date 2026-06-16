@@ -14,7 +14,9 @@ type U = {
 };
 type Site = { id: string | number; name: string };
 
-const ROLES = ["viewer", "author", "reviewer", "publisher", "brand", "admin"];
+const ROLES = ["viewer", "author", "reviewer", "publisher", "brand", "siteAdmin", "admin"];
+const ROLE_LABEL: Record<string, string> = { siteAdmin: "Site Admin" };
+const roleLabel = (r: string) => ROLE_LABEL[r] ?? r;
 const DEPTS = ["marketing", "editorial", "communications", "hr", "product", "executive"];
 const LOCALES = ["en", "ar"];
 
@@ -151,7 +153,7 @@ export default function UsersClient({ meId }: { meId: string | number }) {
                 <span style={lbl}>Roles (RBAC)</span>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 6 }}>
                   {ROLES.map((r) => (
-                    <button key={r} onClick={() => setEditing({ ...editing, roles: toggle(editing.roles, r) })} style={selChip(editing.roles.includes(r))}>{r}</button>
+                    <button key={r} onClick={() => setEditing({ ...editing, roles: toggle(editing.roles, r) })} style={selChip(editing.roles.includes(r))}>{roleLabel(r)}</button>
                   ))}
                 </div>
               </div>

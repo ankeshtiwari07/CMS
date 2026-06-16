@@ -165,7 +165,7 @@ export interface User {
   id: number;
   name?: string | null;
   jobTitle?: string | null;
-  roles: ('viewer' | 'author' | 'reviewer' | 'publisher' | 'brand' | 'admin')[];
+  roles: ('viewer' | 'author' | 'reviewer' | 'publisher' | 'brand' | 'siteAdmin' | 'admin')[];
   /**
    * Site scope — editors are limited to content in these sites (empty = all).
    */

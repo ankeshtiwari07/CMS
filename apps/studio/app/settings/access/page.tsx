@@ -2,12 +2,12 @@ import SettingsNav from "@/components/settings/settings-nav";
 
 export const dynamic = "force-dynamic";
 
-const ROLES = ["viewer", "author", "reviewer", "publisher", "brand", "admin"];
+const ROLES = ["viewer", "author", "reviewer", "publisher", "brand", "siteAdmin", "admin"];
 const CAPS: { label: string; allow: Record<string, boolean> }[] = [
-  { label: "View published content", allow: { viewer: true, author: true, reviewer: true, publisher: true, brand: true, admin: true } },
-  { label: "Create / edit drafts", allow: { author: true, reviewer: true, publisher: true, brand: true, admin: true } },
-  { label: "Move to review / approve", allow: { reviewer: true, publisher: true, admin: true } },
-  { label: "Publish content", allow: { publisher: true, admin: true } },
+  { label: "View published content", allow: { viewer: true, author: true, reviewer: true, publisher: true, brand: true, siteAdmin: true, admin: true } },
+  { label: "Create / edit drafts", allow: { author: true, reviewer: true, publisher: true, brand: true, siteAdmin: true, admin: true } },
+  { label: "Move to review / approve", allow: { reviewer: true, publisher: true, siteAdmin: true, admin: true } },
+  { label: "Publish content", allow: { publisher: true, siteAdmin: true, admin: true } },
   { label: "Edit brand & site settings", allow: { brand: true, publisher: true, admin: true } },
   { label: "Manage users & roles", allow: { admin: true } },
 ];
@@ -27,7 +27,7 @@ export default function AccessPage() {
           <thead>
             <tr style={{ background: "#f7faf9", color: "var(--muted)" }}>
               <th style={{ textAlign: "left", padding: "12px 14px", fontWeight: 600 }}>Capability</th>
-              {ROLES.map((r) => <th key={r} style={{ padding: "12px 12px", fontWeight: 600, textTransform: "capitalize" }}>{r}</th>)}
+              {ROLES.map((r) => <th key={r} style={{ padding: "12px 12px", fontWeight: 600, textTransform: "capitalize" }}>{r === "siteAdmin" ? "Site Admin" : r}</th>)}
             </tr>
           </thead>
           <tbody>

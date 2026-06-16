@@ -1,7 +1,7 @@
 import type { CollectionConfig } from "payload";
 import { allBlocks } from "@humain/blocks";
-import { isEditor, canPublish, readPublishedOrEditor, editorSiteScoped } from "../access/roles";
-import { emitContentEvent, onDelete } from "../hooks/events";
+import { isEditor, readPublishedOrEditor, editorSiteScoped } from "../access/roles";
+import { emitContentEvent, onDelete, enforcePublishPermission } from "../hooks/events";
 import { seoField } from "../fields/seo";
 
 export const Pages: CollectionConfig = {
@@ -22,5 +22,5 @@ export const Pages: CollectionConfig = {
     { name: "blocks", type: "blocks", blocks: allBlocks, localized: true },
     seoField(),
   ],
-  hooks: { afterChange: [emitContentEvent], afterDelete: [onDelete] },
+  hooks: { beforeChange: [enforcePublishPermission], afterChange: [emitContentEvent], afterDelete: [onDelete] },
 };

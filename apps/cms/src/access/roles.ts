@@ -27,6 +27,14 @@ export const isEditor: Access = ({ req: { user } }) =>
 // Publish gate: publishers, site-admins (within scope) and platform admins.
 export const canPublish: Access = ({ req: { user } }) => hasRole(user, ["publisher", "siteAdmin", "admin"]);
 
+// Roles allowed to publish content (single source of truth for the
+// publish access fn AND the enforcePublishPermission beforeChange hook).
+export const PUBLISH_ROLES: Role[] = ["publisher", "siteAdmin", "admin"];
+
+// Global/platform settings gate. Deliberately EXCLUDES siteAdmin: a site
+// admin is site-scoped and must not change platform-wide settings/design.
+export const canManageGlobals: Access = ({ req: { user } }) => hasRole(user, ["publisher", "admin"]);
+
 // Admins manage anyone; a signed-in user may read/update only their own record.
 export const isAdminOrSelf: Access = ({ req: { user } }) => {
   if (hasRole(user, ["admin"])) return true;

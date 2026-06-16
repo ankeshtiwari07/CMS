@@ -1,10 +1,10 @@
 import type { GlobalConfig } from "payload";
-import { isEditor, canPublish } from "../access/roles";
+import { isEditor, canManageGlobals } from "../access/roles";
 
 // Site-wide navigation (header + footer menus), localized.
 export const Navigation: GlobalConfig = {
   slug: "navigation",
-  access: { read: () => true, update: canPublish },
+  access: { read: () => true, update: canManageGlobals },
   fields: [
     {
       name: "header",
@@ -30,7 +30,7 @@ export const Navigation: GlobalConfig = {
 // Global brand + SEO defaults.
 export const GlobalSettings: GlobalConfig = {
   slug: "settings",
-  access: { read: () => true, update: canPublish },
+  access: { read: () => true, update: canManageGlobals },
   fields: [
     { name: "siteName", type: "text", localized: true, defaultValue: "HUMAIN" },
     { name: "tagline", type: "text", localized: true },

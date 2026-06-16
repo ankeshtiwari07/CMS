@@ -34,8 +34,8 @@ const base = (slug: string, title: string, extra: Field[]): CollectionConfig => 
   access: {
     read: readPublishedOrEditor,
     create: isEditor,
-    update: isEditor,
-    delete: isEditor,
+    update: editorSiteScoped, // ABAC: editors may only write content in their assigned sites
+    delete: editorSiteScoped,
     readVersions: isEditor,
   },
   fields: [...extra, workflowField, seoField()],

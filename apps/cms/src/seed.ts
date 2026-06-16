@@ -48,7 +48,7 @@ const run = async () => {
     { email: "publisher@humain.sa", name: "Pavan Publisher", jobTitle: "Managing Editor", roles: ["publisher"], department: "editorial" },
     { email: "brand@humain.sa", name: "Bushra Brand", jobTitle: "Brand Lead", roles: ["brand"], department: "marketing" },
     { email: "hr@humain.sa", name: "Hana HR", jobTitle: "Talent Partner", roles: ["author"], department: "hr" },
-    { email: "siteadmin@humain.sa", name: "Sam Admin", jobTitle: "Platform Admin", roles: ["admin"], department: "product" },
+    { email: "siteadmin@humain.sa", name: "Sam Admin", jobTitle: "Site Administrator", roles: ["siteAdmin"], department: "product", sites: [site.id] },
   ] as const;
 
   for (const p of personas) {

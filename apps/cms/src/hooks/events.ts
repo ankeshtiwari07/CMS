@@ -9,13 +9,17 @@ import type {
   CollectionAfterDeleteHook,
   CollectionBeforeChangeHook,
 } from "payload";
+import { PUBLISH_ROLES } from "../access/roles";
 
-// RBAC: only publisher/admin may transition content to _status="published".
+// RBAC: only PUBLISH_ROLES (publisher/siteAdmin/admin) may transition content
+// to _status="published". Site-scoping for siteAdmin is enforced upstream by the
+// collection's site-scoped update access (editorSiteScoped), so a siteAdmin can
+// only reach — and therefore only publish — documents within its assigned sites.
 export const enforcePublishPermission: CollectionBeforeChangeHook = async ({ data, req, originalDoc }) => {
   const becomingPublished = data?._status === "published" && originalDoc?._status !== "published";
   if (becomingPublished) {
     const roles: string[] = req.user?.roles ?? [];
-    const canPublish = roles.some((r) => ["publisher", "admin"].includes(r));
+    const canPublish = roles.some((r) => (PUBLISH_ROLES as string[]).includes(r));
     if (!canPublish) {
       throw new Error("You do not have permission to publish. Save as draft or request review.");
     }

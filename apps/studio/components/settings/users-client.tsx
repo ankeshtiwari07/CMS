@@ -11,6 +11,13 @@ type U = {
   sites?: any[];
   locales?: string[];
   active?: boolean;
+  createdAt?: string;
+};
+
+const fmtDate = (s?: string) => {
+  if (!s) return "—";
+  const d = new Date(s);
+  return isNaN(d.getTime()) ? "—" : d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
 };
 type Site = { id: string | number; name: string };
 
@@ -45,7 +52,7 @@ export default function UsersClient({ meId }: { meId: string | number }) {
     setErr(null);
     setEditing({
       _new: false, id: u.id, email: u.email, name: u.name || "", jobTitle: u.jobTitle || "", password: "",
-      roles: u.roles || [], department: u.department || "", active: u.active !== false,
+      roles: u.roles || [], department: u.department || "", active: u.active !== false, createdAt: u.createdAt,
       sites: (u.sites || []).map((x: any) => (typeof x === "object" ? x.id : x)),
       locales: u.locales || [],
     });
@@ -106,6 +113,7 @@ export default function UsersClient({ meId }: { meId: string | number }) {
                 <th style={{ padding: "12px 14px", fontWeight: 600 }}>Department</th>
                 <th style={{ padding: "12px 14px", fontWeight: 600 }}>Scope</th>
                 <th style={{ padding: "12px 14px", fontWeight: 600 }}>Status</th>
+                <th style={{ padding: "12px 14px", fontWeight: 600 }}>Created</th>
                 <th style={{ padding: "12px 14px", fontWeight: 600 }}></th>
               </tr>
             </thead>
@@ -125,6 +133,7 @@ export default function UsersClient({ meId }: { meId: string | number }) {
                   <td style={{ padding: "12px 14px" }}>
                     {u.active !== false ? pill("active", "#e3f5e8", "#1b7f3b") : pill("disabled", "#fdecec", "#b42318")}
                   </td>
+                  <td style={{ padding: "12px 14px", color: "var(--muted)", fontSize: 12.5, whiteSpace: "nowrap" }}>{fmtDate(u.createdAt)}</td>
                   <td style={{ padding: "12px 14px", textAlign: "right", whiteSpace: "nowrap" }}>
                     <button onClick={() => openEdit(u)} style={{ border: "none", background: "transparent", color: "var(--studio-primary)", fontWeight: 600, cursor: "pointer", marginRight: 10 }}>Edit</button>
                     {String(u.id) !== String(meId) && <button onClick={() => remove(u)} style={{ border: "none", background: "transparent", color: "#b42318", fontWeight: 600, cursor: "pointer" }}>Delete</button>}
@@ -139,7 +148,11 @@ export default function UsersClient({ meId }: { meId: string | number }) {
       {editing && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(11,20,22,0.45)", display: "grid", placeItems: "center", zIndex: 100, padding: 20 }} onClick={() => setEditing(null)}>
           <div onClick={(e) => e.stopPropagation()} style={{ width: "100%", maxWidth: 560, maxHeight: "90vh", overflow: "auto", background: "#fff", borderRadius: 18, padding: 26, boxShadow: "var(--shadow-card)" }}>
-            <h3 style={{ margin: "0 0 18px", fontSize: 18, fontWeight: 700, color: "var(--ink)" }}>{editing._new ? "New user" : "Edit user"}</h3>
+            <h3 style={{ margin: "0 0 4px", fontSize: 18, fontWeight: 700, color: "var(--ink)" }}>{editing._new ? "New user" : "Edit user"}</h3>
+            {!editing._new && editing.createdAt && (
+              <p style={{ margin: "0 0 16px", fontSize: 12.5, color: "var(--muted)" }}>Created {fmtDate(editing.createdAt)}</p>
+            )}
+            {editing._new && <div style={{ marginBottom: 14 }} />}
             <div style={{ display: "grid", gap: 14 }}>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 <label style={{ display: "grid", gap: 6 }}><span style={lbl}>Email</span><input style={field} value={editing.email} onChange={(e) => setEditing({ ...editing, email: e.target.value })} /></label>

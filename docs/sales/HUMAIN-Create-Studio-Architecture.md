@@ -296,4 +296,42 @@ flowchart TB
 
 ---
 
+## Appendix A — Payload CMS v3 Security Posture
+
+The platform's content backend is **Payload CMS v3 (3.85.0)**. Payload v3 is a secure, production-grade, actively-maintained headless CMS (Figma-backed) on the Next.js App Router; security is a shared responsibility — Payload provides the primitives, and this deployment configures and hardens them.
+
+### A.1 Built-in security controls (Payload v3)
+
+| Control | Detail |
+|---|---|
+| **Authentication** | bcrypt-hashed passwords · JWT in **httpOnly** cookies · API keys · email verification · password reset · **account lockout** (`maxLoginAttempts` / `lockTime`) |
+| **Authorization** | Collection- **and** field-level access-control functions → real **RBAC + ABAC** |
+| **Injection defence** | Parameterised queries via **Drizzle ORM** (Postgres) |
+| **Web security** | **CORS + CSRF** controls, configurable origins; inherits the **Next.js** security model |
+| **Data integrity** | Versioned drafts, editorial workflow state, audit hooks |
+| **Maintenance** | Actively maintained; pinned, recent **3.85.0** |
+
+### A.2 Applied controls in this platform
+
+| Area | Configuration |
+|---|---|
+| **Transport** | HTTPS/TLS · `COOKIE_SECURE=true` · secure session cookies |
+| **Access control** | **RBAC (6 roles)** + **ABAC** (site, department, locale) at collection and field level |
+| **Secrets** | `PAYLOAD_SECRET` and provider keys held in environment, **not committed** to source |
+| **Governance** | Editorial gating (draft → review → publish) · **immutable audit log** |
+| **Agentic safety** | Agents **propose drafts**; a human approves before publish |
+| **Sovereignty** | Hosted **in-Kingdom**; secrets isolated from content and code |
+
+### A.3 Hardening checklist
+
+- Keep Payload **patched** and monitor its security advisories.
+- Strong, rotated `PAYLOAD_SECRET`; restrict `/admin` exposure; MFA for maintainers.
+- **Dependency / SCA scanning** (Dependabot / Snyk / `npm audit`) in CI.
+- Replace the first-boot dev schema-push with **generated Payload migrations**.
+- Edge **rate-limiting / WAF**; least-privilege database and registry credentials.
+
+> No framework is free of vulnerabilities; the correct posture is to **stay current and monitor advisories**. Most real-world risk lies in weak secrets, over-permissive access rules, leaked environment variables or unpatched dependencies — all addressed above.
+
+---
+
 *Prepared for HUMAIN — Confidential. High-level architecture of the HUMAIN Create Studio platform.*

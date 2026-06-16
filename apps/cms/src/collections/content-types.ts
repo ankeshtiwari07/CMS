@@ -38,7 +38,7 @@ const base = (slug: string, title: string, extra: Field[]): CollectionConfig => 
     delete: editorSiteScoped,
     readVersions: isEditor,
   },
-  fields: [...extra, workflowField, seoField()],
+  fields: [...extra, siteField, workflowField, seoField()],
   hooks: {
     beforeChange: [enforcePublishPermission],
     afterChange: [emitContentEvent],

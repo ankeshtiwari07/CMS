@@ -4,6 +4,7 @@
 import crypto from "node:crypto";
 import { Queue } from "bullmq";
 import IORedis from "ioredis";
+import { APIError } from "payload";
 import type {
   CollectionAfterChangeHook,
   CollectionAfterDeleteHook,
@@ -21,7 +22,9 @@ export const enforcePublishPermission: CollectionBeforeChangeHook = async ({ dat
     const roles: string[] = req.user?.roles ?? [];
     const canPublish = roles.some((r) => (PUBLISH_ROLES as string[]).includes(r));
     if (!canPublish) {
-      throw new Error("You do not have permission to publish. Save as draft or request review.");
+      // APIError → proper HTTP 403 with the message surfaced to the client
+      // (a plain Error would be swallowed as a generic 500).
+      throw new APIError("You do not have permission to publish. Save as draft or request review.", 403);
     }
   }
   return data;

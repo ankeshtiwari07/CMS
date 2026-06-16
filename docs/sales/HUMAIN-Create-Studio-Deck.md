@@ -152,8 +152,10 @@ The platform is **role-governed**. Each persona sees only what their role permit
 
 ### 7.4 Editorial Workflow and Governance
 - **FR-12** Content **shall** progress through an editorial gate: **Draft → In Review → Approved**, with only authorised roles able to advance it.
-- **FR-13** Publishing **shall** be permission-gated; unauthorised users cannot push content live.
+- **FR-13** Publishing **shall** be permission-gated; unauthorised users cannot push content live and are guided to save as draft or request review.
 - **FR-14** Every create/update/delete/publish action **shall** be recorded in an immutable **audit log**.
+- **FR-14a** Access control **shall** combine **RBAC (7 roles)** with **ABAC** (site, department, locale) at both collection and field level; roles and access scope **shall** be editable by platform admins only, so a user cannot escalate their own privileges, and a `siteAdmin` is confined to its assigned sites and excluded from global settings.
+- **FR-14b** The system **shall** provide a **user and access administration** screen showing each account's roles, department, ABAC scope, active status and **creation date**, with an at-a-glance RBAC capability matrix.
 
 ### 7.5 Brand and Design System
 - **FR-15** The system **shall** maintain centrally managed **brand guidelines** and **design tokens** (colours, type, spacing) shared by all surfaces.
@@ -664,16 +666,27 @@ Each journey below is shown as it appears in the product, with the step-by-step 
 
 ## 7. Roles and Responsibilities
 
-| Persona | What they see and can do |
-|---|---|
-| **Author (English, Arabic)** | Create and edit drafts in scope, with full agent assistance |
-| **Reviewer** | Advance content through the editorial gate |
-| **Publisher** | Approve and publish to live channels |
-| **Brand Manager** | Own the brand guidelines and the active brand |
-| **Admin** | Configure the platform, users and settings, with full visibility |
-| **Viewer** | Read-only access to content and dashboards |
+The platform is **role-governed**: **7 roles realise 9 personas**, with the same role specialised by **ABAC scope** (site, department, content locale). Each persona sees only what its role and scope permit.
 
-Every action a persona takes is permission-scoped and written to the audit log.
+| Persona | Role | Scope (ABAC) | What they see and can do |
+|---|---|---|---|
+| **Platform Administrator** | `admin` | Global | Configure the platform, users, roles and settings, with full visibility |
+| **Site Administrator** | `siteAdmin` | Site-scoped | Own a site/brand surface end-to-end — create, review and publish **within that site**; cannot manage users or global settings |
+| **Author (EN)** | `author` | Locale = EN | Create and edit English drafts in scope, with full agent assistance |
+| **Author (AR)** | `author` | Locale = AR | Create and edit Arabic drafts in scope, with full agent assistance |
+| **Reviewer** | `reviewer` | Site-scoped | Advance content through the editorial gate |
+| **Publisher** | `publisher` | Site-scoped | Approve and publish to live channels |
+| **Brand Manager** | `brand` | Brand assets | Own the brand guidelines and the active brand |
+| **Department Author (e.g. HR)** | `author` | Department-scoped | Produce department content within guardrails (e.g. HR owns Careers) |
+| **Viewer** | `viewer` | Read-only | Read-only access to published content and dashboards |
+
+The 7 roles are `admin`, `siteAdmin`, `author`, `reviewer`, `publisher`, `brand`, `viewer`. Every action a persona takes is permission-scoped (RBAC + ABAC, enforced at collection **and** field level) and written to the audit log. Publishing is permission-gated — an author who lacks rights is told to save as draft or request review — and roles/scope can only be changed by a platform admin, so no one can escalate their own privileges.
+
+### 7.1 User and access management
+
+![Users management — roles, scope and creation date](/Users/ankeshtiwari/Downloads/.prd-build/shots/users-created.png)
+
+**Settings → Users** lists every account with its **role(s)**, **department**, **ABAC scope** (sites / locales), **status** (active or disabled) and the **date the account was created**. Admins create, edit, deactivate or delete users here; role and scope assignment is admin-only. **Settings → Access & Roles** shows the live RBAC capability matrix alongside the ABAC rules (site, department, locale, field-level).
 
 # Part III — High-Level Architecture
 
@@ -925,7 +938,7 @@ flowchart TB
 ## 10. Security, Governance and Sovereignty
 
 - **In-Kingdom** hosting and processing — data residency under HUMAIN's control.
-- **RBAC + ABAC** at every layer (role, site-scope, department, locale).
+- **RBAC + ABAC** at every layer (7 roles; site-scope, department and locale attributes) at both collection and field level. Roles/scope are admin-editable only (no self-escalation); `siteAdmin` is confined to its sites and excluded from global settings. The model is **behaviourally verified** — a per-role test suite asserts both the allowed and denied paths (create, publish gating, workflow advancement, cross-site isolation, department gating, privilege-escalation prevention, audit-log and settings access).
 - **Editorial gating** — Draft → In Review → Approved; agents propose drafts, humans publish.
 - **Immutable audit log** of all content *and* agent actions.
 - **Secrets isolation** — credentials/keys separated from content and code.

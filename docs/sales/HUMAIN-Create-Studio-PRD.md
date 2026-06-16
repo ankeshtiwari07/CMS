@@ -144,8 +144,10 @@ The platform is **role-governed**. Each persona sees only what their role permit
 
 ### 7.4 Editorial Workflow and Governance
 - **FR-12** Content **shall** progress through an editorial gate: **Draft → In Review → Approved**, with only authorised roles able to advance it.
-- **FR-13** Publishing **shall** be permission-gated; unauthorised users cannot push content live.
+- **FR-13** Publishing **shall** be permission-gated; unauthorised users cannot push content live and are guided to save as draft or request review.
 - **FR-14** Every create/update/delete/publish action **shall** be recorded in an immutable **audit log**.
+- **FR-14a** Access control **shall** combine **RBAC (7 roles)** with **ABAC** (site, department, locale) at both collection and field level; roles and access scope **shall** be editable by platform admins only, so a user cannot escalate their own privileges, and a `siteAdmin` is confined to its assigned sites and excluded from global settings.
+- **FR-14b** The system **shall** provide a **user and access administration** screen showing each account's roles, department, ABAC scope, active status and **creation date**, with an at-a-glance RBAC capability matrix.
 
 ### 7.5 Brand and Design System
 - **FR-15** The system **shall** maintain centrally managed **brand guidelines** and **design tokens** (colours, type, spacing) shared by all surfaces.

@@ -263,7 +263,7 @@ flowchart TB
 ## 10. Security, Governance and Sovereignty
 
 - **In-Kingdom** hosting and processing — data residency under HUMAIN's control.
-- **RBAC + ABAC** at every layer (role, site-scope, department, locale).
+- **RBAC + ABAC** at every layer (7 roles; site-scope, department and locale attributes) at both collection and field level. Roles/scope are admin-editable only (no self-escalation); `siteAdmin` is confined to its sites and excluded from global settings. The model is **behaviourally verified** — a per-role test suite asserts both the allowed and denied paths (create, publish gating, workflow advancement, cross-site isolation, department gating, privilege-escalation prevention, audit-log and settings access).
 - **Editorial gating** — Draft → In Review → Approved; agents propose drafts, humans publish.
 - **Immutable audit log** of all content *and* agent actions.
 - **Secrets isolation** — credentials/keys separated from content and code.

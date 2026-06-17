@@ -18,11 +18,46 @@ export default function ContentManager({ initialType = "blog" }: { initialType?:
   );
   const [busy, setBusy] = useState<null | "draft" | "published">(null);
   const [toast, setToast] = useState<{ kind: "ok" | "err"; msg: string } | null>(null);
+  const [brief, setBrief] = useState("");
+  const [suggesting, setSuggesting] = useState(false);
+  const [aiFilled, setAiFilled] = useState(false);
 
   const tab = useMemo(() => findTab(activeKey)!, [activeKey]);
   const v = values[activeKey] || {};
   const setField = (name: string, val: string) =>
     setValues((s) => ({ ...s, [activeKey]: { ...(s[activeKey] || {}), [name]: val } }));
+
+  // Agentic prefill: the drafting agent proposes on-brand values for every field.
+  async function suggest() {
+    setSuggesting(true);
+    setToast(null);
+    try {
+      const res = await fetch("/api/content/suggest", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          typeLabel: tab.label,
+          template: templates[activeKey],
+          fields: tab.fields.map((f) => ({ name: f.name, label: f.label, type: f.type })),
+          brief: brief.trim() || undefined,
+          locale: "en",
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        setToast({ kind: "err", msg: data.error || "AI draft failed" });
+      } else {
+        const filled: Values = data.data || {};
+        setValues((s) => ({ ...s, [activeKey]: { ...(s[activeKey] || {}), ...filled } }));
+        const n = Object.keys(filled).length;
+        setAiFilled(n > 0);
+        setToast({ kind: "ok", msg: n ? `AI drafted ${n} field${n > 1 ? "s" : ""} — review & edit` : "No suggestions returned" });
+      }
+    } catch {
+      setToast({ kind: "err", msg: "Network error" });
+    }
+    setSuggesting(false);
+  }
 
   async function submit(status: "draft" | "published") {
     if (!v[tab.titleField]?.trim()) {
@@ -158,7 +193,32 @@ export default function ContentManager({ initialType = "blog" }: { initialType?:
           boxShadow: "var(--shadow-card)",
         }}
       >
-        <h2 style={{ color: "var(--label)", fontSize: 18, fontWeight: 700, margin: "0 0 20px" }}>{tab.formTitle}</h2>
+        <h2 style={{ color: "var(--label)", fontSize: 18, fontWeight: 700, margin: "0 0 14px" }}>{tab.formTitle}</h2>
+
+        {/* Agentic prefill — agent proposes a draft, human edits */}
+        <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 8, padding: "11px 13px", background: "#eef6f5", borderRadius: 12, border: "1px solid var(--hairline)" }}>
+          <span style={{ fontSize: 17, lineHeight: 1 }}>✨</span>
+          <input
+            value={brief}
+            onChange={(e) => setBrief(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter" && !suggesting) suggest(); }}
+            placeholder={`Describe this ${tab.label.toLowerCase()} (optional) — AI will draft the fields, you refine`}
+            style={{ flex: 1, height: 40, border: "1px solid var(--hairline)", borderRadius: 10, padding: "0 12px", fontSize: 14, color: "var(--ink)", background: "#fff", outline: "none" }}
+          />
+          <button
+            onClick={suggest}
+            disabled={suggesting}
+            style={{ height: 40, padding: "0 18px", borderRadius: "var(--r-pill)", border: "none", background: "var(--studio-primary, #0B7A75)", color: "#fff", fontWeight: 700, fontSize: 13.5, whiteSpace: "nowrap", cursor: "pointer" }}
+          >
+            {suggesting ? "Drafting…" : "✨ Draft with AI"}
+          </button>
+        </div>
+        {aiFilled && (
+          <div style={{ fontSize: 12.5, color: "var(--studio-teal-dark, #0A5C58)", margin: "0 0 16px", display: "flex", alignItems: "center", gap: 6 }}>
+            AI-suggested draft — review &amp; edit every field before saving. Agents propose, you decide.
+          </div>
+        )}
+
         <div style={{ display: "grid", gridTemplateColumns: "repeat(12, 1fr)", gap: "18px 20px" }}>
           {tab.fields.map((f) => (
             <Field key={f.name} f={f} value={v[f.name] || ""} onChange={(val) => setField(f.name, val)} />

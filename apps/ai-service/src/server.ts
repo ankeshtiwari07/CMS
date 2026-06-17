@@ -66,6 +66,48 @@ app.post("/run", async (req, reply) => {
   }
 });
 
+// Agentic content prefill: the drafting agent proposes a publish-ready first
+// draft for EACH field of a chosen content type/template (on-brand, locale-aware).
+// Human-in-the-loop: this is a SUGGESTION the author reviews and edits.
+app.post("/content/suggest", async (req, reply) => {
+  const body = z
+    .object({
+      typeLabel: z.string().max(120),
+      template: z.string().max(120).optional(),
+      locale: z.string().max(8).optional(),
+      brief: z.string().max(2000).optional(),
+      brand: z.string().max(4000).optional(),
+      fields: z.array(z.object({ name: z.string(), label: z.string(), type: z.string().optional() })).max(40),
+    })
+    .parse(req.body);
+  if (provider.configured === false) return reply.code(503).send({ error: "llm_not_configured" });
+  const ar = body.locale === "ar";
+  const spec = body.fields.map((f) => `- ${f.name} (${f.label}${f.type ? `, ${f.type}` : ""})`).join("\n");
+  const system =
+    `You are HUMAIN Create Studio's content drafting agent. Propose a publish-ready FIRST DRAFT for a ` +
+    `"${body.typeLabel}"${body.template ? ` using the "${body.template}" template` : ""}. ` +
+    `Return ONLY a JSON object mapping each field's name to a suggested value. ` +
+    `Short fields (title/headline/name/slug) = concise; textarea/richtext = 2–4 real, specific sentences of on-brand content; ` +
+    `tags/keywords = comma-separated. ` +
+    (ar ? "Write ALL values in fluent Modern Standard / Gulf Arabic. " : "Write in clear, professional English. ") +
+    "No commentary, no code fences — JSON object only." +
+    (body.brand ? ` Brand context to stay on-brand with:\n${body.brand}` : "");
+  const user = `${body.brief ? `Brief: ${body.brief}\n\n` : ""}Fields to draft:\n${spec}\n\nReturn a JSON object keyed by field name.`;
+  try {
+    const raw = await provider.complete({ system, messages: [{ role: "user", content: user }], fast: true, maxTokens: 1600 });
+    let data: Record<string, string> = {};
+    const m = raw.match(/\{[\s\S]*\}/);
+    if (m) {
+      const parsed = JSON.parse(m[0]);
+      // keep only known fields, coerce to strings
+      for (const f of body.fields) if (parsed[f.name] != null) data[f.name] = String(parsed[f.name]);
+    }
+    return { ok: true, data, model: provider.name };
+  } catch (e) {
+    return reply.code(502).send({ ok: false, error: "suggest_failed", detail: String(e) });
+  }
+});
+
 // Embeddings endpoint used by the RAG worker / search.
 app.post("/embed", async (req) => {
   const body = z.object({ texts: z.array(z.string()).max(64) }).parse(req.body);

@@ -65,6 +65,25 @@ export const editorSiteScoped: Access = ({ req: { user } }) => {
   return sites.length ? ({ site: { in: sites } } as Where) : true;
 };
 
+// Owner-scoped: admins see/act on everything; otherwise an editor is limited to
+// the documents they OWN (private per user). Viewers are excluded. Closes the
+// cross-user IDOR on personal collections (Projects).
+export const ownScoped: Access = ({ req: { user } }) => {
+  if (!user) return false;
+  if (hasRole(user, ["admin"])) return true;
+  if (!hasRole(user, SCOPED_EDITORS)) return false;
+  return { owner: { equals: user.id } } as Where;
+};
+
+// Brand guidelines read: shared archetype library (readable by all editors) OR
+// the user's own guidelines; admins see all. Write stays owner-scoped (ownScoped).
+export const brandRead: Access = ({ req: { user } }) => {
+  if (!user) return false;
+  if (hasRole(user, ["admin"])) return true;
+  if (!hasRole(user, SCOPED_EDITORS)) return false;
+  return { or: [{ isArchetype: { equals: true } }, { owner: { equals: user.id } }] } as Where;
+};
+
 // Collection-level ABAC by department (e.g. HR owns Careers). Admins always pass.
 export const departmentOnly =
   (...depts: string[]): Access =>

@@ -1,5 +1,5 @@
 import type { CollectionConfig } from "payload";
-import { isEditor } from "../access/roles";
+import { isEditor, ownScoped, brandRead } from "../access/roles";
 
 // Brand guidelines: curated archetypes (isArchetype=true, seeded) the system
 // suggests, plus user-composed guidelines. The full structure (sections,
@@ -8,7 +8,9 @@ import { isEditor } from "../access/roles";
 export const BrandGuidelines: CollectionConfig = {
   slug: "brandGuidelines",
   admin: { useAsTitle: "name", group: "Studio" },
-  access: { read: isEditor, create: isEditor, update: isEditor, delete: isEditor },
+  // Shared archetype library is readable by all editors; user guidelines are
+  // private to their owner. Writes are owner-scoped (admins unrestricted).
+  access: { read: brandRead, create: isEditor, update: ownScoped, delete: ownScoped },
   fields: [
     { name: "name", type: "text", required: true },
     { name: "industry", type: "text" },

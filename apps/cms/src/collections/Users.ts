@@ -6,6 +6,9 @@ export const Users: CollectionConfig = {
   auth: {
     // Local auth for break-glass admin; OIDC strategy added in payload.config.ts
     tokenExpiration: 60 * 60 * 8,
+    // Brute-force protection: lock an account after 5 failed attempts for 10 min.
+    maxLoginAttempts: 5,
+    lockTime: 10 * 60 * 1000,
     cookies: { sameSite: "Lax", secure: process.env.NODE_ENV === "production" },
   },
   admin: { useAsTitle: "email", defaultColumns: ["email", "name", "roles", "department", "active"], group: "Access" },

@@ -1,11 +1,12 @@
 import type { CollectionConfig } from "payload";
-import { isEditor } from "../access/roles";
+import { isEditor, ownScoped } from "../access/roles";
 
 // Create Studio output: typed project assets that can be promoted into CMS collections.
+// Projects are PRIVATE per user — owner-scoped read/update/delete (admins see all).
 export const Projects: CollectionConfig = {
   slug: "projects",
   admin: { useAsTitle: "title" },
-  access: { read: isEditor, create: isEditor, update: isEditor, delete: isEditor },
+  access: { read: ownScoped, create: isEditor, update: ownScoped, delete: ownScoped },
   fields: [
     { name: "title", type: "text", required: true },
     { name: "type", type: "select", required: true,

@@ -52,12 +52,21 @@ app.post("/run", async (req, reply) => {
   if (!entry) return reply.code(400).send({ error: "unknown promptId" });
   if (provider.configured === false) return reply.code(503).send({ error: "llm_not_configured" });
 
-  const raw = await provider.complete({
-    system: entry.system,
-    messages: [{ role: "user", content: body.input }],
-    fast: body.fast,
-    maxTokens: 1024,
-  });
+  let raw: string;
+  try {
+    raw = await provider.complete({
+      system: entry.system,
+      messages: [{ role: "user", content: body.input }],
+      fast: body.fast,
+      maxTokens: 1024,
+    });
+  } catch (e: any) {
+    // Provider errors (credit balance, rate limit, timeout) → clean JSON, never
+    // let the raw upstream error propagate (it leaks headers + breaks the HTTP response).
+    const msg = e?.error?.error?.message || e?.message || "generation failed";
+    req.log.warn({ err: msg, promptId: body.promptId }, "run provider error");
+    return reply.code(503).send({ ok: false, error: "llm_unavailable", detail: msg });
+  }
   try {
     const data = parseStructured(raw, entry.schema as z.ZodType);
     return { ok: true, data, model: provider.name };
@@ -283,6 +292,16 @@ app.post("/studio/chat", async (req, reply) => {
     send({ type: "error", message: msg });
   }
   reply.raw.end();
+});
+
+// Defense-in-depth: never let a raw provider/upstream error propagate to the
+// transport (it can leak headers and emit a protocol-violating response). Any
+// unhandled error returns a clean JSON body with a safe status.
+app.setErrorHandler((err: any, req, reply) => {
+  const msg = err?.error?.error?.message || err?.message || "internal error";
+  req.log.error({ err: msg }, "unhandled error");
+  const sc = typeof err?.statusCode === "number" && err.statusCode >= 400 && err.statusCode < 600 ? err.statusCode : 500;
+  if (!reply.sent) reply.code(sc === 400 ? 503 : sc).send({ ok: false, error: "service_error", detail: String(msg).slice(0, 300) });
 });
 
 const port = Number(process.env.PORT || 4000);

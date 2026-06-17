@@ -166,7 +166,7 @@ export default function UsersClient({ meId }: { meId: string | number }) {
                 <span style={lbl}>Roles (RBAC)</span>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 6 }}>
                   {ROLES.map((r) => (
-                    <button key={r} onClick={() => setEditing({ ...editing, roles: toggle(editing.roles, r) })} style={selChip(editing.roles.includes(r))}>{roleLabel(r)}</button>
+                    <button key={r} onClick={() => setEditing((prev: any) => ({ ...prev, roles: toggle(prev.roles, r) }))} style={selChip(editing.roles.includes(r))}>{roleLabel(r)}</button>
                   ))}
                 </div>
               </div>
@@ -181,14 +181,14 @@ export default function UsersClient({ meId }: { meId: string | number }) {
                 <div>
                   <span style={lbl}>Locale scope (ABAC)</span>
                   <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
-                    {LOCALES.map((l) => <button key={l} onClick={() => setEditing({ ...editing, locales: toggle(editing.locales, l) })} style={selChip(editing.locales.includes(l))}>{l}</button>)}
+                    {LOCALES.map((l) => <button key={l} onClick={() => setEditing((prev: any) => ({ ...prev, locales: toggle(prev.locales, l) }))} style={selChip(editing.locales.includes(l))}>{l}</button>)}
                   </div>
                 </div>
               </div>
               <div>
                 <span style={lbl}>Site scope (ABAC) — empty = all sites</span>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 6 }}>
-                  {sites.map((s) => <button key={s.id} onClick={() => setEditing({ ...editing, sites: toggle(editing.sites.map(String), String(s.id)) })} style={selChip(editing.sites.map(String).includes(String(s.id)))}>{s.name}</button>)}
+                  {sites.map((s) => <button key={s.id} onClick={() => setEditing((prev: any) => ({ ...prev, sites: toggle(prev.sites.map(String), String(s.id)) }))} style={selChip(editing.sites.map(String).includes(String(s.id)))}>{s.name}</button>)}
                   {!sites.length && <span style={{ color: "var(--muted)", fontSize: 13 }}>No sites yet</span>}
                 </div>
               </div>

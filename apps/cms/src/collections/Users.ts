@@ -29,7 +29,7 @@ export const Users: CollectionConfig = {
       hasMany: true,
       required: true,
       defaultValue: ["viewer"],
-      options: ["viewer", "author", "reviewer", "publisher", "brand", "siteAdmin", "admin"],
+      options: ["viewer", "author", "reviewer", "publisher", "brand", "siteAdmin", "compliance", "admin"],
       // Only admins may change roles (prevents privilege escalation by self-edit).
       access: { update: adminOnlyField, create: adminOnlyField },
     },

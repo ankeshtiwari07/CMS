@@ -4,7 +4,9 @@ import type { Access, FieldAccess, Where } from "payload";
 // admin-level content powers (create/edit/publish/review) but is SITE-SCOPED to
 // its `sites` and cannot manage users, roles or global settings. The remaining
 // editor roles (author/reviewer/publisher/brand) are also site-scoped by `sites`.
-export type Role = "viewer" | "author" | "reviewer" | "publisher" | "brand" | "siteAdmin" | "admin";
+// `compliance` is a Legal/Compliance approver — it does not author content but
+// can review/approve the legal stage and read content under review.
+export type Role = "viewer" | "author" | "reviewer" | "publisher" | "brand" | "siteAdmin" | "compliance" | "admin";
 
 // Editor roles that are constrained by the `sites` attribute (siteAdmin included).
 const SCOPED_EDITORS: Role[] = ["author", "reviewer", "publisher", "brand", "siteAdmin"];
@@ -48,8 +50,14 @@ export const isAdminOrSelf: Access = ({ req: { user } }) => {
  * only touch content whose `site` is in their set. No sites = all.     *
  * Platform admins are unrestricted.                                    *
  * ------------------------------------------------------------------ */
+// Approvers (incl. compliance) — anyone who can act on an approval stage.
+export const canApprove: Access = ({ req: { user } }) =>
+  hasRole(user, ["reviewer", "publisher", "brand", "siteAdmin", "compliance", "admin"]);
+
 export const readPublishedOrEditor: Access = ({ req: { user } }) => {
   if (hasRole(user, ["admin"])) return true;
+  // Compliance/legal approvers can read all content (incl. drafts) to review it.
+  if (hasRole(user, ["compliance"])) return true;
   if (hasRole(user, SCOPED_EDITORS)) {
     const sites = siteIds(user);
     return sites.length ? ({ site: { in: sites } } as Where) : true;

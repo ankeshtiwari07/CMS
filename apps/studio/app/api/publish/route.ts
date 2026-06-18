@@ -55,7 +55,9 @@ export async function POST(req: Request) {
   const m = MAP[collection];
   if (!m) return NextResponse.json({ error: `Cannot publish to "${collection}"` }, { status: 400 });
 
-  const body: Record<string, unknown> = { [m.title]: title || "Untitled", _status: "draft", workflowState: "draft" };
+  // Agent output → always a draft, flagged AI-generated so HITL forces a human
+  // editorial review before it can ever be published.
+  const body: Record<string, unknown> = { [m.title]: title || "Untitled", _status: "draft", workflowState: "draft", aiGenerated: true };
   if (m.rich) body[m.rich] = mdToLexical(bodyMarkdown);
   else if (m.text) body[m.text] = stripInline(String(bodyMarkdown || "").replace(/[#>*_`-]/g, " ")).slice(0, 4000);
   if (collection === "faqs" && category) body.category = category;

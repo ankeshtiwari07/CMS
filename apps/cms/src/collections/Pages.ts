@@ -1,8 +1,9 @@
 import type { CollectionConfig } from "payload";
 import { allBlocks } from "@humain/blocks";
 import { isEditor, readPublishedOrEditor, editorSiteScoped, editorCreate } from "../access/roles";
-import { emitContentEvent, onDelete, enforcePublishPermission } from "../hooks/events";
+import { emitContentEvent, onDelete, enforcePublishPermission, setCreatedBy } from "../hooks/events";
 import { seoField } from "../fields/seo";
+import { hitlFields } from "./content-types";
 
 export const Pages: CollectionConfig = {
   slug: "pages",
@@ -20,7 +21,8 @@ export const Pages: CollectionConfig = {
     { name: "slug", type: "text", required: true, unique: true, index: true },
     { name: "site", type: "relationship", relationTo: "sites" },
     { name: "blocks", type: "blocks", blocks: allBlocks, localized: true },
+    ...hitlFields,
     seoField(),
   ],
-  hooks: { beforeChange: [enforcePublishPermission], afterChange: [emitContentEvent], afterDelete: [onDelete] },
+  hooks: { beforeChange: [setCreatedBy, enforcePublishPermission], afterChange: [emitContentEvent], afterDelete: [onDelete] },
 };

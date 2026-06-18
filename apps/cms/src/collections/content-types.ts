@@ -1,7 +1,33 @@
 import type { CollectionConfig, Field } from "payload";
 import { isEditor, readPublishedOrEditor, canReview, editorSiteScoped, editorCreate, departmentOnly } from "../access/roles";
-import { emitContentEvent, onDelete, enforcePublishPermission } from "../hooks/events";
+import { emitContentEvent, onDelete, enforcePublishPermission, setCreatedBy } from "../hooks/events";
 import { seoField } from "../fields/seo";
+
+// ---- HITL (human-in-the-loop) governance fields ----
+// `riskTier` drives how many approval stages are required before publish;
+// `aiGenerated` forces an editorial human review; `createdBy` anchors
+// separation-of-duties (a creator can't approve their own content).
+export const hitlFields: Field[] = [
+  {
+    name: "riskTier",
+    type: "text",
+    defaultValue: "low",
+    admin: { position: "sidebar", description: "Approval depth: trivial | low | medium | high (risk-based HITL)." },
+  },
+  {
+    name: "aiGenerated",
+    type: "checkbox",
+    defaultValue: false,
+    admin: { position: "sidebar", description: "AI-drafted — requires human review before publish." },
+  },
+  {
+    name: "createdBy",
+    type: "relationship",
+    relationTo: "users",
+    admin: { position: "sidebar", readOnly: true, description: "Original author (separation-of-duties anchor)." },
+    access: { update: () => false },
+  },
+];
 
 // ABAC anchor: the site a document belongs to. Editors with a site scope can
 // only create/read/update/delete content whose `site` is in their set.
@@ -38,9 +64,9 @@ const base = (slug: string, title: string, extra: Field[]): CollectionConfig => 
     delete: editorSiteScoped,
     readVersions: isEditor,
   },
-  fields: [...extra, siteField, workflowField, seoField()],
+  fields: [...extra, siteField, ...hitlFields, workflowField, seoField()],
   hooks: {
-    beforeChange: [enforcePublishPermission],
+    beforeChange: [setCreatedBy, enforcePublishPermission],
     afterChange: [emitContentEvent],
     afterDelete: [onDelete],
   },

@@ -21,8 +21,8 @@ const fmtDate = (s?: string) => {
 };
 type Site = { id: string | number; name: string };
 
-const ROLES = ["viewer", "author", "reviewer", "publisher", "brand", "siteAdmin", "admin"];
-const ROLE_LABEL: Record<string, string> = { siteAdmin: "Site Admin" };
+const ROLES = ["viewer", "author", "reviewer", "publisher", "brand", "siteAdmin", "compliance", "admin"];
+const ROLE_LABEL: Record<string, string> = { siteAdmin: "Site Admin", compliance: "Legal/Compliance" };
 const roleLabel = (r: string) => ROLE_LABEL[r] ?? r;
 const DEPTS = ["marketing", "editorial", "communications", "hr", "product", "executive"];
 const LOCALES = ["en", "ar"];

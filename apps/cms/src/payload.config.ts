@@ -13,6 +13,7 @@ import { Pages } from "./collections/Pages";
 import { Projects } from "./collections/Projects";
 import { BrandGuidelines } from "./collections/BrandGuidelines";
 import { AuditLog } from "./collections/AuditLog";
+import { Approvals } from "./collections/Approvals";
 import { contentCollections } from "./collections/content-types";
 import { globals } from "./globals";
 
@@ -59,7 +60,7 @@ export default buildConfig({
     defaultLocale: "en",
     fallback: true,
   },
-  collections: [Users, Sites, Media, Pages, Projects, BrandGuidelines, AuditLog, ...contentCollections],
+  collections: [Users, Sites, Media, Pages, Projects, BrandGuidelines, AuditLog, Approvals, ...contentCollections],
   globals,
   db: postgresAdapter({
     pool: { connectionString: process.env.DATABASE_URI },

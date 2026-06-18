@@ -21,6 +21,7 @@ import {
   PaperclipIcon,
   ClockIcon,
   BookmarkIcon,
+  CheckIcon,
 } from "@/components/icons";
 
 // Create-new menu (mirrors the Figma "+" menu).
@@ -47,6 +48,7 @@ const NAV = [
   { key: "search", Icon: SearchIcon, label: "Search", href: "/search" },
   { key: "projects", Icon: FolderIcon, label: "Projects", href: "/projects" },
   { key: "templates", Icon: GridIcon, label: "Templates", href: "/cms" },
+  { key: "review", Icon: CheckIcon, label: "Review", href: "/review", approverOnly: true },
   { key: "brand", Icon: BookmarkIcon, label: "Brand", href: "/brand" },
   { key: "design", Icon: PaletteIcon, label: "Design", href: "/design" },
 ];
@@ -54,6 +56,7 @@ const NAV = [
 const ROLE_LABEL: Record<string, string> = {
   admin: "Administrator",
   siteAdmin: "Site Administrator",
+  compliance: "Legal / Compliance",
   publisher: "Publisher",
   reviewer: "Reviewer",
   author: "Author",
@@ -185,7 +188,7 @@ export default function Sidebar({
 
       {/* Nav */}
       <div style={{ display: "grid", gap: 4 }}>
-        {NAV.map(({ key, Icon, label, href }) => {
+        {NAV.filter((n) => !(n as any).approverOnly || (user.roles || []).some((r) => ["reviewer", "publisher", "brand", "siteAdmin", "compliance", "admin"].includes(r))).map(({ key, Icon, label, href }) => {
           if (key === "create") {
             return (
               <div key={key} ref={createRef} style={{ position: "relative" }}>

@@ -1,7 +1,7 @@
 import Fastify from "fastify";
 import rateLimit from "@fastify/rate-limit";
 import { z } from "zod";
-import { getProvider, resolveModel, listModels, providerByName } from "./providers/index.js";
+import { getProvider, resolveModel, listModels, providerByName, completeWithFallback, MODELS } from "./providers/index.js";
 import { parseStructured } from "./providers/types.js";
 import { prompts, type PromptId } from "./prompts/library.js";
 import { startRender, pollRender, videoConfigured } from "./providers/video.js";
@@ -53,23 +53,25 @@ app.post("/run", async (req, reply) => {
   if (provider.configured === false) return reply.code(503).send({ error: "llm_not_configured" });
 
   let raw: string;
+  let usedProvider = provider.name;
   try {
-    raw = await provider.complete({
-      system: entry.system,
-      messages: [{ role: "user", content: body.input }],
-      fast: body.fast,
-      maxTokens: 1024,
-    });
+    const fb = await completeWithFallback(
+      { system: entry.system, messages: [{ role: "user", content: body.input }], fast: body.fast, maxTokens: 1024 },
+      { primary: process.env.LLM_PROVIDER || "anthropic" },
+    );
+    raw = fb.text;
+    usedProvider = fb.provider;
+    if (fb.fellBack) req.log.warn({ tried: fb.tried, used: fb.provider, promptId: body.promptId }, "run fell back to another provider");
   } catch (e: any) {
-    // Provider errors (credit balance, rate limit, timeout) → clean JSON, never
-    // let the raw upstream error propagate (it leaks headers + breaks the HTTP response).
+    // All providers exhausted → clean JSON, never let the raw upstream error
+    // propagate (it leaks headers + breaks the HTTP response).
     const msg = e?.error?.error?.message || e?.message || "generation failed";
-    req.log.warn({ err: msg, promptId: body.promptId }, "run provider error");
+    req.log.warn({ err: msg, promptId: body.promptId }, "run provider error (all fallbacks failed)");
     return reply.code(503).send({ ok: false, error: "llm_unavailable", detail: msg });
   }
   try {
     const data = parseStructured(raw, entry.schema as z.ZodType);
-    return { ok: true, data, model: provider.name };
+    return { ok: true, data, model: usedProvider };
   } catch (e) {
     return reply.code(422).send({ ok: false, error: "validation_failed", detail: String(e) });
   }
@@ -103,7 +105,12 @@ app.post("/content/suggest", async (req, reply) => {
     (body.brand ? ` Brand context to stay on-brand with:\n${body.brand}` : "");
   const user = `${body.brief ? `Brief: ${body.brief}\n\n` : ""}Fields to draft:\n${spec}\n\nReturn a JSON object keyed by field name.`;
   try {
-    const raw = await provider.complete({ system, messages: [{ role: "user", content: user }], fast: true, maxTokens: 1600 });
+    const fb = await completeWithFallback(
+      { system, messages: [{ role: "user", content: user }], fast: true, maxTokens: 1600 },
+      { primary: process.env.LLM_PROVIDER || "anthropic" },
+    );
+    const raw = fb.text;
+    if (fb.fellBack) req.log.warn({ used: fb.provider }, "content/suggest fell back");
     let data: Record<string, string> = {};
     const m = raw.match(/\{[\s\S]*\}/);
     if (m) {
@@ -200,13 +207,22 @@ app.post("/studio/generate", async (req) => {
   // Prior turns (if any) give the model conversation context for refinements.
   const history = (body.history ?? []).map((m) => ({ role: m.role, content: m.content }));
   try {
-    let out = await chosen.complete({
-      system,
-      messages: [...history, { role: "user", content: body.prompt }],
-      maxTokens: preview ? 1500 : long ? 4096 : 2048,
-      model,
-      fast: body.fast ?? fast,
-    });
+    const fb = await completeWithFallback(
+      {
+        system,
+        messages: [...history, { role: "user", content: body.prompt }],
+        maxTokens: preview ? 1500 : long ? 4096 : 2048,
+        model,
+        fast: body.fast ?? fast,
+      },
+      { primary: entry.provider },
+    );
+    let out = fb.text;
+    // If we fell back, reflect the provider that actually answered in the label.
+    const used = fb.fellBack ? MODELS.find((m) => m.provider === fb.provider) ?? entry : entry;
+    const usedId = used.id;
+    const usedLabel = fb.fellBack ? `${used.label} (fallback)` : used.label;
+    if (fb.fellBack) req.log.warn({ tried: fb.tried, used: fb.provider, mode: body.mode }, "studio/generate fell back");
     // For HTML builds, strip any stray markdown fences so the preview iframe is clean.
     if (html) out = out.replace(/^```html\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "").trim();
     // Video mode: extract the text-to-video prompt so the render pipeline can use it.
@@ -216,7 +232,7 @@ app.post("/studio/generate", async (req) => {
       videoPrompt = (m?.[1] || body.prompt).trim().slice(0, 500);
     }
     return {
-      ok: true, mode: body.mode, model: entry.id, modelLabel: entry.label, preview,
+      ok: true, mode: body.mode, model: usedId, modelLabel: usedLabel, preview,
       html, artifact: out,
       ...(body.mode === "video" ? { video: true, videoPrompt, renderPending: true } : {}),
     };

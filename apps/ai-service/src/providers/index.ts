@@ -1,4 +1,4 @@
-import type { LlmProvider } from "./types.js";
+import type { LlmProvider, CompleteRequest } from "./types.js";
 import { AnthropicProvider } from "./anthropic.js";
 import { OpenAICompatProvider, type CompatConfig } from "./openai-compat.js";
 
@@ -73,6 +73,51 @@ export function modelById(id?: string): ModelEntry {
 export function resolveModel(id?: string): { provider: LlmProvider; model: string; fast: boolean; entry: ModelEntry } {
   const entry = modelById(id);
   return { provider: providerByName(entry.provider), model: entry.model, fast: Boolean(entry.fast), entry };
+}
+
+// ---- Provider fallback ----------------------------------------------------
+// When the primary provider fails with an AVAILABILITY error (credit balance,
+// quota, rate limit, overload, transient 5xx/network), automatically retry on
+// the next CONFIGURED provider so AI features degrade instead of hard-failing.
+const FALLBACK_ORDER = (process.env.LLM_FALLBACK_ORDER || "anthropic,xai,openai,google")
+  .split(",").map((s) => s.trim()).filter(Boolean);
+
+// Only fall back on availability/transient errors — not on genuine bad requests
+// (which would fail identically everywhere and just waste calls).
+function isAvailabilityError(err: any): boolean {
+  const m = (err?.error?.error?.message || err?.message || String(err || "")).toLowerCase();
+  return /credit|balance|quota|rate.?limit|429|overload|insufficient|unavailable|timeout|econn|enotfound|fetch failed|temporar|throttl|capacity|\b5\d\d\b|529/.test(m);
+}
+
+export type FallbackResult = { text: string; provider: string; model?: string; fellBack: boolean; tried: string[] };
+
+export async function completeWithFallback(
+  req: CompleteRequest,
+  opts?: { primary?: string },
+): Promise<FallbackResult> {
+  const primary = opts?.primary || process.env.LLM_PROVIDER || "anthropic";
+  // primary first, then the configured fallback chain (deduped, configured only)
+  const ordered = [primary, ...FALLBACK_ORDER].filter((n, i, a) => a.indexOf(n) === i);
+  const list = ordered.filter((n) => providers[n]?.configured);
+  const candidates = list.length ? list : [primary];
+  const tried: string[] = [];
+  let lastErr: any;
+  for (const name of candidates) {
+    const p = providers[name];
+    if (!p) continue;
+    tried.push(name);
+    try {
+      // The requested model id only applies to the primary provider; fallbacks
+      // use their own default model (the Claude model string is meaningless on GPT).
+      const text = await p.complete({ ...req, model: name === primary ? req.model : undefined });
+      return { text, provider: name, model: name === primary ? req.model : undefined, fellBack: name !== primary, tried };
+    } catch (e) {
+      lastErr = e;
+      if (!isAvailabilityError(e)) throw e; // genuine error → don't waste fallbacks
+      // else: availability error → try the next configured provider
+    }
+  }
+  throw lastErr || new Error("no_provider_available");
 }
 
 // Catalog with live "configured" status for the UI.

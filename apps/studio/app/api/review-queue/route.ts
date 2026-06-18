@@ -4,7 +4,7 @@
 // the authority of anyone out-of-office who delegated to them). Own content is
 // excluded (separation of duties).
 import { NextResponse } from "next/server";
-import { getCurrentUser, payloadFetch, hasRole } from "@/lib/payload";
+import { getCurrentUser, payloadFetch } from "@/lib/payload";
 
 const STAGE_ROLES: Record<string, string[]> = {
   editorial: ["reviewer", "publisher", "siteAdmin", "admin"],
@@ -38,9 +38,6 @@ const sla = (stage: string, sinceMs: number, now: number) => {
 export async function GET() {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (!hasRole(user, ["reviewer", "publisher", "brand", "siteAdmin", "compliance", "admin"])) {
-    return NextResponse.json({ error: "Not an approver" }, { status: 403 });
-  }
   // Effective roles = own + roles inherited from out-of-office delegators.
   let roles: string[] = [...((user as any).roles || [])];
   let delegatedFrom: string[] = [];
@@ -52,6 +49,10 @@ export async function GET() {
       roles = Array.from(new Set([...roles, ...delegators.flatMap((d: any) => d.roles || [])]));
     }
   } catch {}
+  // An approver by their own role OR by active delegation may use the queue.
+  if (!["reviewer", "publisher", "brand", "siteAdmin", "compliance", "admin"].some((r) => roles.includes(r))) {
+    return NextResponse.json({ items: [], count: 0, overdueCount: 0, delegatingFor: [] });
+  }
   const canDecide = (stage: string) => (STAGE_ROLES[stage] || []).some((r) => roles.includes(r));
   const isEscalator = ESCALATION_ROLES.some((r) => roles.includes(r));
   const now = Date.now();

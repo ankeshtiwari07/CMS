@@ -1,6 +1,6 @@
 import type { CollectionConfig, CollectionBeforeChangeHook, CollectionAfterChangeHook } from "payload";
 import { APIError } from "payload";
-import { canApprove, isAdmin } from "../access/roles";
+import { isAdmin } from "../access/roles";
 import { canDecideStage, STAGE_LABEL, type Stage } from "../access/approval-policy";
 import { effectiveApproverRoles } from "../access/delegation";
 
@@ -83,9 +83,13 @@ export const Approvals: CollectionConfig = {
     group: "Governance",
   },
   access: {
-    read: canApprove, // approvers see the decision history
-    create: canApprove, // hook enforces the specific stage-role + separation of duties
-    update: () => false, // immutable
+    // Authority is enforced entirely in beforeChange (stage-role + delegation +
+    // separation of duties), so a delegate who isn't normally an approver can
+    // still act while covering. Read is open to authenticated users (governance
+    // transparency); create is hook-gated; records are immutable.
+    read: ({ req: { user } }) => Boolean(user),
+    create: ({ req: { user } }) => Boolean(user),
+    update: () => false,
     delete: isAdmin,
   },
   fields: [

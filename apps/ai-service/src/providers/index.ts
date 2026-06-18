@@ -93,11 +93,13 @@ export type FallbackResult = { text: string; provider: string; model?: string; f
 
 export async function completeWithFallback(
   req: CompleteRequest,
-  opts?: { primary?: string },
+  opts?: { primary?: string; exclude?: string[] },
 ): Promise<FallbackResult> {
   const primary = opts?.primary || process.env.LLM_PROVIDER || "anthropic";
-  // primary first, then the configured fallback chain (deduped, configured only)
-  const ordered = [primary, ...FALLBACK_ORDER].filter((n, i, a) => a.indexOf(n) === i);
+  const exclude = new Set(opts?.exclude || []);
+  // primary first, then the configured fallback chain (deduped, configured only,
+  // minus any explicitly-excluded providers — e.g. one already known to be down).
+  const ordered = [primary, ...FALLBACK_ORDER].filter((n, i, a) => a.indexOf(n) === i && !exclude.has(n));
   const list = ordered.filter((n) => providers[n]?.configured);
   const candidates = list.length ? list : [primary];
   const tried: string[] = [];

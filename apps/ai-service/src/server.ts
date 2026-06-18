@@ -291,6 +291,7 @@ app.post("/studio/chat", async (req, reply) => {
 
   const history = (body.history ?? []).map((m) => ({ role: m.role, content: m.content }));
   let collected = "";
+  let streamed = false;
   try {
     await runOrchestrator({
       deliverableSpec,
@@ -298,14 +299,42 @@ app.post("/studio/chat", async (req, reply) => {
       messages: [...history, { role: "user", content: body.prompt }],
       model: useModel,
       maxTokens: LONG_MODES.includes(body.mode) ? 4096 : 2048,
-      onText: (d) => { collected += d; send({ type: "delta", text: d }); },
-      onEvent: (e) => { if (e.type === "reset") collected = ""; send(e); },
+      onText: (d) => { collected += d; streamed = true; send({ type: "delta", text: d }); },
+      onEvent: (e) => { if (e.type === "reset") collected = ""; if (e.type === "artifact") streamed = true; send(e); },
     });
     send({ type: "done", model: entry.id, modelLabel: entry.label, artifact: collected });
   } catch (e: any) {
     const msg = e?.error?.error?.message || e?.message || "Generation failed.";
-    req.log.warn({ err: msg, model: entry.id }, "studio/chat agent error");
-    send({ type: "error", message: msg });
+    const availability =
+      /credit|balance|quota|rate.?limit|429|overload|insufficient|unavailable|timeout|econn|enotfound|fetch failed|throttl|capacity|\b5\d\d\b|529/i.test(msg);
+    // If the agentic loop (Claude) is unavailable and nothing has streamed yet,
+    // degrade to a single-shot generation on a fallback provider so the chat
+    // still produces a useful reply instead of an error. (Tool-use / specialist
+    // delegation isn't available in this degraded path — it's an outage cushion.)
+    if (!streamed && availability) {
+      req.log.warn({ err: msg }, "studio/chat orchestrator unavailable — degrading to fallback provider");
+      try {
+        const fb = await completeWithFallback(
+          {
+            system: deliverableSpec + " Respond directly and helpfully in clean markdown.",
+            messages: [...history, { role: "user", content: body.prompt }],
+            maxTokens: LONG_MODES.includes(body.mode) ? 4096 : 2048,
+          },
+          { exclude: ["anthropic"] },
+        );
+        send({ type: "status", label: `Fallback model: ${fb.provider}` });
+        const text = fb.text;
+        for (let i = 0; i < text.length; i += 90) send({ type: "delta", text: text.slice(i, i + 90) });
+        send({ type: "done", model: fb.provider, modelLabel: `${fb.provider} (fallback)`, artifact: text });
+      } catch (e2: any) {
+        const m2 = e2?.error?.error?.message || e2?.message || msg;
+        req.log.warn({ err: m2 }, "studio/chat fallback also failed");
+        send({ type: "error", message: m2 });
+      }
+    } else {
+      req.log.warn({ err: msg, model: entry.id }, "studio/chat agent error");
+      send({ type: "error", message: msg });
+    }
   }
   reply.raw.end();
 });

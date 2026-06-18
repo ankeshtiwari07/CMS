@@ -51,3 +51,25 @@ export const canDecideStage = (roles: string[], stage: string): boolean =>
 
 export const stagesUserCanDecide = (roles: string[]): Stage[] =>
   STAGES.filter((s) => canDecideStage(roles, s));
+
+// ---- SLA / time-based escalation ----
+// Hours each stage may sit pending before it breaches SLA. Env-overridable.
+export const STAGE_SLA_HOURS: Record<Stage, number> = {
+  editorial: Number(process.env.SLA_EDITORIAL_HOURS || 24),
+  brand: Number(process.env.SLA_BRAND_HOURS || 48),
+  legal: Number(process.env.SLA_LEGAL_HOURS || 72),
+  final: Number(process.env.SLA_FINAL_HOURS || 24),
+};
+
+// Roles an overdue (SLA-breached) item escalates to — they can step in on ANY
+// overdue stage to clear the bottleneck.
+export const ESCALATION_ROLES: string[] = (process.env.SLA_ESCALATION_ROLES || "siteAdmin,admin").split(",").map((s) => s.trim());
+
+export type SlaState = "on_track" | "due_soon" | "overdue";
+export function slaStatus(stage: string, pendingSinceMs: number, nowMs: number): { state: SlaState; hours: number; slaHours: number } {
+  const slaHours = STAGE_SLA_HOURS[stage as Stage] ?? 24;
+  const remaining = slaHours - (nowMs - pendingSinceMs) / 3_600_000;
+  if (remaining <= 0) return { state: "overdue", hours: Math.max(0, Math.round(-remaining)), slaHours };
+  if (remaining <= Math.max(2, slaHours * 0.25)) return { state: "due_soon", hours: Math.round(remaining), slaHours };
+  return { state: "on_track", hours: Math.round(remaining), slaHours };
+}

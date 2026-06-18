@@ -62,6 +62,19 @@ export const Users: CollectionConfig = {
       admin: { description: "Deactivated users cannot sign in." },
       access: { update: adminOnlyField },
     },
+    // ---- HITL delegation / out-of-office (self- or admin-settable) ----
+    {
+      name: "outOfOffice",
+      type: "checkbox",
+      defaultValue: false,
+      admin: { description: "When on, your approval delegate can act on the stages you approve." },
+    },
+    {
+      name: "delegateApprovalsTo",
+      type: "relationship",
+      relationTo: "users",
+      admin: { description: "Backup approver who inherits your approval authority while you are out of office." },
+    },
     // When the user last opened their notifications — drives the unread badge.
     // Self-updatable (no adminOnlyField), so each user can clear their own.
     { name: "notificationsReadAt", type: "date", admin: { hidden: true } },

@@ -27,7 +27,7 @@ const roleLabel = (r: string) => ROLE_LABEL[r] ?? r;
 const DEPTS = ["marketing", "editorial", "communications", "hr", "product", "executive"];
 const LOCALES = ["en", "ar"];
 
-const blank = { email: "", name: "", jobTitle: "", password: "", roles: ["viewer"], department: "", sites: [], locales: [], active: true };
+const blank = { email: "", name: "", jobTitle: "", password: "", roles: ["viewer"], department: "", sites: [], locales: [], active: true, outOfOffice: false, delegateApprovalsTo: "" };
 
 export default function UsersClient({ meId }: { meId: string | number }) {
   const [users, setUsers] = useState<U[]>([]);
@@ -55,6 +55,8 @@ export default function UsersClient({ meId }: { meId: string | number }) {
       roles: u.roles || [], department: u.department || "", active: u.active !== false, createdAt: u.createdAt,
       sites: (u.sites || []).map((x: any) => (typeof x === "object" ? x.id : x)),
       locales: u.locales || [],
+      outOfOffice: (u as any).outOfOffice || false,
+      delegateApprovalsTo: (() => { const d = (u as any).delegateApprovalsTo; return d ? (typeof d === "object" ? d.id : d) : ""; })(),
     });
   }
   const toggle = (arr: string[], v: string) => (arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v]);
@@ -67,6 +69,7 @@ export default function UsersClient({ meId }: { meId: string | number }) {
     const payload: any = {
       email: editing.email, name: editing.name, jobTitle: editing.jobTitle, roles: editing.roles,
       department: editing.department || undefined, sites: editing.sites, locales: editing.locales, active: editing.active,
+      outOfOffice: editing.outOfOffice, delegateApprovalsTo: editing.delegateApprovalsTo || null,
     };
     if (editing.password) payload.password = editing.password;
     const res = editing._new
@@ -196,6 +199,25 @@ export default function UsersClient({ meId }: { meId: string | number }) {
                 <input type="checkbox" checked={editing.active} onChange={(e) => setEditing({ ...editing, active: e.target.checked })} />
                 <span style={{ fontSize: 14, color: "var(--ink)" }}>Active (can sign in)</span>
               </label>
+
+              {/* HITL approval delegation (out-of-office coverage) */}
+              <div style={{ borderTop: "1px solid var(--hairline)", paddingTop: 14 }}>
+                <span style={lbl}>Approval delegation (HITL)</span>
+                <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: 12, alignItems: "center", marginTop: 8 }}>
+                  <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <input type="checkbox" checked={editing.outOfOffice} onChange={(e) => setEditing({ ...editing, outOfOffice: e.target.checked })} />
+                    <span style={{ fontSize: 13.5, color: "var(--ink)" }}>Out of office</span>
+                  </label>
+                  <select style={field} value={editing.delegateApprovalsTo} onChange={(e) => setEditing({ ...editing, delegateApprovalsTo: e.target.value })}>
+                    <option value="">Delegate approvals to… (backup approver)</option>
+                    {users.filter((u) => String(u.id) !== String(editing.id)).map((u) => (
+                      <option key={u.id} value={u.id}>{u.name || u.email}</option>
+                    ))}
+                  </select>
+                </div>
+                <p style={{ fontSize: 11.5, color: "var(--muted)", margin: "6px 0 0" }}>While “out of office” is on, your delegate inherits your approval authority so reviews don’t stall.</p>
+              </div>
+
               {err && <div style={{ background: "#fdecec", color: "#b42318", borderRadius: 10, padding: "9px 12px", fontSize: 13.5 }}>{err}</div>}
             </div>
             <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, marginTop: 22 }}>

@@ -1,11 +1,18 @@
 "use client";
 import { useEffect, useState } from "react";
 
-type Stage = { stage: string; label: string; status: string; comment?: string };
+type Stage = { stage: string; label: string; status: string; comment?: string; sla?: string; slaHours?: number };
 type Item = {
   collection: string; id: number | string; title: string; riskTier: string;
   aiGenerated: boolean; updatedAt?: string; stages: Stage[]; actionable: string[];
+  overdue?: boolean; escalatedToYou?: boolean; viaDelegation?: boolean;
 };
+
+const SLA_COLOR: Record<string, [string, string]> = {
+  overdue: ["#fdecec", "#b42318"], due_soon: ["#fff4e0", "#9a6a12"], on_track: ["#eef2f4", "#5A6B72"], approved: ["#e3f5e8", "#1b7f3b"],
+};
+const slaText = (s?: string, h?: number) =>
+  s === "overdue" ? `overdue ${h}h` : s === "due_soon" ? `due in ${h}h` : s === "on_track" ? `${h}h left` : "";
 
 const TIER_COLOR: Record<string, [string, string]> = {
   trivial: ["#eef2f4", "#5A6B72"], low: ["#e3f5e8", "#1b7f3b"],
@@ -18,6 +25,7 @@ const STATUS_COLOR: Record<string, [string, string]> = {
 
 export default function ReviewQueue() {
   const [items, setItems] = useState<Item[]>([]);
+  const [meta, setMeta] = useState<{ overdueCount: number; delegatingFor: string[] }>({ overdueCount: 0, delegatingFor: [] });
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [comments, setComments] = useState<Record<string, string>>({});
@@ -29,6 +37,7 @@ export default function ReviewQueue() {
       const r = await fetch("/api/review-queue");
       const j = await r.json();
       setItems(j.items || []);
+      setMeta({ overdueCount: j.overdueCount || 0, delegatingFor: j.delegatingFor || [] });
     } catch { setItems([]); }
     setLoading(false);
   }
@@ -60,9 +69,19 @@ export default function ReviewQueue() {
   return (
     <div style={{ maxWidth: 980, margin: "0 auto", padding: "26px 28px 60px" }}>
       <h1 style={{ fontSize: 22, fontWeight: 800, color: "var(--ink)", margin: 0 }}>Review Queue</h1>
-      <p style={{ color: "var(--muted)", margin: "5px 0 22px", fontSize: 14 }}>
+      <p style={{ color: "var(--muted)", margin: "5px 0 14px", fontSize: 14 }}>
         Human-in-the-loop approvals routed to you. Content cannot publish until every required stage approves the current version. You can’t approve content you created (separation of duties).
       </p>
+      {meta.delegatingFor.length > 0 && (
+        <div style={{ background: "#eef6f5", border: "1px solid var(--hairline)", borderRadius: 10, padding: "9px 13px", fontSize: 13, color: "var(--studio-teal-dark, #0A5C58)", marginBottom: 10 }}>
+          🤝 You’re covering approvals (delegation) for: <b>{meta.delegatingFor.join(", ")}</b>
+        </div>
+      )}
+      {meta.overdueCount > 0 && (
+        <div style={{ background: "#fdecec", border: "1px solid #f6c8c2", borderRadius: 10, padding: "9px 13px", fontSize: 13, color: "#b42318", marginBottom: 16, fontWeight: 600 }}>
+          ⏰ {meta.overdueCount} item{meta.overdueCount > 1 ? "s" : ""} past SLA — escalated for action.
+        </div>
+      )}
 
       {loading ? (
         <div style={{ color: "var(--muted)", padding: 24 }}>Loading…</div>
@@ -73,19 +92,25 @@ export default function ReviewQueue() {
       ) : (
         <div style={{ display: "grid", gap: 14 }}>
           {items.map((it) => (
-            <div key={`${it.collection}:${it.id}`} style={{ border: "1px solid var(--hairline)", borderRadius: 14, padding: "16px 18px", background: "#fff" }}>
+            <div key={`${it.collection}:${it.id}`} style={{ border: `1px solid ${it.overdue ? "#f6c8c2" : "var(--hairline)"}`, borderRadius: 14, padding: "16px 18px", background: "#fff" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
                 <span style={{ fontWeight: 700, fontSize: 15.5, color: "var(--ink)" }}>{it.title}</span>
                 {pill(`risk: ${it.riskTier}`, TIER_COLOR[it.riskTier]?.[0] || "#eef2f4", TIER_COLOR[it.riskTier]?.[1] || "#5A6B72")}
                 {it.aiGenerated && pill("AI-generated", "#ede9fe", "#6d28d9")}
+                {it.overdue && pill("⏰ overdue", "#fdecec", "#b42318")}
+                {it.escalatedToYou && pill("escalated to you", "#fff4e0", "#9a6a12")}
                 <span style={{ color: "var(--muted)", fontSize: 12.5 }}>{it.collection}#{it.id}</span>
               </div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap", margin: "12px 0" }}>
-                {it.stages.map((s) => (
-                  <span key={s.stage} title={s.comment || ""} style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, padding: "4px 10px", borderRadius: 8, background: STATUS_COLOR[s.status]?.[0] || "#eef2f4", color: STATUS_COLOR[s.status]?.[1] || "#5A6B72" }}>
-                    {s.label}: {s.status === "request_changes" ? "changes requested" : s.status}
-                  </span>
-                ))}
+                {it.stages.map((s) => {
+                  const showSla = s.status !== "approve" && s.sla && s.sla !== "approved";
+                  const c = showSla ? SLA_COLOR[s.sla!] : STATUS_COLOR[s.status];
+                  return (
+                    <span key={s.stage} title={s.comment || ""} style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600, padding: "4px 10px", borderRadius: 8, background: c?.[0] || "#eef2f4", color: c?.[1] || "#5A6B72" }}>
+                      {s.label}: {s.status === "request_changes" ? "changes requested" : s.status}{showSla ? ` · ${slaText(s.sla, s.slaHours)}` : ""}
+                    </span>
+                  );
+                })}
               </div>
               {it.actionable.map((stage) => {
                 const key = `${it.collection}:${it.id}:${stage}`;

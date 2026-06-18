@@ -2,6 +2,7 @@ import type { CollectionConfig, CollectionBeforeChangeHook, CollectionAfterChang
 import { APIError } from "payload";
 import { canApprove, isAdmin } from "../access/roles";
 import { canDecideStage, STAGE_LABEL, type Stage } from "../access/approval-policy";
+import { effectiveApproverRoles } from "../access/delegation";
 
 // Enforce HITL decision rules on every approval record:
 //  - approver must hold a role allowed to decide that stage
@@ -12,13 +13,15 @@ const enforceApprovalRules: CollectionBeforeChangeHook = async ({ data, req, ope
   if (operation !== "create") return data;
   const user = req.user as any;
   if (!user) throw new APIError("Authentication required.", 401);
-  const roles: string[] = user.roles ?? [];
   const stage = String(data.stage || "");
   const decision = String(data.decision || "");
 
+  // Effective roles include any inherited from out-of-office delegators.
+  const { roles, delegatedFrom } = await effectiveApproverRoles(user, req.payload);
   if (!canDecideStage(roles, stage)) {
     throw new APIError(`You are not authorised to decide the "${STAGE_LABEL[stage as Stage] || stage}" stage.`, 403);
   }
+  const actingAsDelegate = delegatedFrom.length > 0 && !canDecideStage(user.roles ?? [], stage);
   if ((decision === "reject" || decision === "request_changes") && !String(data.comment || "").trim()) {
     throw new APIError("A comment is required when rejecting or requesting changes.", 400);
   }
@@ -44,7 +47,8 @@ const enforceApprovalRules: CollectionBeforeChangeHook = async ({ data, req, ope
 
   data.decidedBy = user.id;
   const verb = decision === "approve" ? "approved" : decision === "reject" ? "rejected" : "requested changes on";
-  data.summary = `${user.email || "user"} ${verb} ${data.collectionSlug}#${data.documentId} [${stage}]`;
+  const onBehalf = actingAsDelegate ? ` (as delegate of ${delegatedFrom.join(", ")})` : "";
+  data.summary = `${user.email || "user"} ${verb} ${data.collectionSlug}#${data.documentId} [${stage}]${onBehalf}`;
   return data;
 };
 

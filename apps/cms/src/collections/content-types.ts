@@ -1,5 +1,5 @@
 import type { CollectionConfig, Field } from "payload";
-import { isEditor, readPublishedOrEditor, canReview, editorSiteScoped, departmentOnly } from "../access/roles";
+import { isEditor, readPublishedOrEditor, canReview, editorSiteScoped, editorCreate, departmentOnly } from "../access/roles";
 import { emitContentEvent, onDelete, enforcePublishPermission } from "../hooks/events";
 import { seoField } from "../fields/seo";
 
@@ -33,8 +33,8 @@ const base = (slug: string, title: string, extra: Field[]): CollectionConfig => 
   admin: { useAsTitle: title },
   access: {
     read: readPublishedOrEditor,
-    create: isEditor,
-    update: editorSiteScoped, // ABAC: editors may only write content in their assigned sites
+    create: editorCreate, // ABAC: editors create only in their assigned locale(s)
+    update: editorSiteScoped, // ABAC: editors may only write content in their assigned sites + locale(s)
     delete: editorSiteScoped,
     readVersions: isEditor,
   },

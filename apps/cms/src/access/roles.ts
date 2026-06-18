@@ -57,12 +57,33 @@ export const readPublishedOrEditor: Access = ({ req: { user } }) => {
   return { _status: { equals: "published" } } as Where;
 };
 
-// create/update/delete on content: must be an editor; site-scoped by attribute.
-export const editorSiteScoped: Access = ({ req: { user } }) => {
+// Locale scope: an author assigned specific `locales` may only WRITE content in
+// those locales (empty = all locales). The locale being written is on the
+// request (`?locale=ar`, else the configured default). Hard boundary per the
+// PRD's Author (EN) vs Author (AR) personas.
+const localeAllowed = (user: any, locale: any): boolean => {
+  const locs = user?.locales;
+  if (!Array.isArray(locs) || locs.length === 0) return true; // unassigned = all
+  if (!locale) return true; // no specific locale on the request
+  return locs.includes(locale);
+};
+
+// create/update/delete on content: must be an editor; site- AND locale-scoped.
+export const editorSiteScoped: Access = ({ req }) => {
+  const user = (req as any).user;
   if (hasRole(user, ["admin"])) return true;
   if (!hasRole(user, SCOPED_EDITORS)) return false;
+  if (!localeAllowed(user, (req as any).locale)) return false; // locale boundary
   const sites = siteIds(user);
   return sites.length ? ({ site: { in: sites } } as Where) : true;
+};
+
+// create on content: any scoped editor, gated by their locale assignment.
+export const editorCreate: Access = ({ req }) => {
+  const user = (req as any).user;
+  if (hasRole(user, ["admin"])) return true;
+  if (!hasRole(user, SCOPED_EDITORS)) return false;
+  return localeAllowed(user, (req as any).locale);
 };
 
 // Owner-scoped: admins see/act on everything; otherwise an editor is limited to

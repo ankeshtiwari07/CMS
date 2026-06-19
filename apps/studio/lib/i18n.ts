@@ -9,6 +9,7 @@ export const DICT: Record<string, { en: string; ar: string }> = {
   "nav.search": { en: "Search", ar: "بحث" },
   "nav.projects": { en: "Projects", ar: "المشاريع" },
   "nav.templates": { en: "Templates", ar: "القوالب" },
+  "nav.review": { en: "Review", ar: "المراجعة" },
   "nav.brand": { en: "Brand", ar: "العلامة التجارية" },
   "nav.design": { en: "Design", ar: "التصميم" },
   // create-new menu

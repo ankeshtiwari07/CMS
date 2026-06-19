@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { payloadFetch, getCurrentUser, hasRole } from "@/lib/payload";
+import { AI_URL } from "@/lib/env";
 
 const TYPE_LABEL: Record<string, string> = {
   video: "Video", writing: "Article", website: "Website copy", websiteBuild: "Website build",
@@ -58,9 +59,36 @@ export async function GET() {
     }
   }
 
+  // Proactive HITL SLA reminders — overdue/due-soon approvals routed to my role.
+  const myRoles: string[] = (user as any).roles || [];
+  let slaUnread = 0;
+  try {
+    const r = await fetch(`${AI_URL}/sla/reminders`, { cache: "no-store" });
+    if (r.ok) {
+      const { breaches = [] } = await r.json();
+      const mine = (breaches as any[]).filter((b) => (b.notifyRoles || []).some((role: string) => myRoles.includes(role)));
+      for (const b of mine) {
+        items.push({
+          id: `sla-${b.key}`,
+          type: b.state === "overdue" ? "delete" : "update", // reuse icon mapping (red/amber)
+          title: b.state === "overdue" ? `⏰ Overdue: ${b.stageLabel}` : `Due soon: ${b.stageLabel}`,
+          detail: `${b.title} — ${b.state === "overdue" ? `${b.hours}h over SLA` : `${b.hours}h left`}`,
+          ts: new Date().toISOString(),
+          href: "/review",
+          unread: true,
+        });
+        slaUnread++;
+      }
+    }
+  } catch {
+    /* ai-service unreachable — skip reminders */
+  }
+
   items.sort((a, b) => new Date(b.ts).getTime() - new Date(a.ts).getTime());
-  const top = items.slice(0, 20);
+  const top = items.slice(0, 25);
   const lastRead = (user as any).notificationsReadAt ? new Date((user as any).notificationsReadAt).getTime() : 0;
-  const withUnread = top.map((i) => ({ ...i, unread: new Date(i.ts).getTime() > lastRead }));
-  return NextResponse.json({ items: withUnread, unreadCount: withUnread.filter((i) => i.unread).length });
+  const withUnread = top.map((i) => ({ ...i, unread: i.unread ?? new Date(i.ts).getTime() > lastRead }));
+  // SLA reminders always count as unread (time-sensitive), in addition to new activity.
+  const unreadCount = withUnread.filter((i) => i.unread && !String(i.id).startsWith("sla-")).length + slaUnread;
+  return NextResponse.json({ items: withUnread, unreadCount });
 }

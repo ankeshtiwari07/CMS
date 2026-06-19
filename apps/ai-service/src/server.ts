@@ -6,6 +6,7 @@ import { parseStructured } from "./providers/types.js";
 import { prompts, type PromptId } from "./prompts/library.js";
 import { startRender, pollRender, videoConfigured } from "./providers/video.js";
 import { startImageRender, pollImageRender, imageConfigured } from "./providers/image.js";
+import { runSlaSweep, getBreaches, startSlaScheduler } from "./sla.js";
 import { runOrchestrator } from "./agents/orchestrator.js";
 
 const app = Fastify({ logger: true, bodyLimit: 1_000_000 });
@@ -20,6 +21,14 @@ app.get("/health", async () => ({ ok: true, provider: provider.name, configured:
 
 // Catalog of selectable models + whether each is configured (has its API key).
 app.get("/models", async () => ({ models: listModels(), videoConfigured, imageConfigured }));
+
+// HITL proactive SLA reminders — current breach list (refreshed by the scheduler).
+app.get("/sla/reminders", async () => getBreaches());
+// Run a sweep on demand (used by ops / tests).
+app.post("/sla/sweep", async (req) => {
+  const b = await runSlaSweep((o, m) => req.log.info(o, m));
+  return { ok: true, count: b.length, ...getBreaches() };
+});
 
 // ---- Video rendering (text-to-video) ----
 // Start a render from a text prompt (usually the VIDEO_PROMPT from /studio/generate).
@@ -352,4 +361,7 @@ app.setErrorHandler((err: any, req, reply) => {
 const port = Number(process.env.PORT || 4000);
 app
   .listen({ port, host: "0.0.0.0" })
-  .then(() => app.log.info(`ai-service on ${port} (provider=${provider.name}, configured=${provider.configured})`));
+  .then(() => {
+    app.log.info(`ai-service on ${port} (provider=${provider.name}, configured=${provider.configured})`);
+    startSlaScheduler((o, m) => app.log.info(o, m)); // proactive HITL SLA reminders
+  });

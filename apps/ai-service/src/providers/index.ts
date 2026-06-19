@@ -86,7 +86,7 @@ const FALLBACK_ORDER = (process.env.LLM_FALLBACK_ORDER || "anthropic,xai,openai,
 // (which would fail identically everywhere and just waste calls).
 function isAvailabilityError(err: any): boolean {
   const m = (err?.error?.error?.message || err?.message || String(err || "")).toLowerCase();
-  return /credit|balance|quota|rate.?limit|429|overload|insufficient|unavailable|timeout|econn|enotfound|fetch failed|temporar|throttl|capacity|\b5\d\d\b|529/.test(m);
+  return /credit|balance|quota|rate.?limit|429|overload|insufficient|unavailable|timeout|econn|enotfound|fetch failed|temporar|throttl|capacity|\b5\d\d\b|529|premature close|invalid response body|socket|aborted|stream|connection|reset|epipe|empty response|terminated|network/.test(m);
 }
 
 export type FallbackResult = { text: string; provider: string; model?: string; fellBack: boolean; tried: string[] };

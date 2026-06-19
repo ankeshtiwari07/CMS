@@ -28,7 +28,15 @@ export default function ContentManager({ initialType = "blog" }: { initialType?:
     setValues((s) => ({ ...s, [activeKey]: { ...(s[activeKey] || {}), [name]: val } }));
 
   // Agentic prefill: the drafting agent proposes on-brand values for every field.
-  async function suggest() {
+  const formEmpty = (key: string) => {
+    const cur = values[key] || {};
+    return !Object.values(cur).some((x) => String(x || "").trim());
+  };
+
+  async function suggest(opts?: { tpl?: string; auto?: boolean }) {
+    // Auto-trigger (on template select) must not clobber work already typed.
+    if (opts?.auto && !formEmpty(activeKey)) return;
+    if (suggesting) return;
     setSuggesting(true);
     setToast(null);
     try {
@@ -37,7 +45,7 @@ export default function ContentManager({ initialType = "blog" }: { initialType?:
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           typeLabel: tab.label,
-          template: templates[activeKey],
+          template: opts?.tpl ?? templates[activeKey],
           fields: tab.fields.map((f) => ({ name: f.name, label: f.label, type: f.type })),
           brief: brief.trim() || undefined,
           locale: "en",
@@ -161,7 +169,7 @@ export default function ContentManager({ initialType = "blog" }: { initialType?:
                 <div style={{ color: "var(--label)", fontWeight: 700, fontSize: 15.5 }}>{tpl.name}</div>
                 <div style={{ color: "var(--muted)", fontSize: 13, margin: "3px 0 12px" }}>{tpl.desc}</div>
                 <button
-                  onClick={() => setTemplates((s) => ({ ...s, [activeKey]: tpl.key }))}
+                  onClick={() => { setTemplates((s) => ({ ...s, [activeKey]: tpl.key })); suggest({ tpl: tpl.key, auto: true }); }}
                   style={{
                     height: 30,
                     padding: "0 14px",
@@ -202,11 +210,11 @@ export default function ContentManager({ initialType = "blog" }: { initialType?:
             value={brief}
             onChange={(e) => setBrief(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter" && !suggesting) suggest(); }}
-            placeholder={`Describe this ${tab.label.toLowerCase()} (optional) — AI will draft the fields, you refine`}
+            placeholder={`Selecting a template auto-drafts. Add a brief to steer it, then re-draft.`}
             style={{ flex: 1, height: 40, border: "1px solid var(--hairline)", borderRadius: 10, padding: "0 12px", fontSize: 14, color: "var(--ink)", background: "#fff", outline: "none" }}
           />
           <button
-            onClick={suggest}
+            onClick={() => suggest()}
             disabled={suggesting}
             style={{ height: 40, padding: "0 18px", borderRadius: "var(--r-pill)", border: "none", background: "var(--studio-primary, #0B7A75)", color: "#fff", fontWeight: 700, fontSize: 13.5, whiteSpace: "nowrap", cursor: "pointer" }}
           >

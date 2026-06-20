@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/payload";
+import { getCurrentUser, hasRole } from "@/lib/payload";
 import TopBar from "@/components/cms/topbar";
 import ContentManager from "@/components/cms/content-manager";
 
@@ -22,11 +22,13 @@ export default async function ManagePage({
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   const { type } = await searchParams;
+  const canEdit = hasRole(user, ["author", "reviewer", "publisher", "brand", "siteAdmin", "admin"]);
+  const canPublish = hasRole(user, ["publisher", "siteAdmin", "admin"]);
   return (
     <div style={{ minHeight: "100vh", background: "var(--cms-bg)" }}>
       <TopBar user={{ name: user.name, email: user.email }} />
       <div style={{ minHeight: "calc(100vh - 60px)", backgroundColor: "var(--cms-bg)", backgroundImage: CMS_BG, backgroundRepeat: "no-repeat" }}>
-        <ContentManager initialType={type || "blog"} />
+        <ContentManager initialType={type || "blog"} canEdit={canEdit} canPublish={canPublish} />
       </div>
     </div>
   );

@@ -8,7 +8,7 @@ const ICONS: Record<string, any> = { doc: DocIcon, book: BookIcon, megaphone: Me
 
 type Values = Record<string, string>;
 
-export default function ContentManager({ initialType = "blog" }: { initialType?: string }) {
+export default function ContentManager({ initialType = "blog", canEdit = true, canPublish = true }: { initialType?: string; canEdit?: boolean; canPublish?: boolean }) {
   const router = useRouter();
   const isCore = CORE_TABS.some((t) => t.key === initialType);
   const [activeKey, setActiveKey] = useState(findTab(initialType) ? initialType : "blog");
@@ -203,28 +203,38 @@ export default function ContentManager({ initialType = "blog" }: { initialType?:
       >
         <h2 style={{ color: "var(--label)", fontSize: 18, fontWeight: 700, margin: "0 0 14px" }}>{tab.formTitle}</h2>
 
-        {/* Agentic prefill — agent proposes a draft, human edits */}
-        <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 8, padding: "11px 13px", background: "#eef6f5", borderRadius: 12, border: "1px solid var(--hairline)" }}>
-          <span style={{ fontSize: 17, lineHeight: 1 }}>✨</span>
-          <input
-            value={brief}
-            onChange={(e) => setBrief(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter" && !suggesting) suggest(); }}
-            placeholder={`Selecting a template auto-drafts. Add a brief to steer it, then re-draft.`}
-            style={{ flex: 1, height: 40, border: "1px solid var(--hairline)", borderRadius: 10, padding: "0 12px", fontSize: 14, color: "var(--ink)", background: "#fff", outline: "none" }}
-          />
-          <button
-            onClick={() => suggest()}
-            disabled={suggesting}
-            style={{ height: 40, padding: "0 18px", borderRadius: "var(--r-pill)", border: "none", background: "var(--studio-primary, #0B7A75)", color: "#fff", fontWeight: 700, fontSize: 13.5, whiteSpace: "nowrap", cursor: "pointer" }}
-          >
-            {suggesting ? "Drafting…" : "✨ Draft with AI"}
-          </button>
-        </div>
-        {aiFilled && (
-          <div style={{ fontSize: 12.5, color: "var(--studio-teal-dark, #0A5C58)", margin: "0 0 16px", display: "flex", alignItems: "center", gap: 6 }}>
-            AI-suggested draft — review &amp; edit every field before saving. Agents propose, you decide.
+        {!canEdit && (
+          <div style={{ fontSize: 13.5, color: "var(--muted)", background: "#f5f8f8", border: "1px solid var(--hairline)", borderRadius: 12, padding: "12px 14px", marginBottom: 14 }}>
+            🔒 You have <b>read-only</b> access. Content authoring is available to editor roles.
           </div>
+        )}
+
+        {/* Agentic prefill — agent proposes a draft, human edits */}
+        {canEdit && (
+          <>
+            <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 8, padding: "11px 13px", background: "#eef6f5", borderRadius: 12, border: "1px solid var(--hairline)" }}>
+              <span style={{ fontSize: 17, lineHeight: 1 }}>✨</span>
+              <input
+                value={brief}
+                onChange={(e) => setBrief(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter" && !suggesting) suggest(); }}
+                placeholder={`Selecting a template auto-drafts. Add a brief to steer it, then re-draft.`}
+                style={{ flex: 1, height: 40, border: "1px solid var(--hairline)", borderRadius: 10, padding: "0 12px", fontSize: 14, color: "var(--ink)", background: "#fff", outline: "none" }}
+              />
+              <button
+                onClick={() => suggest()}
+                disabled={suggesting}
+                style={{ height: 40, padding: "0 18px", borderRadius: "var(--r-pill)", border: "none", background: "var(--studio-primary, #0B7A75)", color: "#fff", fontWeight: 700, fontSize: 13.5, whiteSpace: "nowrap", cursor: "pointer" }}
+              >
+                {suggesting ? "Drafting…" : "✨ Draft with AI"}
+              </button>
+            </div>
+            {aiFilled && (
+              <div style={{ fontSize: 12.5, color: "var(--studio-teal-dark, #0A5C58)", margin: "0 0 16px", display: "flex", alignItems: "center", gap: 6 }}>
+                AI-suggested draft — review &amp; edit every field before saving. Agents propose, you decide.
+              </div>
+            )}
+          </>
         )}
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(12, 1fr)", gap: "18px 20px" }}>
@@ -233,40 +243,33 @@ export default function ContentManager({ initialType = "blog" }: { initialType?:
           ))}
         </div>
 
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: 14, marginTop: 26 }}>
-          <button
-            onClick={() => submit("draft")}
-            disabled={busy !== null}
-            style={{
-              height: 46,
-              padding: "0 30px",
-              borderRadius: 12,
-              border: "none",
-              background: "var(--lime)",
-              color: "#0b1416",
-              fontWeight: 700,
-              fontSize: 15,
-            }}
-          >
-            {busy === "draft" ? "Saving…" : "Save Draft"}
-          </button>
-          <button
-            onClick={() => submit("published")}
-            disabled={busy !== null}
-            style={{
-              height: 46,
-              padding: "0 34px",
-              borderRadius: 12,
-              border: "none",
-              background: "var(--publish-blue)",
-              color: "#fff",
-              fontWeight: 700,
-              fontSize: 15,
-            }}
-          >
-            {busy === "published" ? "Publishing…" : "Publish"}
-          </button>
-        </div>
+        {canEdit && (
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 14, marginTop: 26 }}>
+            <span style={{ fontSize: 12.5, color: "var(--muted)" }}>
+              {canPublish
+                ? "You can publish — content still passes the required approval stages first."
+                : "Saved drafts are routed to the Review queue for human approval before publishing."}
+            </span>
+            <div style={{ display: "flex", gap: 14 }}>
+              <button
+                onClick={() => submit("draft")}
+                disabled={busy !== null}
+                style={{ height: 46, padding: "0 30px", borderRadius: 12, border: "none", background: "var(--lime)", color: "#0b1416", fontWeight: 700, fontSize: 15 }}
+              >
+                {busy === "draft" ? "Saving…" : canPublish ? "Save Draft" : "Save & send for review"}
+              </button>
+              {canPublish && (
+                <button
+                  onClick={() => submit("published")}
+                  disabled={busy !== null}
+                  style={{ height: 46, padding: "0 34px", borderRadius: 12, border: "none", background: "var(--publish-blue)", color: "#fff", fontWeight: 700, fontSize: 15 }}
+                >
+                  {busy === "published" ? "Publishing…" : "Publish"}
+                </button>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {toast && (

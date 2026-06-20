@@ -100,6 +100,23 @@ function fmtSize(n: number) {
   return `${(n / 1024 / 1024).toFixed(1)} MB`;
 }
 
+// Topic name for a thread: first non-empty line of the first user message.
+function deriveChatTitle(turns: Turn[]): string {
+  const firstUser = turns.find((t) => t.role === "user");
+  const line = (firstUser?.text || "").split("\n").map((s) => s.trim()).find(Boolean);
+  return (line || "New chat").slice(0, 80);
+}
+
+// Trim turns before persisting so a saved thread stays bounded (built sites and
+// long replies are capped; the transient `streaming` flag is dropped).
+function trimTurns(turns: Turn[]): Turn[] {
+  return turns.map(({ streaming, ...t }) => ({
+    ...t,
+    text: (t.text || "").slice(0, 20000),
+    ...(t.artifactHtml ? { artifactHtml: t.artifactHtml.slice(0, 200000) } : {}),
+  }));
+}
+
 export default function PromptBox({ onActive }: { onActive?: (active: boolean) => void } = {}) {
   const t = useT();
   const [prompt, setPrompt] = useState("");
@@ -124,6 +141,10 @@ export default function PromptBox({ onActive }: { onActive?: (active: boolean) =
   const recRef = useRef<any>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
+  // Per-user chat history: the id of the conversation this thread is saved under
+  // (null until the first message is persisted), plus a re-entrancy guard.
+  const convIdRef = useRef<string | null>(null);
+  const savingRef = useRef(false);
 
   // Close any open menu (+, ratio, style, model, suggestions) on an outside
   // click or Escape.
@@ -152,11 +173,13 @@ export default function PromptBox({ onActive }: { onActive?: (active: boolean) =
       const d = (e as CustomEvent).detail as { prompt?: string; mode?: Mode };
       if (d.prompt !== undefined) setPrompt(d.prompt);
       if (d.mode) setMode(d.mode);
+      convIdRef.current = null;
       setTurns([]);
       focusPrompt();
     };
     // "Create new" in the sidebar resets to a blank conversation.
     const newChat = () => {
+      convIdRef.current = null;
       setPrompt("");
       setTurns([]);
       setFiles([]);
@@ -165,9 +188,26 @@ export default function PromptBox({ onActive }: { onActive?: (active: boolean) =
     };
     // "Add photos & files" from the Create-new menu opens the file picker.
     const addFiles = () => { focusPrompt(); setTimeout(() => fileRef.current?.click(), 200); };
+    // Open a saved conversation (topic) from the sidebar history.
+    const loadChat = async (e: Event) => {
+      const id = (e as CustomEvent).detail?.id;
+      if (!id) return;
+      try {
+        const res = await fetch(`/api/conversations/${id}`);
+        if (!res.ok) return;
+        const d = await res.json();
+        convIdRef.current = String(d.id);
+        setTurns(Array.isArray(d.messages) ? (d.messages as Turn[]) : []);
+        if (d.mode) setMode(d.mode);
+        setPrompt("");
+        setFiles([]);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      } catch { /* ignore */ }
+    };
     globalThis.addEventListener("humain:prefill", prefill);
     globalThis.addEventListener("humain:newchat", newChat);
     globalThis.addEventListener("humain:addfiles", addFiles);
+    globalThis.addEventListener("humain:loadchat", loadChat);
 
     // Load the model catalog (Claude / GPT / Grok / Gemini) + configured status.
     fetch("/api/models")
@@ -181,8 +221,45 @@ export default function PromptBox({ onActive }: { onActive?: (active: boolean) =
       globalThis.removeEventListener("humain:prefill", prefill);
       globalThis.removeEventListener("humain:newchat", newChat);
       globalThis.removeEventListener("humain:addfiles", addFiles);
+      globalThis.removeEventListener("humain:loadchat", loadChat);
     };
   }, []);
+
+  // Persist the thread after each completed exchange (per-user chat history).
+  // Fires when the busy flag drops to false and the last turn is a finished
+  // assistant reply — creates the conversation on first save, then PATCHes it.
+  useEffect(() => {
+    if (busy) return;
+    const last = turns[turns.length - 1];
+    if (!last || last.role !== "assistant" || last.streaming) return;
+    let cancelled = false;
+    (async () => {
+      if (savingRef.current) return;
+      savingRef.current = true;
+      try {
+        const title = deriveChatTitle(turns);
+        const messages = trimTurns(turns);
+        const modelLabel = current?.label;
+        if (convIdRef.current) {
+          await fetch(`/api/conversations/${convIdRef.current}`, {
+            method: "PATCH", headers: { "content-type": "application/json" },
+            body: JSON.stringify({ title, messages, model: modelLabel }),
+          });
+        } else {
+          const res = await fetch("/api/conversations", {
+            method: "POST", headers: { "content-type": "application/json" },
+            body: JSON.stringify({ title, messages, mode, model: modelLabel }),
+          });
+          const d = await res.json().catch(() => ({}));
+          if (!cancelled && d.id) convIdRef.current = String(d.id);
+        }
+        globalThis.dispatchEvent(new CustomEvent("humain:chatsaved"));
+      } catch { /* non-fatal */ }
+      finally { savingRef.current = false; }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [busy]);
 
   const suggestions =
     prompt.trim().length >= 3 && open !== null

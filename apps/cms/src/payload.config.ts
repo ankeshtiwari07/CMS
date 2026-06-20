@@ -11,6 +11,7 @@ import { Sites } from "./collections/Sites";
 import { Media } from "./collections/Media";
 import { Pages } from "./collections/Pages";
 import { Projects } from "./collections/Projects";
+import { Conversations } from "./collections/Conversations";
 import { BrandGuidelines } from "./collections/BrandGuidelines";
 import { AuditLog } from "./collections/AuditLog";
 import { Approvals } from "./collections/Approvals";
@@ -70,7 +71,7 @@ export default buildConfig({
     defaultLocale: "en",
     fallback: true,
   },
-  collections: [Users, Sites, Media, Pages, Projects, BrandGuidelines, AuditLog, Approvals, ...contentCollections],
+  collections: [Users, Sites, Media, Pages, Projects, Conversations, BrandGuidelines, AuditLog, Approvals, ...contentCollections],
   globals,
   db: postgresAdapter({
     pool: { connectionString: process.env.DATABASE_URI },

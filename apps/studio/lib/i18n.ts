@@ -131,6 +131,13 @@ export const DICT: Record<string, Tr> = {
   "pg.enterTitle": { en: "Enter a project title.", ar: "أدخل عنوان المشروع.", fr: "Saisissez un titre de projet.", de: "Geben Sie einen Projekttitel ein.", es: "Introduce un título de proyecto.", pl: "Wpisz tytuł projektu." },
   "pg.createFail": { en: "Create failed.", ar: "فشل الإنشاء.", fr: "Échec de la création.", de: "Erstellen fehlgeschlagen.", es: "La creación falló.", pl: "Tworzenie nie powiodło się." },
   "pg.noCreate": { en: "Could not create the project.", ar: "تعذّر إنشاء المشروع.", fr: "Impossible de créer le projet.", de: "Projekt konnte nicht erstellt werden.", es: "No se pudo crear el proyecto.", pl: "Nie udało się utworzyć projektu." },
+  // chat history (sidebar)
+  "chats.title": { en: "Chats", ar: "المحادثات", fr: "Discussions", de: "Chats", es: "Chats", pl: "Czaty" },
+  "chats.empty": { en: "No chats yet", ar: "لا توجد محادثات بعد", fr: "Aucune discussion", de: "Noch keine Chats", es: "Aún no hay chats", pl: "Brak czatów" },
+  "chats.rename": { en: "Rename", ar: "إعادة تسمية", fr: "Renommer", de: "Umbenennen", es: "Renombrar", pl: "Zmień nazwę" },
+  "chats.delete": { en: "Delete", ar: "حذف", fr: "Supprimer", de: "Löschen", es: "Eliminar", pl: "Usuń" },
+  "chats.renamePrompt": { en: "Rename this chat:", ar: "إعادة تسمية المحادثة:", fr: "Renommer cette discussion :", de: "Diesen Chat umbenennen:", es: "Renombrar este chat:", pl: "Zmień nazwę czatu:" },
+  "chats.deleteConfirm": { en: "Delete this chat?", ar: "حذف هذه المحادثة؟", fr: "Supprimer cette discussion ?", de: "Diesen Chat löschen?", es: "¿Eliminar este chat?", pl: "Usunąć ten czat?" },
 };
 
 // Localised "Updated 3d ago" via Intl.RelativeTimeFormat (handles Arabic numerals etc).

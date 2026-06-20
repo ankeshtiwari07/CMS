@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { HumainLockup, HumainMark } from "@/components/brand";
 import NotificationsBell from "@/components/notifications/notifications-bell";
+import ChatHistory from "@/components/studio/chat-history";
 import { useT, LanguageSwitcher } from "@/lib/i18n-client";
 import {
   PlusIcon,
@@ -249,6 +250,9 @@ export default function Sidebar({
           );
         })}
       </div>
+
+      {/* Per-user chat history (topics) */}
+      <ChatHistory collapsed={collapsed} />
 
       <div style={{ flex: 1 }} />
 

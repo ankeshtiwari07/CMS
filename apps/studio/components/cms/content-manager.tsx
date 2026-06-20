@@ -1,5 +1,6 @@
 "use client";
 import { useMemo, useState } from "react";
+import { useLocale } from "@/lib/i18n-client";
 import { useRouter } from "next/navigation";
 import { CORE_TABS, ALL_TABS, findTab, type FieldDef } from "@/lib/content-types";
 import { DocIcon, BookIcon, MegaphoneIcon, CalendarIcon, StarIcon, ArrowUpRightIcon } from "@/components/icons";
@@ -10,6 +11,7 @@ type Values = Record<string, string>;
 
 export default function ContentManager({ initialType = "blog", canEdit = true, canPublish = true }: { initialType?: string; canEdit?: boolean; canPublish?: boolean }) {
   const router = useRouter();
+  const uiLocale = useLocale();
   const isCore = CORE_TABS.some((t) => t.key === initialType);
   const [activeKey, setActiveKey] = useState(findTab(initialType) ? initialType : "blog");
   const [values, setValues] = useState<Record<string, Values>>({});
@@ -48,7 +50,7 @@ export default function ContentManager({ initialType = "blog", canEdit = true, c
           template: opts?.tpl ?? templates[activeKey],
           fields: tab.fields.map((f) => ({ name: f.name, label: f.label, type: f.type })),
           brief: brief.trim() || undefined,
-          locale: "en",
+          locale: uiLocale,
         }),
       });
       const data = await res.json();
@@ -78,7 +80,7 @@ export default function ContentManager({ initialType = "blog", canEdit = true, c
       const res = await fetch("/api/content", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ slug: tab.slug, status, template: templates[activeKey], data: v }),
+        body: JSON.stringify({ slug: tab.slug, status, template: templates[activeKey], data: v, locale: uiLocale }),
       });
       const data = await res.json();
       if (!res.ok) {

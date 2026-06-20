@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { Inter, IBM_Plex_Sans_Arabic } from "next/font/google";
 import "./globals.css";
 import { LocaleProvider } from "@/lib/i18n-client";
+import { LOCALES, isRtl, type Locale } from "@/lib/i18n";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
 const plexAr = IBM_Plex_Sans_Arabic({
@@ -18,8 +19,9 @@ export const metadata: Metadata = {
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const locale = (await cookies()).get("humain-locale")?.value === "ar" ? "ar" : "en";
-  const dir = locale === "ar" ? "rtl" : "ltr";
+  const raw = (await cookies()).get("humain-locale")?.value || "en";
+  const locale = (LOCALES.find((l) => l.code === raw)?.code || "en") as Locale;
+  const dir = isRtl(locale) ? "rtl" : "ltr";
   return (
     <html lang={locale} dir={dir} className={`${inter.variable} ${plexAr.variable}`}>
       <body><LocaleProvider locale={locale}>{children}</LocaleProvider></body>

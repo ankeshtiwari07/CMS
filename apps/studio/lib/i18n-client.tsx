@@ -1,6 +1,6 @@
 "use client";
-import { createContext, useContext } from "react";
-import { DICT, type Locale } from "./i18n";
+import { createContext, useContext, useState } from "react";
+import { DICT, LOCALES, chromeLocale, type Locale } from "./i18n";
 
 // Locale comes from the server (RootLayout reads the humain-locale cookie) so SSR
 // and client agree — no hydration flash.
@@ -15,29 +15,52 @@ export function useLocale(): Locale {
 export function useT() {
   const locale = useContext(LocaleCtx);
   return (key: string) => {
-    const e = DICT[key];
-    return e ? e[locale] || e.en : key;
+    const e = DICT[key] as Record<string, string> | undefined;
+    if (!e) return key;
+    return e[locale] || e[chromeLocale(locale)] || e.en || key;
   };
 }
 
-// Persist the choice and reload so server components re-read the cookie.
+// Persist the choice and reload so server components re-read the cookie (which
+// also drives the <html dir/lang> via the root layout — RTL for Arabic locales).
 export function setLocale(locale: Locale) {
   document.cookie = `humain-locale=${locale}; path=/; max-age=${60 * 60 * 24 * 365}; samesite=lax`;
   window.location.reload();
 }
 
-// English / العربية toggle used in the sidebar user menu.
+// Language picker (all locales) — a compact button that opens a menu, like the
+// theme/model pickers. Used in the sidebar user menu.
 export function LanguageSwitcher() {
   const locale = useLocale();
-  const opt = (l: Locale, label: string): React.CSSProperties => ({
-    flex: 1, padding: "6px 0", border: "none", borderRadius: 7, cursor: "pointer", fontSize: 13, fontWeight: 700,
-    background: locale === l ? "var(--studio-primary)" : "transparent",
-    color: locale === l ? "#fff" : "var(--ink)",
-  });
+  const [open, setOpen] = useState(false);
+  const current = LOCALES.find((l) => l.code === locale) || LOCALES[0];
   return (
-    <div style={{ display: "flex", gap: 4, background: "var(--mint-pill)", borderRadius: 9, padding: 3, margin: "2px 2px 4px" }}>
-      <button onClick={() => locale !== "en" && setLocale("en")} style={opt("en", "English")}>English</button>
-      <button onClick={() => locale !== "ar" && setLocale("ar")} style={opt("ar", "العربية")}>العربية</button>
+    <div style={{ position: "relative", margin: "2px 2px 4px" }}>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, height: 34, padding: "0 11px", borderRadius: 9, border: "1px solid var(--hairline)", background: "var(--mint-pill)", color: "var(--ink)", fontSize: 13, fontWeight: 700, cursor: "pointer" }}
+      >
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 7 }}>🌐 {current.label}</span>
+        <span style={{ fontSize: 10, opacity: 0.6 }}>▾</span>
+      </button>
+      {open && (
+        <>
+          <div onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 40 }} />
+          <div style={{ position: "absolute", bottom: "calc(100% + 6px)", left: 0, right: 0, maxHeight: 280, overflowY: "auto", background: "#fff", border: "1px solid var(--hairline)", borderRadius: 11, boxShadow: "var(--shadow-card, 0 8px 24px rgba(0,0,0,0.12))", zIndex: 41, padding: 5 }}
+          >
+            {LOCALES.map((l) => (
+              <button
+                key={l.code}
+                onClick={() => { setOpen(false); if (l.code !== locale) setLocale(l.code); }}
+                dir={l.rtl ? "rtl" : "ltr"}
+                style={{ width: "100%", textAlign: l.rtl ? "right" : "left", padding: "8px 10px", border: "none", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: l.code === locale ? 700 : 500, background: l.code === locale ? "var(--mint-pill)" : "transparent", color: l.code === locale ? "var(--studio-teal-dark, #0A5C58)" : "var(--ink)" }}
+              >
+                {l.label}{l.code === locale ? "  ✓" : ""}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }

@@ -86,7 +86,65 @@ export const DICT: Record<string, Tr> = {
   "qc.writing.s": { en: "Articles, blogs, and long-form content", ar: "مقالات ومدونات ومحتوى طويل", fr: "Articles, blogs et contenu long", de: "Artikel, Blogs und Langform-Inhalte", es: "Artículos, blogs y contenido extenso", pl: "Artykuły, blogi i długie treści" },
   "qc.translation.t": { en: "Translation", ar: "ترجمة", fr: "Traduction", de: "Übersetzung", es: "Traducción", pl: "Tłumaczenie" },
   "qc.translation.s": { en: "Localize content across languages", ar: "ترجمة المحتوى عبر اللغات", fr: "Localisez le contenu dans plusieurs langues", de: "Lokalisieren Sie Inhalte über Sprachen hinweg", es: "Localiza contenido entre idiomas", pl: "Lokalizuj treści w wielu językach" },
+  // project card: relative time prefix
+  "card.updated": { en: "Updated", ar: "حُدّث", fr: "Mis à jour", de: "Aktualisiert", es: "Actualizado", pl: "Zaktualizowano" },
+  // project-type tags
+  "type.deck": { en: "Deck", ar: "عرض", fr: "Présentation", de: "Präsentation", es: "Presentación", pl: "Prezentacja" },
+  "type.image": { en: "Image", ar: "صورة", fr: "Image", de: "Bild", es: "Imagen", pl: "Obraz" },
+  "type.website": { en: "Website", ar: "موقع", fr: "Site web", de: "Website", es: "Sitio web", pl: "Strona" },
+  "type.email": { en: "Email", ar: "بريد", fr: "E-mail", de: "E-Mail", es: "Correo", pl: "E-mail" },
+  "type.brand": { en: "Brand", ar: "علامة", fr: "Marque", de: "Marke", es: "Marca", pl: "Marka" },
+  "type.designSystem": { en: "Design System", ar: "نظام التصميم", fr: "Système de design", de: "Designsystem", es: "Sistema de diseño", pl: "System projektowy" },
+  "type.writing": { en: "Writing", ar: "كتابة", fr: "Rédaction", de: "Text", es: "Redacción", pl: "Tekst" },
+  "type.translation": { en: "Translation", ar: "ترجمة", fr: "Traduction", de: "Übersetzung", es: "Traducción", pl: "Tłumaczenie" },
+  "type.event": { en: "Event", ar: "فعالية", fr: "Événement", de: "Veranstaltung", es: "Evento", pl: "Wydarzenie" },
+  "type.webinar": { en: "Webinar", ar: "ندوة", fr: "Webinaire", de: "Webinar", es: "Webinar", pl: "Webinarium" },
+  "type.conference": { en: "Conference", ar: "مؤتمر", fr: "Conférence", de: "Konferenz", es: "Conferencia", pl: "Konferencja" },
+  "type.summit": { en: "Summit", ar: "قمة", fr: "Sommet", de: "Gipfel", es: "Cumbre", pl: "Szczyt" },
+  "type.campaign": { en: "Campaign", ar: "حملة", fr: "Campagne", de: "Kampagne", es: "Campaña", pl: "Kampania" },
+  "type.brandGuideline": { en: "Brand Guideline", ar: "دليل العلامة", fr: "Charte de marque", de: "Markenrichtlinie", es: "Guía de marca", pl: "Wytyczne marki" },
+  "type.websiteBuild": { en: "Website Build", ar: "إنشاء موقع", fr: "Création de site", de: "Website-Build", es: "Construcción web", pl: "Budowa strony" },
+  "type.video": { en: "Video", ar: "فيديو", fr: "Vidéo", de: "Video", es: "Vídeo", pl: "Wideo" },
+  // projects grid + create modal
+  "pg.new": { en: "New project", ar: "مشروع جديد", fr: "Nouveau projet", de: "Neues Projekt", es: "Nuevo proyecto", pl: "Nowy projekt" },
+  "pg.newSub": { en: "Generate with Claude or start blank", ar: "أنشئ باستخدام Claude أو ابدأ من فارغ", fr: "Générez avec Claude ou partez de zéro", de: "Mit Claude generieren oder leer starten", es: "Genera con Claude o empieza en blanco", pl: "Wygeneruj z Claude lub zacznij od zera" },
+  "pg.open": { en: "Open", ar: "فتح", fr: "Ouvrir", de: "Öffnen", es: "Abrir", pl: "Otwórz" },
+  "pg.justNow": { en: "just now", ar: "الآن", fr: "à l’instant", de: "gerade eben", es: "ahora mismo", pl: "przed chwilą" },
+  "pg.title": { en: "Title", ar: "العنوان", fr: "Titre", de: "Titel", es: "Título", pl: "Tytuł" },
+  "pg.titlePh": { en: "e.g. Q3 launch announcement", ar: "مثال: إعلان إطلاق الربع الثالث", fr: "ex. annonce de lancement T3", de: "z. B. Q3-Launch-Ankündigung", es: "p. ej. anuncio de lanzamiento del T3", pl: "np. ogłoszenie premiery w III kw." },
+  "pg.type": { en: "Type", ar: "النوع", fr: "Type", de: "Typ", es: "Tipo", pl: "Typ" },
+  "pg.prompt": { en: "Prompt", ar: "الموجّه", fr: "Invite", de: "Prompt", es: "Indicación", pl: "Polecenie" },
+  "pg.promptPh": { en: "Describe what you want to create…", ar: "صف ما تريد إنشاءه…", fr: "Décrivez ce que vous voulez créer…", de: "Beschreiben Sie, was Sie erstellen möchten…", es: "Describe lo que quieres crear…", pl: "Opisz, co chcesz utworzyć…" },
+  "pg.createBlank": { en: "Create blank", ar: "إنشاء فارغ", fr: "Créer vierge", de: "Leer erstellen", es: "Crear en blanco", pl: "Utwórz pusty" },
+  "pg.creating": { en: "Creating…", ar: "جارٍ الإنشاء…", fr: "Création…", de: "Wird erstellt…", es: "Creando…", pl: "Tworzenie…" },
+  "pg.generate": { en: "Generate with Claude", ar: "أنشئ باستخدام Claude", fr: "Générer avec Claude", de: "Mit Claude generieren", es: "Generar con Claude", pl: "Wygeneruj z Claude" },
+  "pg.generating": { en: "Generating…", ar: "جارٍ الإنشاء…", fr: "Génération…", de: "Wird generiert…", es: "Generando…", pl: "Generowanie…" },
+  "pg.copy": { en: "Copy", ar: "نسخ", fr: "Copier", de: "Kopieren", es: "Copiar", pl: "Kopiuj" },
+  "pg.delete": { en: "Delete", ar: "حذف", fr: "Supprimer", de: "Löschen", es: "Eliminar", pl: "Usuń" },
+  "pg.deleteConfirm": { en: "Delete this project? This cannot be undone.", ar: "حذف هذا المشروع؟ لا يمكن التراجع.", fr: "Supprimer ce projet ? Action irréversible.", de: "Dieses Projekt löschen? Kann nicht rückgängig gemacht werden.", es: "¿Eliminar este proyecto? No se puede deshacer.", pl: "Usunąć ten projekt? Tej operacji nie można cofnąć." },
+  "pg.deleteFail": { en: "Could not delete the project.", ar: "تعذّر حذف المشروع.", fr: "Impossible de supprimer le projet.", de: "Projekt konnte nicht gelöscht werden.", es: "No se pudo eliminar el proyecto.", pl: "Nie udało się usunąć projektu." },
+  "pg.genFail": { en: "Generation failed.", ar: "فشل الإنشاء.", fr: "Échec de la génération.", de: "Generierung fehlgeschlagen.", es: "La generación falló.", pl: "Generowanie nie powiodło się." },
+  "pg.noReach": { en: "Could not reach the generation service.", ar: "تعذّر الوصول إلى خدمة الإنشاء.", fr: "Service de génération injoignable.", de: "Generierungsdienst nicht erreichbar.", es: "No se pudo acceder al servicio de generación.", pl: "Nie można połączyć się z usługą generowania." },
+  "pg.noContent": { en: "(No content stored for this project.)", ar: "(لا يوجد محتوى مخزَّن لهذا المشروع.)", fr: "(Aucun contenu enregistré pour ce projet.)", de: "(Kein Inhalt für dieses Projekt gespeichert.)", es: "(No hay contenido guardado para este proyecto.)", pl: "(Brak zapisanej treści dla tego projektu.)" },
+  "pg.preview": { en: "PREVIEW", ar: "معاينة", fr: "APERÇU", de: "VORSCHAU", es: "VISTA PREVIA", pl: "PODGLĄD" },
+  "pg.enterPrompt": { en: "Enter a prompt to generate.", ar: "أدخل موجّهًا للإنشاء.", fr: "Saisissez une invite pour générer.", de: "Geben Sie einen Prompt ein.", es: "Introduce una indicación para generar.", pl: "Wpisz polecenie, aby wygenerować." },
+  "pg.enterTitle": { en: "Enter a project title.", ar: "أدخل عنوان المشروع.", fr: "Saisissez un titre de projet.", de: "Geben Sie einen Projekttitel ein.", es: "Introduce un título de proyecto.", pl: "Wpisz tytuł projektu." },
+  "pg.createFail": { en: "Create failed.", ar: "فشل الإنشاء.", fr: "Échec de la création.", de: "Erstellen fehlgeschlagen.", es: "La creación falló.", pl: "Tworzenie nie powiodło się." },
+  "pg.noCreate": { en: "Could not create the project.", ar: "تعذّر إنشاء المشروع.", fr: "Impossible de créer le projet.", de: "Projekt konnte nicht erstellt werden.", es: "No se pudo crear el proyecto.", pl: "Nie udało się utworzyć projektu." },
 };
+
+// Localised "Updated 3d ago" via Intl.RelativeTimeFormat (handles Arabic numerals etc).
+export function relativeTime(locale: string, iso?: string): string {
+  if (!iso) return "";
+  const s = (Date.now() - new Date(iso).getTime()) / 1000;
+  const [n, unit]: [number, Intl.RelativeTimeFormatUnit] =
+    s < 3600 ? [Math.max(1, Math.round(s / 60)), "minute"] : s < 86400 ? [Math.round(s / 3600), "hour"] : [Math.round(s / 86400), "day"];
+  try {
+    return new Intl.RelativeTimeFormat(locale, { numeric: "auto" }).format(-n, unit);
+  } catch {
+    return `${n}${unit[0]} ago`;
+  }
+}
 
 export function tr(locale: string, key: string): string {
   const e = DICT[key] as Record<string, string> | undefined;

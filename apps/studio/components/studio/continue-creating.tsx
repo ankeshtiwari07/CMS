@@ -3,7 +3,8 @@ import {
   MonitorIcon, ImageIcon, GlobeIcon, MailIcon, PaletteIcon, FileIcon, TranslateIcon,
   CalendarIcon, MegaphoneIcon, BookmarkIcon, CodeIcon, VideoIcon, BuildingIcon,
 } from "@/components/icons";
-import { useT } from "@/lib/i18n-client";
+import { useT, useLocale } from "@/lib/i18n-client";
+import { relativeTime } from "@/lib/i18n";
 
 export type Project = { id: string | number; title: string; type: string; updatedAt?: string };
 
@@ -26,16 +27,9 @@ const META: Record<string, { label: string; Icon: any; grad: string }> = {
   video: { label: "VIDEO", Icon: VideoIcon, grad: "linear-gradient(135deg,#1a2a2e,#0e2a2e)" },
 };
 
-function ago(iso?: string) {
-  if (!iso) return "";
-  const d = (Date.now() - new Date(iso).getTime()) / 1000;
-  if (d < 3600) return `Updated ${Math.max(1, Math.round(d / 60))}m ago`;
-  if (d < 86400) return `Updated ${Math.round(d / 3600)}h ago`;
-  return `Updated ${Math.round(d / 86400)}d ago`;
-}
-
 export default function ContinueCreating({ projects }: { projects: Project[] }) {
   const t = useT();
+  const locale = useLocale();
   if (!projects.length) return null;
   return (
     <div style={{ maxWidth: 1080, margin: "48px auto 0", padding: "0 8px" }}>
@@ -53,9 +47,9 @@ export default function ContinueCreating({ projects }: { projects: Project[] }) 
                 <Icon size={26} />
               </div>
               <div style={{ padding: "10px 12px 12px" }}>
-                <span style={{ display: "inline-block", fontSize: 10.5, fontWeight: 700, letterSpacing: "0.06em", color: "var(--studio-teal-dark)", background: "var(--mint-pill)", padding: "2px 8px", borderRadius: 999 }}>{m.label}</span>
+                <span style={{ display: "inline-block", fontSize: 10.5, fontWeight: 700, letterSpacing: "0.06em", color: "var(--studio-teal-dark)", background: "var(--mint-pill)", padding: "2px 8px", borderRadius: 999, textTransform: "uppercase" }}>{t(`type.${p.type}`)}</span>
                 <div style={{ fontSize: 14.5, fontWeight: 600, color: "var(--ink)", marginTop: 8, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.title}</div>
-                <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 2 }}>{ago(p.updatedAt)}</div>
+                <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 2 }}>{t("card.updated")} {relativeTime(locale, p.updatedAt)}</div>
               </div>
             </a>
           );

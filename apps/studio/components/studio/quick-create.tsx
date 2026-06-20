@@ -12,13 +12,13 @@ type Card = {
   mode: "auto" | "image";
 };
 
-const cards: Card[] = [
-  { tag: "DECK", title: "Create Deck", subtitle: "Generate polished presentations from a prompt", prompt: "Create a 10-slide investor deck for ", mode: "auto" },
-  { tag: "IMAGE", title: "Create Image", subtitle: "Turn ideas into high-quality visuals", prompt: "A high-quality product visual of ", mode: "image" },
-  { tag: "WEBSITE", title: "Create Website / App", subtitle: "Create landing pages, apps, and UI flows", prompt: "Build a responsive landing page for ", mode: "auto" },
-  { tag: "EMAIL", title: "Email", subtitle: "Draft campaigns and announcements", prompt: "Write a marketing email announcing ", mode: "auto" },
-  { tag: "WRITING", title: "Writing", subtitle: "Articles, blogs, and long-form content", prompt: "Write a long-form article about ", mode: "auto" },
-  { tag: "TRANSLATION", title: "Translation", subtitle: "Localize content into Arabic and back", prompt: "Translate the following into Arabic: ", mode: "auto" },
+const cards: (Card & { k: string })[] = [
+  { k: "deck", tag: "DECK", title: "Create Deck", subtitle: "Generate polished presentations from a prompt", prompt: "Create a 10-slide investor deck for ", mode: "auto" },
+  { k: "image", tag: "IMAGE", title: "Create Image", subtitle: "Turn ideas into high-quality visuals", prompt: "A high-quality product visual of ", mode: "image" },
+  { k: "website", tag: "WEBSITE", title: "Create Website / App", subtitle: "Create landing pages, apps, and UI flows", prompt: "Build a responsive landing page for ", mode: "auto" },
+  { k: "email", tag: "EMAIL", title: "Email", subtitle: "Draft campaigns and announcements", prompt: "Write a marketing email announcing ", mode: "auto" },
+  { k: "writing", tag: "WRITING", title: "Writing", subtitle: "Articles, blogs, and long-form content", prompt: "Write a long-form article about ", mode: "auto" },
+  { k: "translation", tag: "TRANSLATION", title: "Translation", subtitle: "Localize content across languages", prompt: "Translate the following: ", mode: "auto" },
 ];
 
 export default function QuickCreate() {
@@ -88,8 +88,8 @@ export default function QuickCreate() {
               </div>
               {/* footer */}
               <div style={{ padding: "12px 14px 14px", borderTop: "1px solid var(--hairline)" }}>
-                <div style={{ fontSize: 16, fontWeight: 700 }}>{c.title}</div>
-                <div style={{ fontSize: 12.5, color: "var(--muted)", marginTop: 2 }}>{c.subtitle}</div>
+                <div style={{ fontSize: 16, fontWeight: 700 }}>{t(`qc.${c.k}.t`)}</div>
+                <div style={{ fontSize: 12.5, color: "var(--muted)", marginTop: 2 }}>{t(`qc.${c.k}.s`)}</div>
               </div>
             </button>
           );

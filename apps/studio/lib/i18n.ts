@@ -73,6 +73,19 @@ export const DICT: Record<string, Tr> = {
   "home.quickcreate": { en: "Quick create", ar: "إنشاء سريع", fr: "Création rapide", de: "Schnell erstellen", es: "Creación rápida", pl: "Szybkie tworzenie" },
   "home.seeall": { en: "See all projects", ar: "عرض كل المشاريع", fr: "Voir tous les projets", de: "Alle Projekte anzeigen", es: "Ver todos los proyectos", pl: "Zobacz wszystkie projekty" },
   "home.explore": { en: "Explore", ar: "استكشاف", fr: "Explorer", de: "Entdecken", es: "Explorar", pl: "Odkryj" },
+  // quick-create cards
+  "qc.deck.t": { en: "Create Deck", ar: "إنشاء عرض تقديمي", fr: "Créer une présentation", de: "Präsentation erstellen", es: "Crear presentación", pl: "Utwórz prezentację" },
+  "qc.deck.s": { en: "Generate polished presentations from a prompt", ar: "أنشئ عروضًا احترافية من وصف", fr: "Générez des présentations soignées à partir d'une invite", de: "Erstellen Sie ausgefeilte Präsentationen aus einem Prompt", es: "Genera presentaciones pulidas desde un prompt", pl: "Twórz dopracowane prezentacje z podpowiedzi" },
+  "qc.image.t": { en: "Create Image", ar: "إنشاء صورة", fr: "Créer une image", de: "Bild erstellen", es: "Crear imagen", pl: "Utwórz obraz" },
+  "qc.image.s": { en: "Turn ideas into high-quality visuals", ar: "حوّل الأفكار إلى صور عالية الجودة", fr: "Transformez vos idées en visuels de haute qualité", de: "Verwandeln Sie Ideen in hochwertige Bilder", es: "Convierte ideas en imágenes de alta calidad", pl: "Zamień pomysły w wysokiej jakości grafiki" },
+  "qc.website.t": { en: "Create Website / App", ar: "إنشاء موقع / تطبيق", fr: "Créer un site web / une app", de: "Website / App erstellen", es: "Crear sitio web / app", pl: "Utwórz stronę / aplikację" },
+  "qc.website.s": { en: "Create landing pages, apps, and UI flows", ar: "أنشئ صفحات هبوط وتطبيقات وواجهات", fr: "Créez des landing pages, apps et parcours UI", de: "Erstellen Sie Landingpages, Apps und UI-Flows", es: "Crea landing pages, apps y flujos de UI", pl: "Twórz strony docelowe, aplikacje i przepływy UI" },
+  "qc.email.t": { en: "Email", ar: "بريد إلكتروني", fr: "E-mail", de: "E-Mail", es: "Correo", pl: "E-mail" },
+  "qc.email.s": { en: "Draft campaigns and announcements", ar: "اكتب الحملات والإعلانات", fr: "Rédigez campagnes et annonces", de: "Entwerfen Sie Kampagnen und Ankündigungen", es: "Redacta campañas y anuncios", pl: "Twórz kampanie i ogłoszenia" },
+  "qc.writing.t": { en: "Writing", ar: "كتابة", fr: "Rédaction", de: "Texte", es: "Redacción", pl: "Pisanie" },
+  "qc.writing.s": { en: "Articles, blogs, and long-form content", ar: "مقالات ومدونات ومحتوى طويل", fr: "Articles, blogs et contenu long", de: "Artikel, Blogs und Langform-Inhalte", es: "Artículos, blogs y contenido extenso", pl: "Artykuły, blogi i długie treści" },
+  "qc.translation.t": { en: "Translation", ar: "ترجمة", fr: "Traduction", de: "Übersetzung", es: "Traducción", pl: "Tłumaczenie" },
+  "qc.translation.s": { en: "Localize content across languages", ar: "ترجمة المحتوى عبر اللغات", fr: "Localisez le contenu dans plusieurs langues", de: "Lokalisieren Sie Inhalte über Sprachen hinweg", es: "Localiza contenido entre idiomas", pl: "Lokalizuj treści w wielu językach" },
 };
 
 export function tr(locale: string, key: string): string {

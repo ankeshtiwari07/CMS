@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { Inter, IBM_Plex_Sans_Arabic } from "next/font/google";
 import "./globals.css";
 import { LocaleProvider } from "@/lib/i18n-client";
@@ -19,7 +19,8 @@ export const metadata: Metadata = {
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const raw = (await cookies()).get("humain-locale")?.value || "en";
+  // Per-language URL prefix wins (set by middleware); else the persisted cookie.
+  const raw = (await headers()).get("x-humain-locale") || (await cookies()).get("humain-locale")?.value || "en";
   const locale = (LOCALES.find((l) => l.code === raw)?.code || "en") as Locale;
   const dir = isRtl(locale) ? "rtl" : "ltr";
   return (

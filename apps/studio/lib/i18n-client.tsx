@@ -21,11 +21,17 @@ export function useT() {
   };
 }
 
-// Persist the choice and reload so server components re-read the cookie (which
-// also drives the <html dir/lang> via the root layout — RTL for Arabic locales).
+// Switch language by navigating to the per-language URL (/<locale>/<path>).
+// Middleware sets the cookie + injects the locale; the whole UI re-aligns
+// (chrome + RTL/LTR). Strips any existing locale prefix first.
 export function setLocale(locale: Locale) {
   document.cookie = `humain-locale=${locale}; path=/; max-age=${60 * 60 * 24 * 365}; samesite=lax`;
-  window.location.reload();
+  const codes = LOCALES.map((l) => l.code) as string[];
+  const path = window.location.pathname;
+  const seg = path.split("/")[1];
+  const base = codes.includes(seg) ? path.slice(seg.length + 1) || "/" : path;
+  const target = base === "/" ? "/studio" : base;
+  window.location.href = `/${locale}${target}${window.location.search}`;
 }
 
 // Language picker (all locales) — a compact button that opens a menu, like the

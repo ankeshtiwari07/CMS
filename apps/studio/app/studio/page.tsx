@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { getCurrentUser, payloadFetch } from "@/lib/payload";
-import { tr, type Locale } from "@/lib/i18n";
+import { tr, LOCALES, type Locale } from "@/lib/i18n";
 import Sidebar from "@/components/studio/sidebar";
 import StudioWorkspace from "@/components/studio/studio-workspace";
 import { type Project } from "@/components/studio/continue-creating";
@@ -31,7 +31,8 @@ export default async function StudioHome() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   const projects = await recentProjects();
-  const locale: Locale = (await cookies()).get("humain-locale")?.value === "ar" ? "ar" : "en";
+  const raw = (await cookies()).get("humain-locale")?.value || "en";
+  const locale: Locale = (LOCALES.find((l) => l.code === raw)?.code || "en") as Locale;
 
   return (
     <div style={{ display: "flex", minHeight: "100vh", background: "#eef4f3" }}>

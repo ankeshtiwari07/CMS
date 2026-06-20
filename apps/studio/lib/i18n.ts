@@ -70,6 +70,9 @@ export const DICT: Record<string, Tr> = {
   "qa.campaign": { en: "Campaign", ar: "حملة", fr: "Campagne", de: "Kampagne", es: "Campaña", pl: "Kampania" },
   // continue / quick create section headings
   "home.continue": { en: "Continue creating", ar: "متابعة الإنشاء", fr: "Continuer la création", de: "Weiter erstellen", es: "Continuar creando", pl: "Kontynuuj tworzenie" },
+  "home.quickcreate": { en: "Quick create", ar: "إنشاء سريع", fr: "Création rapide", de: "Schnell erstellen", es: "Creación rápida", pl: "Szybkie tworzenie" },
+  "home.seeall": { en: "See all projects", ar: "عرض كل المشاريع", fr: "Voir tous les projets", de: "Alle Projekte anzeigen", es: "Ver todos los proyectos", pl: "Zobacz wszystkie projekty" },
+  "home.explore": { en: "Explore", ar: "استكشاف", fr: "Explorer", de: "Entdecken", es: "Explorar", pl: "Odkryj" },
 };
 
 export function tr(locale: string, key: string): string {

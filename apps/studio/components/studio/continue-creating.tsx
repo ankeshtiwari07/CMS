@@ -1,7 +1,9 @@
+"use client";
 import {
   MonitorIcon, ImageIcon, GlobeIcon, MailIcon, PaletteIcon, FileIcon, TranslateIcon,
   CalendarIcon, MegaphoneIcon, BookmarkIcon, CodeIcon, VideoIcon, BuildingIcon,
 } from "@/components/icons";
+import { useT } from "@/lib/i18n-client";
 
 export type Project = { id: string | number; title: string; type: string; updatedAt?: string };
 
@@ -33,12 +35,13 @@ function ago(iso?: string) {
 }
 
 export default function ContinueCreating({ projects }: { projects: Project[] }) {
+  const t = useT();
   if (!projects.length) return null;
   return (
     <div style={{ maxWidth: 1080, margin: "48px auto 0", padding: "0 8px" }}>
       <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
-        <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--ink)", margin: 0 }}>Continue creating</h2>
-        <a href="/studio?panel=projects" style={{ fontSize: 14, color: "var(--muted)", textDecoration: "none" }}>See all projects</a>
+        <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--ink)", margin: 0 }}>{t("home.continue")}</h2>
+        <a href="/studio?panel=projects" style={{ fontSize: 14, color: "var(--muted)", textDecoration: "none" }}>{t("home.seeall")}</a>
       </div>
       <div style={{ marginTop: 16, display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 14 }}>
         {projects.map((p) => {

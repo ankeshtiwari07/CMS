@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { ArrowUpRightIcon } from "@/components/icons";
 import { THUMBS } from "./quick-thumbs";
+import { useT } from "@/lib/i18n-client";
 
 type Card = {
   tag: string;
@@ -22,13 +23,14 @@ const cards: Card[] = [
 
 export default function QuickCreate() {
   const [hover, setHover] = useState<string | null>(null);
+  const t = useT();
 
   return (
     <div style={{ maxWidth: 1080, margin: "56px auto 0", padding: "0 8px" }}>
       <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
-        <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--ink)", margin: 0 }}>Quick create</h2>
+        <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--ink)", margin: 0 }}>{t("home.quickcreate")}</h2>
         <a href="/studio?panel=explore" style={{ fontSize: 14, color: "var(--muted)", textDecoration: "none" }}>
-          Explore
+          {t("home.explore")}
         </a>
       </div>
 

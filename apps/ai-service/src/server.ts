@@ -101,7 +101,20 @@ app.post("/content/suggest", async (req, reply) => {
     })
     .parse(req.body);
   if (provider.configured === false) return reply.code(503).send({ error: "llm_not_configured" });
-  const ar = body.locale === "ar";
+  const LANGS: Record<string, string> = {
+    en: "clear, professional English",
+    ar: "fluent Modern Standard Arabic",
+    "ar-SA": "Saudi (Gulf) Arabic dialect",
+    "ar-EG": "Egyptian Arabic dialect",
+    "ar-AE": "Emirati (Gulf) Arabic dialect",
+    "ar-MA": "Moroccan Arabic dialect (Darija)",
+    "ar-LB": "Levantine Arabic dialect",
+    fr: "natural, professional French",
+    de: "natural, professional German",
+    es: "natural, professional Spanish",
+    pl: "natural, professional Polish",
+  };
+  const langInstruction = `Write ALL values in ${LANGS[body.locale || "en"] || "clear, professional English"}. `;
   const spec = body.fields.map((f) => `- ${f.name} (${f.label}${f.type ? `, ${f.type}` : ""})`).join("\n");
   const system =
     `You are HUMAIN Create Studio's content drafting agent. Propose a publish-ready FIRST DRAFT for a ` +
@@ -109,7 +122,7 @@ app.post("/content/suggest", async (req, reply) => {
     `Return ONLY a JSON object mapping each field's name to a suggested value. ` +
     `Short fields (title/headline/name/slug) = concise; textarea/richtext = 2–4 real, specific sentences of on-brand content; ` +
     `tags/keywords = comma-separated. ` +
-    (ar ? "Write ALL values in fluent Modern Standard / Gulf Arabic. " : "Write in clear, professional English. ") +
+    langInstruction +
     "No commentary, no code fences — JSON object only." +
     (body.brand ? ` Brand context to stay on-brand with:\n${body.brand}` : "");
   const user = `${body.brief ? `Brief: ${body.brief}\n\n` : ""}Fields to draft:\n${spec}\n\nReturn a JSON object keyed by field name.`;

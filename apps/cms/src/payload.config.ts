@@ -51,11 +51,21 @@ export default buildConfig({
       titleSuffix: "· HUMAIN CMS",
     },
   },
-  // Arabic-first: EN (LTR) + AR (RTL), parity by config
+  // Arabic-first + multilingual. Arabic has country dialect locales (RTL);
+  // plus French, German, Spanish, Polish. defaultLocale=en, fallback to en.
   localization: {
     locales: [
       { label: "English", code: "en" },
-      { label: "العربية", code: "ar", rtl: true },
+      { label: "العربية (فصحى)", code: "ar", rtl: true },
+      { label: "العربية (السعودية)", code: "ar-SA", rtl: true },
+      { label: "العربية (مصر)", code: "ar-EG", rtl: true },
+      { label: "العربية (الإمارات)", code: "ar-AE", rtl: true },
+      { label: "العربية (المغرب)", code: "ar-MA", rtl: true },
+      { label: "العربية (لبنان)", code: "ar-LB", rtl: true },
+      { label: "Français", code: "fr" },
+      { label: "Deutsch", code: "de" },
+      { label: "Español", code: "es" },
+      { label: "Polski", code: "pl" },
     ],
     defaultLocale: "en",
     fallback: true,

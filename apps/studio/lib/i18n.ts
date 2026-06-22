@@ -62,6 +62,7 @@ export const DICT: Record<string, Tr> = {
   "prompt.followup": { en: "Ask a follow-up or refine…", ar: "اطرح سؤال متابعة أو اطلب تحسينًا…", fr: "Posez une question ou affinez…", de: "Stellen Sie eine Rückfrage oder verfeinern Sie…", es: "Haz una pregunta o refina…", pl: "Zadaj pytanie lub doprecyzuj…" },
   "prompt.generating": { en: "Generating with", ar: "جارٍ الإنشاء باستخدام", fr: "Génération avec", de: "Erstellen mit", es: "Generando con", pl: "Generowanie za pomocą" },
   "prompt.thinking": { en: "Thinking…", ar: "جارٍ التفكير…", fr: "Réflexion…", de: "Denke nach…", es: "Pensando…", pl: "Myślę…" },
+  "prompt.stop": { en: "Stop", ar: "إيقاف", fr: "Arrêter", de: "Stopp", es: "Detener", pl: "Zatrzymaj" },
   // quick actions
   "qa.conference": { en: "Conference", ar: "مؤتمر", fr: "Conférence", de: "Konferenz", es: "Conferencia", pl: "Konferencja" },
   "qa.webinar": { en: "Webinar", ar: "ندوة إلكترونية", fr: "Webinaire", de: "Webinar", es: "Seminario web", pl: "Webinarium" },

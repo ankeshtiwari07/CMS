@@ -145,6 +145,10 @@ export default function PromptBox({ onActive }: { onActive?: (active: boolean) =
   // (null until the first message is persisted), plus a re-entrancy guard.
   const convIdRef = useRef<string | null>(null);
   const savingRef = useRef(false);
+  // Streaming controls: abort the in-flight generation, and auto-follow tokens.
+  const abortRef = useRef<AbortController | null>(null);
+  const endRef = useRef<HTMLDivElement>(null);
+  const stickRef = useRef(true); // keep pinned to the latest tokens unless the user scrolls up
 
   // Close any open menu (+, ratio, style, model, suggestions) on an outside
   // click or Escape.
@@ -253,7 +257,7 @@ export default function PromptBox({ onActive }: { onActive?: (active: boolean) =
           const d = await res.json().catch(() => ({}));
           if (!cancelled && d.id) convIdRef.current = String(d.id);
         }
-        globalThis.dispatchEvent(new CustomEvent("humain:chatsaved"));
+        globalThis.dispatchEvent(new CustomEvent("humain:chatsaved", { detail: { id: convIdRef.current } }));
       } catch { /* non-fatal */ }
       finally { savingRef.current = false; }
     })();
@@ -279,6 +283,28 @@ export default function PromptBox({ onActive }: { onActive?: (active: boolean) =
     setFiles((p) => [...p, ...next]);
   }
 
+  // Track whether the user is pinned near the bottom; only auto-follow then, so
+  // scrolling up to read earlier replies isn't yanked back down mid-stream.
+  useEffect(() => {
+    const onScroll = () => {
+      stickRef.current = window.innerHeight + window.scrollY >= document.body.scrollHeight - 140;
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  // Follow the stream: scroll the latest tokens into view as the reply grows.
+  useEffect(() => {
+    if (active && stickRef.current) endRef.current?.scrollIntoView({ behavior: "auto", block: "end" });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [turns, busy]);
+
+  // Stop the in-flight generation — aborts the fetch; the stream's reader unwinds
+  // and the partial reply is kept (and persisted) as a finished turn.
+  function stop() {
+    abortRef.current?.abort();
+  }
+
   // Update the most recent assistant turn (used while streaming tokens in).
   function patchLastAssistant(fn: (t: Turn) => Turn) {
     setTurns((p) => {
@@ -300,6 +326,9 @@ export default function PromptBox({ onActive }: { onActive?: (active: boolean) =
     const history = turns.slice(-6).map((t) => ({ role: t.role, content: (t.text || "").slice(0, 6000) }));
     const options = { ratio, style, deckFormat, modelLabel: current?.label, files: files.map((f) => f.name), attachments };
     if (addUserTurn) setTurns((p) => [...p, { role: "user", text: userText, mode }]);
+    stickRef.current = true; // a fresh send re-pins to the bottom
+    const ctrl = new AbortController();
+    abortRef.current = ctrl;
 
     // ---- Conversational, streaming, agentic path (text modes) ----
     if (STREAM_MODES.includes(mode)) {
@@ -309,6 +338,7 @@ export default function PromptBox({ onActive }: { onActive?: (active: boolean) =
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({ mode: aiMode, prompt: userText, model: modelId, history, options }),
+          signal: ctrl.signal,
         });
         if (!res.ok || !res.body) {
           const d = await res.json().catch(() => ({}));
@@ -345,9 +375,15 @@ export default function PromptBox({ onActive }: { onActive?: (active: boolean) =
           }
         }
         patchLastAssistant((t) => ({ ...t, streaming: false }));
-      } catch {
-        patchLastAssistant((t) => ({ ...t, text: "Could not reach the generation service.", streaming: false }));
+      } catch (e: any) {
+        // A user-initiated Stop aborts the fetch — keep the partial reply, no error.
+        if (e?.name === "AbortError" || ctrl.signal.aborted) {
+          patchLastAssistant((t) => ({ ...t, streaming: false }));
+        } else {
+          patchLastAssistant((t) => ({ ...t, text: t.text || "Could not reach the generation service.", streaming: false }));
+        }
       }
+      abortRef.current = null;
       setBusy(false);
       return;
     }
@@ -358,6 +394,7 @@ export default function PromptBox({ onActive }: { onActive?: (active: boolean) =
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ mode: aiMode, prompt: userText, model: modelId, history, options }),
+        signal: ctrl.signal,
       });
       const data = await res.json();
       if (!res.ok) setTurns((p) => [...p, { role: "assistant", text: data.error || "Generation failed." }]);
@@ -371,9 +408,12 @@ export default function PromptBox({ onActive }: { onActive?: (active: boolean) =
         video: data.video,
         videoPrompt: data.videoPrompt,
       }]);
-    } catch {
-      setTurns((p) => [...p, { role: "assistant", text: "Could not reach the generation service." }]);
+    } catch (e: any) {
+      if (!(e?.name === "AbortError" || ctrl.signal.aborted)) {
+        setTurns((p) => [...p, { role: "assistant", text: "Could not reach the generation service." }]);
+      }
     }
+    abortRef.current = null;
     setBusy(false);
   }
 
@@ -575,14 +615,14 @@ export default function PromptBox({ onActive }: { onActive?: (active: boolean) =
             )}
           </div>
 
-          {/* mic when empty, send-arrow when text */}
+          {/* busy → Stop, text → send-arrow, empty → mic */}
           <button
-            aria-label={hasText ? "Generate" : listening ? "Stop voice" : "Voice input"}
-            onClick={hasText ? generate : toggleMic}
-            disabled={busy}
-            style={{ width: 40, height: 40, borderRadius: "50%", border: "none", background: listening ? "var(--studio-teal-dark)" : "var(--studio-primary)", color: "#fff", display: "grid", placeItems: "center" }}
+            aria-label={busy ? t("prompt.stop") : hasText ? "Generate" : listening ? "Stop voice" : "Voice input"}
+            title={busy ? t("prompt.stop") : undefined}
+            onClick={busy ? stop : hasText ? generate : toggleMic}
+            style={{ width: 40, height: 40, borderRadius: "50%", border: "none", background: busy ? "var(--studio-teal-dark)" : listening ? "var(--studio-teal-dark)" : "var(--studio-primary)", color: "#fff", display: "grid", placeItems: "center", cursor: "pointer" }}
           >
-            {busy ? "…" : hasText ? <ArrowUpIcon size={19} color="#fff" /> : <MicIcon size={19} color="#fff" />}
+            {busy ? <SquareIcon size={15} color="#fff" /> : hasText ? <ArrowUpIcon size={19} color="#fff" /> : <MicIcon size={19} color="#fff" />}
           </button>
         </div>
       </div>
@@ -648,6 +688,7 @@ export default function PromptBox({ onActive }: { onActive?: (active: boolean) =
               <style>{`@keyframes humain-spin{to{transform:rotate(360deg)}}.humain-spin{animation:humain-spin .7s linear infinite}`}</style>
             </div>
           )}
+          <div ref={endRef} aria-hidden style={{ height: 1 }} />
         </div>
       )}
     </div>

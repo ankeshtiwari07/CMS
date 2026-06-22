@@ -19,7 +19,9 @@ export default function ChatHistory({ collapsed }: { collapsed: boolean }) {
 
   async function load() {
     try {
-      const res = await fetch("/api/conversations");
+      // no-store: always re-fetch so a freshly saved chat shows immediately
+      // (a cached empty list is what makes history look like it "didn't save").
+      const res = await fetch("/api/conversations", { cache: "no-store" });
       if (!res.ok) return;
       const d = await res.json();
       setChats(Array.isArray(d.conversations) ? d.conversations : []);
@@ -28,7 +30,12 @@ export default function ChatHistory({ collapsed }: { collapsed: boolean }) {
 
   useEffect(() => {
     if (!loaded.current) { loaded.current = true; load(); }
-    const onSaved = () => load();
+    // A save refreshes the list and highlights the just-saved thread as active.
+    const onSaved = (e: Event) => {
+      const id = (e as CustomEvent).detail?.id;
+      if (id) setActiveId(String(id));
+      load();
+    };
     const onNew = () => setActiveId(null);
     globalThis.addEventListener("humain:chatsaved", onSaved);
     globalThis.addEventListener("humain:newchat", onNew);

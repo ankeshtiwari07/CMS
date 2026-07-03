@@ -11,6 +11,7 @@ import {
   FolderIcon,
   GridIcon,
   LayersIcon,
+  ChevronDownIcon,
   PaletteIcon,
   BellIcon,
   PanelLeftIcon,
@@ -56,6 +57,47 @@ const NAV = [
   { key: "design", Icon: PaletteIcon, label: "Design", href: "/design" },
 ];
 
+// The full Payload CMS surface, exposed in the HUMAIN sidebar for ADMINS only.
+// Each item opens that collection/global embedded inside HUMAIN's chrome
+// (/cms/admin/...), on the shared console session — no separate Payload login.
+const CMS_ADMIN: { group: string; items: { slug: string; label: string }[] }[] = [
+  { group: "Content", items: [
+    { slug: "collections/pages", label: "Pages" },
+    { slug: "collections/articles", label: "Articles" },
+    { slug: "collections/blogPosts", label: "Blog Posts" },
+    { slug: "collections/pressReleases", label: "Press Releases" },
+    { slug: "collections/events", label: "Events" },
+    { slug: "collections/caseStudies", label: "Case Studies" },
+    { slug: "collections/products", label: "Products" },
+    { slug: "collections/faqs", label: "FAQs" },
+    { slug: "collections/careers", label: "Careers" },
+    { slug: "collections/leadership", label: "Leadership" },
+    { slug: "collections/mediaGalleries", label: "Media Galleries" },
+    { slug: "collections/campaignMicrosites", label: "Campaign Microsites" },
+    { slug: "collections/tags", label: "Tags" },
+  ] },
+  { group: "Building blocks", items: [
+    { slug: "collections/components", label: "Components" },
+    { slug: "collections/media", label: "Media" },
+  ] },
+  { group: "Structure", items: [
+    { slug: "globals/navigation", label: "Navigation" },
+    { slug: "globals/settings", label: "Site Settings" },
+    { slug: "collections/sites", label: "Sites" },
+  ] },
+  { group: "Studio", items: [
+    { slug: "collections/brandGuidelines", label: "Brand Guidelines" },
+    { slug: "collections/projects", label: "Projects" },
+  ] },
+  { group: "Governance", items: [
+    { slug: "collections/approvals", label: "Approvals" },
+    { slug: "collections/auditLog", label: "Audit Log" },
+  ] },
+  { group: "Access", items: [
+    { slug: "collections/users", label: "Users" },
+  ] },
+];
+
 const ROLE_LABEL: Record<string, string> = {
   admin: "Administrator",
   siteAdmin: "Site Administrator",
@@ -80,6 +122,8 @@ export default function Sidebar({
   const [menu, setMenu] = useState(false);
   const [createMenu, setCreateMenu] = useState(false);
   const [hover, setHover] = useState<string | null>(null);
+  const [cmsAdminOpen, setCmsAdminOpen] = useState(true);
+  const isAdmin = (user.roles || []).includes("admin");
   const createRef = useRef<HTMLDivElement>(null);
   const userRef = useRef<HTMLDivElement>(null);
 
@@ -252,6 +296,43 @@ export default function Sidebar({
           );
         })}
       </div>
+
+      {/* CMS Admin — the full Payload surface, admin-only, embedded in HUMAIN */}
+      {isAdmin && !collapsed && (
+        <div style={{ marginTop: 10 }}>
+          <button
+            onClick={() => setCmsAdminOpen((v) => !v)}
+            style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", padding: "6px 10px", border: "none", background: "transparent", cursor: "pointer", fontSize: 11, fontWeight: 800, letterSpacing: ".05em", color: "var(--muted)", textTransform: "uppercase" }}
+          >
+            CMS Admin
+            <ChevronDownIcon size={13} color="var(--muted)" />
+          </button>
+          {cmsAdminOpen && (
+            <div style={{ maxHeight: 300, overflowY: "auto", display: "grid", gap: 2, paddingRight: 2 }}>
+              {CMS_ADMIN.map((g) => (
+                <div key={g.group}>
+                  <div style={{ padding: "6px 10px 2px", fontSize: 10.5, fontWeight: 700, letterSpacing: ".03em", color: "var(--muted)", opacity: 0.75 }}>{g.group}</div>
+                  {g.items.map((it) => {
+                    const k = `cmsadmin:${it.slug}`;
+                    return (
+                      <button
+                        key={it.slug}
+                        onClick={() => router.push(`/cms/admin/${it.slug}`)}
+                        onMouseEnter={() => setHover(k)}
+                        onMouseLeave={() => setHover(null)}
+                        title={it.label}
+                        style={{ display: "flex", alignItems: "center", width: "100%", padding: "7px 10px 7px 18px", border: "none", background: hover === k ? "var(--mint-tint)" : "transparent", borderRadius: 8, fontSize: 13.5, color: "var(--ink)", cursor: "pointer", textAlign: "left" }}
+                      >
+                        {it.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Per-user chat history (topics) */}
       <ChatHistory collapsed={collapsed} />

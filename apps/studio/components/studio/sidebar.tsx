@@ -12,6 +12,7 @@ import {
   GridIcon,
   LayersIcon,
   ChevronDownIcon,
+  UserCircleIcon,
   PaletteIcon,
   BellIcon,
   PanelLeftIcon,
@@ -60,8 +61,8 @@ const NAV = [
 // The full Payload CMS surface, exposed in the HUMAIN sidebar for ADMINS only.
 // Each item opens that collection/global embedded inside HUMAIN's chrome
 // (/cms/admin/...), on the shared console session — no separate Payload login.
-const CMS_ADMIN: { group: string; items: { slug: string; label: string }[] }[] = [
-  { group: "Content", items: [
+const CMS_ADMIN: { group: string; Icon: any; items: { slug: string; label: string }[] }[] = [
+  { group: "Content", Icon: GlobeIcon, items: [
     { slug: "collections/pages", label: "Pages" },
     { slug: "collections/articles", label: "Articles" },
     { slug: "collections/blogPosts", label: "Blog Posts" },
@@ -76,24 +77,24 @@ const CMS_ADMIN: { group: string; items: { slug: string; label: string }[] }[] =
     { slug: "collections/campaignMicrosites", label: "Campaign Microsites" },
     { slug: "collections/tags", label: "Tags" },
   ] },
-  { group: "Building blocks", items: [
+  { group: "Building blocks", Icon: LayersIcon, items: [
     { slug: "collections/components", label: "Components" },
     { slug: "collections/media", label: "Media" },
   ] },
-  { group: "Structure", items: [
+  { group: "Structure", Icon: GridIcon, items: [
     { slug: "globals/navigation", label: "Navigation" },
     { slug: "globals/settings", label: "Site Settings" },
     { slug: "collections/sites", label: "Sites" },
   ] },
-  { group: "Studio", items: [
+  { group: "Studio", Icon: BookmarkIcon, items: [
     { slug: "collections/brandGuidelines", label: "Brand Guidelines" },
     { slug: "collections/projects", label: "Projects" },
   ] },
-  { group: "Governance", items: [
+  { group: "Governance", Icon: CheckIcon, items: [
     { slug: "collections/approvals", label: "Approvals" },
     { slug: "collections/auditLog", label: "Audit Log" },
   ] },
-  { group: "Access", items: [
+  { group: "Access", Icon: UserCircleIcon, items: [
     { slug: "collections/users", label: "Users" },
   ] },
 ];
@@ -122,7 +123,8 @@ export default function Sidebar({
   const [menu, setMenu] = useState(false);
   const [createMenu, setCreateMenu] = useState(false);
   const [hover, setHover] = useState<string | null>(null);
-  const [cmsAdminOpen, setCmsAdminOpen] = useState(true);
+  const [cmsAdminOpen, setCmsAdminOpen] = useState(false);
+  const [openGroup, setOpenGroup] = useState<string | null>(null);
   const isAdmin = (user.roles || []).includes("admin");
   const createRef = useRef<HTMLDivElement>(null);
   const userRef = useRef<HTMLDivElement>(null);
@@ -297,38 +299,56 @@ export default function Sidebar({
         })}
       </div>
 
-      {/* CMS Admin — the full Payload surface, admin-only, embedded in HUMAIN */}
+      {/* CMS Admin — full Payload surface, admin-only, embedded in HUMAIN.
+          Two-level accordion: collapsed by default, one group open at a time,
+          so the sidebar stays calm until the admin drills in. */}
       {isAdmin && !collapsed && (
         <div style={{ marginTop: 10 }}>
           <button
             onClick={() => setCmsAdminOpen((v) => !v)}
-            style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", padding: "6px 10px", border: "none", background: "transparent", cursor: "pointer", fontSize: 11, fontWeight: 800, letterSpacing: ".05em", color: "var(--muted)", textTransform: "uppercase" }}
+            title="Manage the full CMS"
+            style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", padding: "8px 10px", border: "none", background: cmsAdminOpen ? "var(--mint-tint)" : "transparent", borderRadius: 8, cursor: "pointer" }}
           >
-            CMS Admin
-            <ChevronDownIcon size={13} color="var(--muted)" />
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 11 }}>
+              <GridIcon size={21} color={cmsAdminOpen ? "var(--studio-teal-dark)" : "var(--ink)"} />
+              <span style={{ fontSize: 14, fontWeight: 600, color: "var(--ink)" }}>CMS Admin</span>
+            </span>
+            <ChevronDownIcon size={14} color="var(--muted)" />
           </button>
           {cmsAdminOpen && (
-            <div style={{ maxHeight: 300, overflowY: "auto", display: "grid", gap: 2, paddingRight: 2 }}>
-              {CMS_ADMIN.map((g) => (
-                <div key={g.group}>
-                  <div style={{ padding: "6px 10px 2px", fontSize: 10.5, fontWeight: 700, letterSpacing: ".03em", color: "var(--muted)", opacity: 0.75 }}>{g.group}</div>
-                  {g.items.map((it) => {
-                    const k = `cmsadmin:${it.slug}`;
-                    return (
-                      <button
-                        key={it.slug}
-                        onClick={() => router.push(`/cms/admin/${it.slug}`)}
-                        onMouseEnter={() => setHover(k)}
-                        onMouseLeave={() => setHover(null)}
-                        title={it.label}
-                        style={{ display: "flex", alignItems: "center", width: "100%", padding: "7px 10px 7px 18px", border: "none", background: hover === k ? "var(--mint-tint)" : "transparent", borderRadius: 8, fontSize: 13.5, color: "var(--ink)", cursor: "pointer", textAlign: "left" }}
-                      >
-                        {it.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              ))}
+            <div style={{ display: "grid", gap: 1, marginTop: 2 }}>
+              {CMS_ADMIN.map((g) => {
+                const on = openGroup === g.group;
+                return (
+                  <div key={g.group}>
+                    <button
+                      onClick={() => setOpenGroup((cur) => (cur === g.group ? null : g.group))}
+                      style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", padding: "7px 10px 7px 16px", border: "none", background: on ? "var(--mint-tint)" : "transparent", borderRadius: 8, cursor: "pointer" }}
+                    >
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
+                        <g.Icon size={16} color={on ? "var(--studio-teal-dark)" : "var(--muted)"} />
+                        <span style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>{g.group}</span>
+                      </span>
+                      <ChevronDownIcon size={12} color="var(--muted)" />
+                    </button>
+                    {on && g.items.map((it) => {
+                      const k = `cmsadmin:${it.slug}`;
+                      return (
+                        <button
+                          key={it.slug}
+                          onClick={() => router.push(`/cms/admin/${it.slug}`)}
+                          onMouseEnter={() => setHover(k)}
+                          onMouseLeave={() => setHover(null)}
+                          title={it.label}
+                          style={{ display: "flex", alignItems: "center", width: "100%", padding: "6px 10px 6px 42px", border: "none", background: hover === k ? "var(--mint-tint)" : "transparent", borderRadius: 8, fontSize: 13, color: "var(--muted)", cursor: "pointer", textAlign: "left" }}
+                        >
+                          {it.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>

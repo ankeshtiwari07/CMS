@@ -15,6 +15,7 @@ import { Conversations } from "./collections/Conversations";
 import { BrandGuidelines } from "./collections/BrandGuidelines";
 import { AuditLog } from "./collections/AuditLog";
 import { Approvals } from "./collections/Approvals";
+import { Components } from "./collections/Components";
 import { contentCollections } from "./collections/content-types";
 import { globals } from "./globals";
 
@@ -52,6 +53,16 @@ export default buildConfig({
       titleSuffix: "· HUMAIN CMS",
     },
   },
+  // The admin is served on the SAME host as the console (cms.<ip>.sslip.io/admin).
+  // The console owns /api, so the admin CLIENT is told to call Payload's REST at
+  // /payload-api; nginx rewrites /payload-api -> the container's native /api, so
+  // internal server-to-server callers (console, ai-service) keep using /api
+  // unchanged. Its /_next assets are isolated via next.config assetPrefix.
+  routes: {
+    api: "/payload-api",
+    graphQL: "/payload-api/graphql",
+    graphQLPlayground: "/payload-api/graphql-playground",
+  },
   // Arabic-first + multilingual. Arabic has country dialect locales (RTL);
   // plus French, German, Spanish, Polish. defaultLocale=en, fallback to en.
   localization: {
@@ -71,7 +82,7 @@ export default buildConfig({
     defaultLocale: "en",
     fallback: true,
   },
-  collections: [Users, Sites, Media, Pages, Projects, Conversations, BrandGuidelines, AuditLog, Approvals, ...contentCollections],
+  collections: [Users, Sites, Media, Pages, Projects, Conversations, BrandGuidelines, AuditLog, Approvals, Components, ...contentCollections],
   globals,
   db: postgresAdapter({
     pool: { connectionString: process.env.DATABASE_URI },

@@ -17,3 +17,8 @@ apps/cms/public/media
 coverage
 playwright-report
 test-results
+
+# DB backup artifacts + local nginx backups (VM-side, never commit)
+backups/
+*.bak
+nginx/*.bak.*

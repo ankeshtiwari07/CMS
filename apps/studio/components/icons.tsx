@@ -36,6 +36,13 @@ export const GridIcon = ({ size, color, stroke }: P) => (
     <rect x="13" y="13" width="8" height="8" rx="1.5" />
   </svg>
 );
+export const LayersIcon = ({ size, color, stroke }: P) => (
+  <svg {...base(size, color, stroke)}>
+    <path d="M12 2 2 7l10 5 10-5-10-5Z" />
+    <path d="m2 12 10 5 10-5" />
+    <path d="m2 17 10 5 10-5" />
+  </svg>
+);
 export const PaletteIcon = ({ size, color, stroke }: P) => (
   <svg {...base(size, color, stroke)}>
     <path d="M12 3a9 9 0 1 0 0 18c1.2 0 2-.9 2-2 0-1.2-1-1.6-1-2.6 0-.7.6-1.4 1.4-1.4H17a4 4 0 0 0 4-4c0-4.5-4-8-9-8z" />

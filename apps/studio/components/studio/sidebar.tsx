@@ -10,6 +10,7 @@ import {
   SearchIcon,
   FolderIcon,
   GridIcon,
+  LayersIcon,
   PaletteIcon,
   BellIcon,
   PanelLeftIcon,
@@ -46,6 +47,7 @@ function initials(name?: string, email?: string) {
 
 const NAV = [
   { key: "create", Icon: PlusIcon, label: "Create new", href: "/studio" },
+  { key: "cms", Icon: LayersIcon, label: "CMS", href: "/cms/studio" },
   { key: "search", Icon: SearchIcon, label: "Search", href: "/search" },
   { key: "projects", Icon: FolderIcon, label: "Projects", href: "/projects" },
   { key: "templates", Icon: GridIcon, label: "Templates", href: "/cms" },

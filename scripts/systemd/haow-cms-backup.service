@@ -1,0 +1,10 @@
+[Unit]
+Description=HUMAIN CMS Postgres backup (rotated, local)
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+User=ankeshtiwari
+ExecStart=/opt/haow-cms/scripts/backup-db.sh
+Nice=10

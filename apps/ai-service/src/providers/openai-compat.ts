@@ -11,6 +11,7 @@ export type CompatConfig = {
   apiKeyEnv: string;
   defaultModel: string;
   tokenParam?: "max_tokens" | "max_completion_tokens";
+  extraBody?: Record<string, unknown>;
 };
 
 export class OpenAICompatProvider implements LlmProvider {
@@ -37,6 +38,7 @@ export class OpenAICompatProvider implements LlmProvider {
       messages,
     };
     body[this.cfg.tokenParam || "max_tokens"] = req.maxTokens ?? 1024;
+    if (this.cfg.extraBody) Object.assign(body, this.cfg.extraBody);
 
     const res = await fetch(`${this.cfg.baseUrl}/chat/completions`, {
       method: "POST",
@@ -54,7 +56,10 @@ export class OpenAICompatProvider implements LlmProvider {
       throw new Error(`${this.cfg.name} error ${res.status}: ${msg}`.slice(0, 400));
     }
     const data = (await res.json()) as any;
-    return data?.choices?.[0]?.message?.content ?? "";
+    const content = data?.choices?.[0]?.message?.content ?? "";
+    // Reasoning models (e.g. MiniMax-M2) wrap chain-of-thought in <think>...</think>;
+    // strip it so only the final answer reaches the app.
+    return String(content).replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
   }
 
   async embed(texts: string[]): Promise<number[][]> {

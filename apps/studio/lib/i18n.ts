@@ -30,6 +30,7 @@ type Tr = { en: string; ar: string; fr?: string; de?: string; es?: string; pl?: 
 export const DICT: Record<string, Tr> = {
   // sidebar nav
   "nav.create": { en: "Create new", ar: "إنشاء جديد", fr: "Créer", de: "Neu erstellen", es: "Crear nuevo", pl: "Utwórz nowy" },
+  "nav.cms": { en: "CMS", ar: "نظام المحتوى", fr: "CMS", de: "CMS", es: "CMS", pl: "CMS" },
   "nav.search": { en: "Search", ar: "بحث", fr: "Rechercher", de: "Suchen", es: "Buscar", pl: "Szukaj" },
   "nav.projects": { en: "Projects", ar: "المشاريع", fr: "Projets", de: "Projekte", es: "Proyectos", pl: "Projekty" },
   "nav.templates": { en: "Templates", ar: "القوالب", fr: "Modèles", de: "Vorlagen", es: "Plantillas", pl: "Szablony" },

@@ -142,7 +142,7 @@ export default function CmsWorkspace({
         <div style={{ position: "relative" }}>
           <button onClick={() => setAddOpen((v) => !v)} title="Add" style={{ width: 32, height: 32, borderRadius: R.lg, border: "1px solid var(--hc-border)", background: "transparent", color: "var(--hc-fg-muted)", display: "grid", placeItems: "center", cursor: "pointer" }}><PlusIcon size={17} /></button>
           {addOpen && (
-            <div style={{ position: "absolute", bottom: 40, left: 0, zIndex: 40, width: 190, background: "var(--hc-card)", border: "1px solid var(--hc-border)", borderRadius: R.xl, boxShadow: "var(--hc-shadow-lg)", padding: 6 }} onMouseLeave={() => setAddOpen(false)}>
+            <div style={{ position: "absolute", top: "calc(100% + 6px)", left: 0, zIndex: 40, width: 190, background: "var(--hc-card)", border: "1px solid var(--hc-border)", borderRadius: R.xl, boxShadow: "var(--hc-shadow-lg)", padding: 6 }} onMouseLeave={() => setAddOpen(false)}>
               {[["New page", GlobeIcon], ["Recent", ClockIcon]].map(([l, Ic]: any, i) => (
                 <button key={i} onClick={() => { setAddOpen(false); }} style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "8px 10px", border: "none", background: "transparent", borderRadius: R.md, color: "var(--hc-fg)", ...TYPE.sm, cursor: "pointer", textAlign: "left" }}><Ic size={16} color="var(--hc-fg-muted)" /> {l}</button>
               ))}
@@ -157,7 +157,7 @@ export default function CmsWorkspace({
         <div style={{ position: "relative" }}>
           <button onClick={() => setModelOpen((v) => !v)} style={{ ...chipStyle(false), background: "var(--hc-primary-10)", color: "var(--hc-primary)", border: "none" }}>{modelLabel} <ChevronDownIcon size={13} /></button>
           {modelOpen && (
-            <div style={{ position: "absolute", bottom: 38, right: 0, zIndex: 40, width: 200, background: "var(--hc-card)", border: "1px solid var(--hc-border)", borderRadius: R.xl, boxShadow: "var(--hc-shadow-lg)", padding: 6 }} onMouseLeave={() => setModelOpen(false)}>
+            <div style={{ position: "absolute", top: "calc(100% + 6px)", right: 0, zIndex: 40, width: 200, maxHeight: 260, overflowY: "auto", background: "var(--hc-card)", border: "1px solid var(--hc-border)", borderRadius: R.xl, boxShadow: "var(--hc-shadow-lg)", padding: 6 }} onMouseLeave={() => setModelOpen(false)}>
               {models.map((m) => (
                 <button key={m.id} onClick={() => { setModelId(m.id); setModelOpen(false); }} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", padding: "8px 10px", border: "none", background: m.id === modelId ? "var(--hc-primary-10)" : "transparent", borderRadius: R.md, color: "var(--hc-fg)", ...TYPE.sm, cursor: "pointer" }}>{m.label}<span style={{ color: "var(--hc-fg-muted)", fontSize: 11 }}>{m.family}</span></button>
               ))}
@@ -205,7 +205,16 @@ export default function CmsWorkspace({
           <div style={{ display: "inline-flex", alignItems: "center", gap: 9, padding: "6px 12px", borderRadius: R.full, background: "var(--hc-primary-10)", color: "var(--hc-primary)", fontWeight: 700, ...TYPE.sm }}>
             <LayersIcon size={15} color="var(--hc-primary)" /> HUMAIN CMS · {tier}
           </div>
-          <ThemeToggle theme={theme} onToggle={toggleTheme} />
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            {user.roles?.includes("admin") && (
+              <a href="/admin" target="_blank" rel="noreferrer"
+                title="Open the CMS admin — collections, components, navigation & flows"
+                style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "6px 12px", borderRadius: R.full, background: "var(--hc-ghost)", color: "var(--hc-fg)", fontWeight: 700, textDecoration: "none", border: "1px solid var(--hc-border)", ...TYPE.sm }}>
+                <GridIcon size={14} color="var(--hc-primary)" /> Admin
+              </a>
+            )}
+            <ThemeToggle theme={theme} onToggle={toggleTheme} />
+          </div>
         </div>
 
         {!started ? (

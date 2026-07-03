@@ -25,6 +25,24 @@ const COMPAT: Record<string, CompatConfig> = {
     defaultModel: process.env.GOOGLE_MODEL || "gemini-2.5-pro",
     tokenParam: "max_tokens",
   },
+  minimax: {
+    name: "minimax",
+    baseUrl: process.env.MINIMAX_BASE_URL || "https://api.minimax.io/v1",
+    apiKeyEnv: "MINIMAX_API_KEY",
+    defaultModel: process.env.MINIMAX_MODEL || "MiniMax-M2",
+    tokenParam: "max_tokens",
+    extraBody: { reasoning_effort: "none" },
+  },
+  // HUMAIN Create custom model gateway — the single sovereign routing point. All model
+  // access can flow through here (Gemini/OpenAI/MiniMax) so application code never calls
+  // providers directly. MiniMax is the sovereign default.
+  humain: {
+    name: "humain",
+    baseUrl: process.env.HUMAIN_GATEWAY_URL || "http://model-gateway.humain-create.svc.cluster.local:8080/v1",
+    apiKeyEnv: "HUMAIN_GATEWAY_KEY",
+    defaultModel: process.env.HUMAIN_GATEWAY_MODEL || "minimax",
+    tokenParam: "max_tokens",
+  },
 };
 
 const anthropic = new AnthropicProvider();
@@ -33,6 +51,8 @@ const providers: Record<string, LlmProvider> = {
   openai: new OpenAICompatProvider(COMPAT.openai),
   xai: new OpenAICompatProvider(COMPAT.xai),
   google: new OpenAICompatProvider(COMPAT.google),
+  minimax: new OpenAICompatProvider(COMPAT.minimax),
+  humain: new OpenAICompatProvider(COMPAT.humain),
 };
 
 export function providerByName(name: string): LlmProvider {
@@ -61,6 +81,9 @@ export const MODELS: ModelEntry[] = [
   { id: "gpt-5.5", label: process.env.OPENAI_LABEL || "GPT-5.5", provider: "openai", model: COMPAT.openai.defaultModel, family: "OpenAI" },
   { id: "grok-4", label: process.env.XAI_LABEL || "Grok 4", provider: "xai", model: COMPAT.xai.defaultModel, family: "Grok" },
   { id: "gemini-2.5-pro", label: process.env.GOOGLE_LABEL || "Gemini 2.5 Pro", provider: "google", model: COMPAT.google.defaultModel, family: "Gemini" },
+  { id: "minimax-m2", label: process.env.MINIMAX_LABEL || "MiniMax M2", provider: "minimax", model: process.env.MINIMAX_MODEL || "MiniMax-M2", family: "MiniMax" },
+  { id: "minimax-m3", label: process.env.MINIMAX_V3_LABEL || "MiniMax M3", provider: "minimax", model: process.env.MINIMAX_MODEL_V3 || "MiniMax-M3", family: "MiniMax" },
+  { id: "humain-gateway", label: process.env.HUMAIN_GATEWAY_LABEL || "HUMAIN Gateway (sovereign)", provider: "humain", model: COMPAT.humain.defaultModel, family: "HUMAIN" },
 ];
 
 export const DEFAULT_MODEL_ID = "claude-opus-4-8";

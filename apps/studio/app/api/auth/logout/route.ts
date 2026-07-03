@@ -17,5 +17,7 @@ export async function POST() {
   }
   const response = NextResponse.json({ ok: true });
   response.cookies.set(TOKEN_COOKIE, "", { httpOnly: true, path: "/", maxAge: 0 });
+  // Also clear the bridged Payload admin cookie set at login.
+  response.cookies.set("payload-token", "", { httpOnly: true, path: "/", maxAge: 0 });
   return response;
 }

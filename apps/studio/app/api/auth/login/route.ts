@@ -33,13 +33,18 @@ export async function POST(req: Request) {
     ok: true,
     user: { email: data.user?.email, roles: data.user?.roles ?? [] },
   });
-  response.cookies.set(TOKEN_COOKIE, data.token, {
+  const cookieOpts = {
     httpOnly: true,
-    sameSite: "lax",
+    sameSite: "lax" as const,
     // Only require HTTPS once TLS is terminated (set COOKIE_SECURE=true then).
     secure: process.env.COOKIE_SECURE === "true",
     path: "/",
     maxAge: MAX_AGE,
-  });
+  };
+  response.cookies.set(TOKEN_COOKIE, data.token, cookieOpts);
+  // Bridge the SAME Payload JWT to Payload's own `payload-token` cookie so an
+  // admin who opens the native admin (/admin) from the CMS is already
+  // authenticated — no separate Payload login (single sign-on).
+  response.cookies.set("payload-token", data.token, cookieOpts);
   return response;
 }

@@ -317,6 +317,16 @@ export default function Sidebar({
           </button>
           {cmsAdminOpen && (
             <div style={{ display: "grid", gap: 1, marginTop: 2 }}>
+              <button
+                onClick={() => router.push("/cms/build")}
+                onMouseEnter={() => setHover("cmsadmin:build")}
+                onMouseLeave={() => setHover(null)}
+                title="Component Studio — drag-and-drop page builder + AI components"
+                style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "7px 10px 7px 16px", border: "none", background: hover === "cmsadmin:build" ? "var(--mint-tint)" : "transparent", borderRadius: 8, cursor: "pointer" }}
+              >
+                <LayersIcon size={16} color="var(--studio-teal-dark)" />
+                <span style={{ fontSize: 13, fontWeight: 700, color: "var(--studio-teal-dark)" }}>Component Studio</span>
+              </button>
               {CMS_ADMIN.map((g) => {
                 const on = openGroup === g.group;
                 return (

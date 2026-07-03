@@ -207,11 +207,18 @@ export default function CmsWorkspace({
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             {user.roles?.includes("admin") && (
-              <a href="/cms/admin/collections/components"
-                title="Manage the CMS — components, pages, navigation, media & more (inside HUMAIN)"
-                style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "6px 12px", borderRadius: R.full, background: "var(--hc-ghost)", color: "var(--hc-fg)", fontWeight: 700, textDecoration: "none", border: "1px solid var(--hc-border)", ...TYPE.sm }}>
-                <GridIcon size={14} color="var(--hc-primary)" /> Manage CMS
-              </a>
+              <>
+                <a href="/cms/build"
+                  title="Component Studio — drag-and-drop page builder + AI components"
+                  style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "6px 12px", borderRadius: R.full, background: "var(--hc-primary-10)", color: "var(--hc-primary)", fontWeight: 700, textDecoration: "none", border: "1px solid transparent", ...TYPE.sm }}>
+                  <LayersIcon size={14} color="var(--hc-primary)" /> Builder
+                </a>
+                <a href="/cms/admin/collections/components"
+                  title="Manage the CMS — components, pages, navigation, media & more (inside HUMAIN)"
+                  style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "6px 12px", borderRadius: R.full, background: "var(--hc-ghost)", color: "var(--hc-fg)", fontWeight: 700, textDecoration: "none", border: "1px solid var(--hc-border)", ...TYPE.sm }}>
+                  <GridIcon size={14} color="var(--hc-primary)" /> Manage CMS
+                </a>
+              </>
             )}
             <ThemeToggle theme={theme} onToggle={toggleTheme} />
           </div>

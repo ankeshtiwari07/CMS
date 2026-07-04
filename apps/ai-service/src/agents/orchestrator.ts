@@ -5,7 +5,7 @@
 // (non-streamed) mode for the rich artifact endpoints.
 import Anthropic from "@anthropic-ai/sdk";
 import { getProvider } from "../providers/index.js";
-import { retrieveContext, getBrandGuidelines, auditAgentRun } from "./tools.js";
+import { retrieveContext, getBrandGuidelines, getComponents, auditAgentRun } from "./tools.js";
 import { SPECIALISTS, type SpecialistId } from "./specialists.js";
 import { prompts } from "../prompts/library.js";
 
@@ -50,6 +50,7 @@ const SITE_BUILDER_SYSTEM =
   "(primary teal #00A18B, dark ink #0B1416, lime accent #C2E54B, generous whitespace, rounded corners, tasteful gradients and motion). " +
   "Include real, specific copy (not lorem) for: a sticky header with the HUMAIN wordmark + nav, a hero with headline/subhead/CTA, " +
   "a 3-up features section, a stats or logos strip, a testimonial, a closing CTA band, and a footer. " +
+  "If a COMPONENT LIBRARY is provided in the message, ASSEMBLE the page primarily from those admin-curated blocks — reuse their HTML/structure and replace any {{placeholders}} with real copy; only invent sections the library does not cover. " +
   "For Arabic, set dir=\"rtl\" and lang=\"ar\". Make it visually impressive and production-ready.";
 
 // Structured content the Content Agent produces (rendered as an editable card).
@@ -92,6 +93,12 @@ const TOOLS: Anthropic.Tool[] = [
       properties: { query: { type: "string" }, locale: { type: "string", enum: ["en", "ar"] } },
       required: ["query"],
     },
+  },
+  {
+    name: "list_components",
+    description:
+      "List the LIVE building-block components in the CMS component library (name, type, description, HTML). ALWAYS call this before build_site so you ASSEMBLE the page by reusing these admin-curated, on-brand blocks (adapt their HTML, fill placeholders with real copy) instead of inventing markup from scratch.",
+    input_schema: { type: "object", properties: {} },
   },
   {
     name: "get_brand_guidelines",
@@ -200,6 +207,11 @@ async function execTool(
     trace.push({ kind: "tool", name: "retrieve_context", detail: String(input.query || "").slice(0, 80) });
     return r.text;
   }
+  if (name === "list_components") {
+    const out = await getComponents();
+    trace.push({ kind: "tool", name: "list_components" });
+    return out.text;
+  }
   if (name === "get_brand_guidelines") {
     onEvent?.({ type: "status", label: "Brand Guardian Agent" });
     const r = await getBrandGuidelines();
@@ -222,9 +234,17 @@ async function execTool(
   if (name === "build_site") {
     onEvent?.({ type: "status", label: "Build Agent" });
     const lang = input.language === "ar" ? "Language: Arabic (RTL)." : input.language === "both" ? "Provide a bilingual EN/AR page." : "Language: English.";
+    // Ground the build in the admin-curated component library so pages are
+    // ASSEMBLED from on-brand building blocks, not invented from scratch.
+    const lib = await getComponents();
+    const libNote =
+      lib.ok && lib.text && !/empty|unavailable/i.test(lib.text)
+        ? `\n\n=== CMS COMPONENT LIBRARY (reuse these building blocks) ===\nAssemble the page primarily from these admin-curated components. Adapt their HTML, keep their structure/classes, and REPLACE any {{placeholders}} with real, specific copy. Only invent new sections when the library lacks a needed block:\n${lib.text}`
+        : "";
+    if (libNote) trace.push({ kind: "tool", name: "list_components" });
     let html = await provider.complete({
       system: SITE_BUILDER_SYSTEM,
-      messages: [{ role: "user", content: `${input.brief}\n\n${lang}` }],
+      messages: [{ role: "user", content: `${input.brief}\n\n${lang}${libNote}` }],
       maxTokens: 8192,
     });
     html = html.replace(/^```html\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "").trim();
@@ -312,7 +332,7 @@ function buildSystem(deliverableSpec: string, conversational: boolean): string {
     "How you work:\n" +
     "- FIRST decide if the user actually wants something made. Greetings, small talk, questions, advice and brainstorming → just reply naturally and warmly in chat (do NOT build anything, do NOT call tools). Only build when the user clearly asks to create/make/build/write/design something, or has given enough detail to.\n" +
     "- When they do want something made, INTELLIGENTLY pick the right tool and BUILD it as an interactive outcome — never just describe it:\n" +
-    "    • website / landing page / web app → build_site (live preview)\n" +
+    "    • website / landing page / web app → first list_components, then build_site (assembles the page from the CMS component library; live preview)\n" +
     "    • content piece (article, blog, page, press release, event, product, case study, FAQ, email, campaign, social) → build_content (editable, publishable card)\n" +
     "    • video / ad / teaser / reel → build_video (script + one-click render)\n" +
     "    • image / picture / illustration / poster / graphic → build_image (renders inline)\n" +

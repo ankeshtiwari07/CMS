@@ -51,6 +51,29 @@ export async function getBrandGuidelines(): Promise<ToolOutput> {
   }
 }
 
+// The CMS component library — LIVE building-block components the admin curated.
+// The Build Agent reuses these (adapting their HTML) instead of inventing markup,
+// so generated pages stay on-brand and consistent (component-based CMS).
+export async function getComponents(): Promise<ToolOutput> {
+  try {
+    const res = await fetch(`${CMS}/api/components?where[status][equals]=live&limit=50&depth=0&sort=-updatedAt`);
+    if (!res.ok) return { ok: false, text: "No component library available." };
+    const docs = ((await res.json()) as any)?.docs ?? [];
+    if (!docs.length) return { ok: true, text: "The component library is empty — build from scratch on-brand." };
+    const list = docs.map((d: any) => ({
+      name: d.name,
+      key: d.key,
+      type: d.type,
+      category: d.category,
+      description: d.description,
+      html: String(d.html || "").slice(0, 1400),
+    }));
+    return { ok: true, text: JSON.stringify(list).slice(0, 9000) };
+  } catch {
+    return { ok: false, text: "Component library unavailable." };
+  }
+}
+
 // Audit one agentic run (mirrors the AuditLog collection schema; best-effort).
 export async function auditAgentRun(summary: string, diff: unknown): Promise<void> {
   await pool

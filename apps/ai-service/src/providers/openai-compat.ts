@@ -1,4 +1,4 @@
-import type { LlmProvider, CompleteRequest } from "./types.js";
+import type { LlmProvider, CompleteRequest, ChatWithToolsRequest, ChatWithToolsResult } from "./types.js";
 import { embedTexts } from "./embeddings.js";
 
 // One provider class for every OpenAI-compatible chat-completions API.
@@ -60,6 +60,45 @@ export class OpenAICompatProvider implements LlmProvider {
     // Reasoning models (e.g. MiniMax-M2) wrap chain-of-thought in <think>...</think>;
     // strip it so only the final answer reaches the app.
     return String(content).replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
+  }
+
+  // Agentic tool-use turn (OpenAI function-calling). Returns any tool calls the
+  // model wants to make plus the raw assistant message to append for the next turn.
+  async chatWithTools(req: ChatWithToolsRequest): Promise<ChatWithToolsResult> {
+    const key = process.env[this.cfg.apiKeyEnv];
+    if (!key) throw new Error(`${this.cfg.name} is not configured (set ${this.cfg.apiKeyEnv}).`);
+    const messages = [...(req.system ? [{ role: "system", content: req.system }] : []), ...req.messages];
+    const body: Record<string, unknown> = {
+      model: req.model || this.cfg.defaultModel,
+      messages,
+      tools: req.tools,
+      tool_choice: "auto",
+    };
+    body[this.cfg.tokenParam || "max_tokens"] = req.maxTokens ?? 2048;
+    if (this.cfg.extraBody) Object.assign(body, this.cfg.extraBody);
+
+    const res = await fetch(`${this.cfg.baseUrl}/chat/completions`, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${key}` },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      let msg = text;
+      try { msg = JSON.parse(text)?.error?.message || text; } catch { /* keep raw */ }
+      throw new Error(`${this.cfg.name} error ${res.status}: ${msg}`.slice(0, 400));
+    }
+    const data = (await res.json()) as any;
+    const m = data?.choices?.[0]?.message ?? {};
+    const content = String(m.content || "").replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
+    const toolCalls = Array.isArray(m.tool_calls)
+      ? m.tool_calls.map((t: any) => {
+          let args: any = {};
+          try { args = JSON.parse(t.function?.arguments || "{}"); } catch { /* leave {} */ }
+          return { id: t.id, name: t.function?.name, args };
+        })
+      : [];
+    return { content, toolCalls, assistant: m };
   }
 
   async embed(texts: string[]): Promise<number[][]> {

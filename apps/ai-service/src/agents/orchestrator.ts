@@ -4,7 +4,7 @@
 // request is ambiguous) before producing. Supports live streaming and a plain
 // (non-streamed) mode for the rich artifact endpoints.
 import Anthropic from "@anthropic-ai/sdk";
-import { getProvider } from "../providers/index.js";
+import { getProvider, providerByName } from "../providers/index.js";
 import { retrieveContext, getBrandGuidelines, getComponents, auditAgentRun } from "./tools.js";
 import { SPECIALISTS, type SpecialistId } from "./specialists.js";
 import { prompts } from "../prompts/library.js";
@@ -195,6 +195,11 @@ const TOOLS: Anthropic.Tool[] = [
   },
 ];
 
+// Same tools, in OpenAI function-calling shape — for the compat (non-Claude)
+// agentic loop, so the agent can run on MiniMax / HUMAIN gateway / any OpenAI-
+// compatible model.
+const OA_TOOLS = TOOLS.map((t) => ({ type: "function" as const, function: { name: t.name, description: t.description, parameters: t.input_schema } }));
+
 async function execTool(
   name: string,
   input: any,
@@ -360,6 +365,7 @@ export type OrchestratorOpts = {
   messages: Anthropic.MessageParam[];
   model: string;
   maxTokens: number;
+  providerName?: string; // "anthropic" (default) ⇒ Claude loop; else OpenAI-compat tool-use loop
   onText?: (delta: string) => void; // present ⇒ stream live
   onEvent?: (e: SseEvent) => void;
 };
@@ -367,6 +373,11 @@ export type OrchestratorOpts = {
 export async function runOrchestrator(
   opts: OrchestratorOpts,
 ): Promise<{ text: string; trace: TraceStep[]; steps: number }> {
+  // Non-Claude models run the OpenAI-compatible tool-use loop (MiniMax, HUMAIN
+  // sovereign gateway, GPT, Grok, Gemini) — the SAME tools and grounding.
+  if (opts.providerName && opts.providerName !== "anthropic") {
+    return runCompatLoop(opts);
+  }
   const trace: TraceStep[] = [];
   const system = buildSystem(opts.deliverableSpec, opts.conversational);
   const messages: Anthropic.MessageParam[] = [...opts.messages];
@@ -425,5 +436,63 @@ export async function runOrchestrator(
 
   opts.onEvent?.({ type: "agents", trace });
   void auditAgentRun(`agentic run · ${trace.length} agent/tool step${trace.length === 1 ? "" : "s"}`, { trace, steps });
+  return { text: finalText, trace, steps };
+}
+
+// Convert the incoming (Anthropic-shaped) history to plain OpenAI messages.
+function toOpenAIMessages(msgs: Anthropic.MessageParam[]): any[] {
+  return msgs.map((m) => {
+    const content = typeof m.content === "string"
+      ? m.content
+      : (m.content as any[]).map((b) => (b?.type === "text" ? b.text : "")).join("");
+    return { role: m.role, content };
+  });
+}
+
+// OpenAI-compatible agentic tool-use loop — mirrors the Claude loop above but
+// speaks the function-calling wire format, so the agent (all its tools + brand
+// grounding + the component library) runs on any tool-capable OpenAI-compatible
+// model (MiniMax, HUMAIN gateway, GPT, Grok, Gemini). Non-streaming: the final
+// reply is emitted once at the end; artifacts still stream via onEvent.
+async function runCompatLoop(
+  opts: OrchestratorOpts,
+): Promise<{ text: string; trace: TraceStep[]; steps: number }> {
+  const trace: TraceStep[] = [];
+  const system = buildSystem(opts.deliverableSpec, opts.conversational);
+  const prov = providerByName(opts.providerName as any);
+  if (!prov?.chatWithTools) throw new Error(`Provider ${opts.providerName} does not support tool-use`);
+  const messages: any[] = toOpenAIMessages(opts.messages);
+  let steps = 0;
+  let finalText = "";
+
+  while (steps < MAX_STEPS) {
+    steps++;
+    const { content, toolCalls, assistant } = await prov.chatWithTools({
+      system,
+      messages,
+      tools: OA_TOOLS,
+      maxTokens: opts.maxTokens,
+      model: opts.model,
+    });
+    if (!toolCalls.length) { finalText = content; break; }
+    // Keep the assistant's tool-call message, then run each tool and feed results back.
+    messages.push(assistant && assistant.tool_calls ? assistant : { role: "assistant", content: content || "", tool_calls: toolCalls.map((t) => ({ id: t.id, type: "function", function: { name: t.name, arguments: JSON.stringify(t.args) } })) });
+    for (const tc of toolCalls) {
+      let out: string;
+      try { out = await execTool(tc.name, tc.args, trace, opts.onEvent); }
+      catch (e: any) { out = `tool error: ${e?.message || e}`; }
+      messages.push({ role: "tool", tool_call_id: tc.id, content: String(out).slice(0, 6000) });
+    }
+  }
+
+  if (!finalText) {
+    // Hit the step cap — ask once more for a plain reply (no tool messages fed in).
+    const plain = toOpenAIMessages(opts.messages);
+    try { finalText = await prov.complete({ system: `${system}\n\nSummarise what you did for the user now, without using tools.`, messages: plain as any, maxTokens: opts.maxTokens }); }
+    catch { finalText = "Done — the requested items were produced."; }
+  }
+  if (opts.onText && finalText) opts.onText(finalText);
+  opts.onEvent?.({ type: "agents", trace });
+  void auditAgentRun(`agentic run (${opts.providerName}) · ${trace.length} step${trace.length === 1 ? "" : "s"}`, { trace, steps });
   return { text: finalText, trace, steps };
 }

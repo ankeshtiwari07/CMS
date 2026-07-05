@@ -302,9 +302,10 @@ app.post("/studio/chat", async (req, reply) => {
     send({ type: "done", model: entry.id, modelLabel: entry.label, artifact: "" });
     return reply.raw.end();
   }
-  // The agent runtime (tool-use loop) runs on Claude; if a non-Anthropic model is
-  // selected we still orchestrate on the default Claude model.
-  const useModel = entry.provider === "anthropic" ? model : (process.env.ANTHROPIC_MODEL || "claude-opus-4-8");
+  // The agent tool-use loop now runs on the SELECTED provider — Claude via the
+  // Anthropic loop, or any tool-capable OpenAI-compatible model (MiniMax, HUMAIN
+  // sovereign gateway, GPT, Grok, Gemini) via the compat loop. On failure it
+  // still degrades to a single-shot fallback below.
 
   const deliverableSpec =
     body.mode === "auto" || body.mode === "writing"
@@ -319,7 +320,8 @@ app.post("/studio/chat", async (req, reply) => {
       deliverableSpec,
       conversational: true,
       messages: [...history, { role: "user", content: body.prompt }],
-      model: useModel,
+      model,
+      providerName: entry.provider,
       maxTokens: LONG_MODES.includes(body.mode) ? 4096 : 2048,
       onText: (d) => { collected += d; streamed = true; send({ type: "delta", text: d }); },
       onEvent: (e) => { if (e.type === "reset") collected = ""; if (e.type === "artifact") streamed = true; send(e); },

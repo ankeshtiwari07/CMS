@@ -43,6 +43,15 @@ const COMPAT: Record<string, CompatConfig> = {
     defaultModel: process.env.HUMAIN_GATEWAY_MODEL || "minimax",
     tokenParam: "max_tokens",
   },
+  // haow-v4 — our OWN sovereign model (Qwen2.5-7B + LoRA via vLLM on the GPU VM),
+  // OpenAI-compatible with tool-calling. Hidden from the picker (test-only for now).
+  haowv4: {
+    name: "haowv4",
+    baseUrl: process.env.HAOW_V4_URL || "http://10.148.0.2:8030/v1",
+    apiKeyEnv: "HAOW_V4_KEY",
+    defaultModel: process.env.HAOW_V4_MODEL || "haow-v4-multilingual",
+    tokenParam: "max_tokens",
+  },
 };
 
 const anthropic = new AnthropicProvider();
@@ -53,6 +62,7 @@ const providers: Record<string, LlmProvider> = {
   google: new OpenAICompatProvider(COMPAT.google),
   minimax: new OpenAICompatProvider(COMPAT.minimax),
   humain: new OpenAICompatProvider(COMPAT.humain),
+  haowv4: new OpenAICompatProvider(COMPAT.haowv4),
 };
 
 export function providerByName(name: string): LlmProvider {
@@ -73,6 +83,7 @@ export type ModelEntry = {
   model: string;
   fast?: boolean;
   family: string; // grouping label for the UI
+  hidden?: boolean; // present in the catalog (resolvable/usable) but NOT shown in the picker
 };
 
 export const MODELS: ModelEntry[] = [
@@ -84,6 +95,9 @@ export const MODELS: ModelEntry[] = [
   { id: "minimax-m2", label: process.env.MINIMAX_LABEL || "MiniMax M2", provider: "minimax", model: process.env.MINIMAX_MODEL || "MiniMax-M2", family: "MiniMax" },
   { id: "minimax-m3", label: process.env.MINIMAX_V3_LABEL || "MiniMax M3", provider: "minimax", model: process.env.MINIMAX_MODEL_V3 || "MiniMax-M3", family: "MiniMax" },
   { id: "humain-gateway", label: process.env.HUMAIN_GATEWAY_LABEL || "HUMAIN Gateway (sovereign)", provider: "humain", model: COMPAT.humain.defaultModel, family: "HUMAIN" },
+  // Hidden (test-only): our own sovereign haow-v4 model. Usable via /studio/chat
+  // model="haow-v4" but not offered in the picker.
+  { id: "haow-v4", label: "HAOW-v4 (sovereign)", provider: "haowv4", model: COMPAT.haowv4.defaultModel, family: "HAOW", hidden: true },
 ];
 
 export const DEFAULT_MODEL_ID = "claude-opus-4-8";
@@ -145,9 +159,10 @@ export async function completeWithFallback(
   throw lastErr || new Error("no_provider_available");
 }
 
-// Catalog with live "configured" status for the UI.
+// Catalog with live "configured" status for the UI. Hidden entries (e.g. the
+// test-only haow-v4) are excluded from the picker.
 export function listModels() {
-  return MODELS.map((m) => ({
+  return MODELS.filter((m) => !m.hidden).map((m) => ({
     id: m.id,
     label: m.label,
     family: m.family,

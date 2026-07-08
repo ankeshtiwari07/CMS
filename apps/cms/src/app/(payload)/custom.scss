@@ -1,4 +1,185 @@
-/* HUMAIN brand tint for the break-glass Payload admin (lime accent). */
-:root {
-  --theme-success-500: #c2e54b;
+/* =========================================================================
+   HUMAIN theme for the embedded Payload admin.
+   Maps Payload v3's admin design tokens to the HUMAIN UI palette (teal
+   primary #009688 + lime accent #BBE636) so the admin console adopts the CMS
+   theme instead of looking like stock Payload. Light + dark.
+   Palette mirrors apps/studio/components/cms/cms-tokens.ts.
+   ========================================================================= */
+
+// ---- Brand palette ----
+$teal:      #009688;
+$teal-600:  #00897b;
+$teal-700:  #00796c;
+$teal-800:  #00695f;
+$lime:      #bbe636;
+$teal-dk:   #12b6a4; // dark-mode primary
+
+// -------------------------------------------------------------------------
+// LIGHT
+// -------------------------------------------------------------------------
+html[data-theme="light"] {
+  // Accent ramp — Payload reads --theme-success-* for positive accents; we
+  // repoint it to HUMAIN teal so checks and accents carry the brand hue.
+  --theme-success-50:  #e6f4f2;
+  --theme-success-100: #cdeae6;
+  --theme-success-400: #26a99b;
+  --theme-success-500: #{$teal};
+  --theme-success-600: #{$teal-600};
+  --theme-success-700: #{$teal-700};
+
+  // Faint teal tint on the app + input surfaces (keeps Payload's neutral ramp
+  // but nudges it toward the console's mint canvas).
+  --theme-bg: #f5f8f7;
+  --theme-input-bg: #ffffff;
+
+  // Focus ring + brand anchor used by several Payload components.
+  --theme-baseColor: #{$teal};
 }
+
+// -------------------------------------------------------------------------
+// DARK
+// -------------------------------------------------------------------------
+html[data-theme="dark"] {
+  --theme-success-50:  #06231f;
+  --theme-success-100: #0a2e29;
+  --theme-success-400: #17c3b0;
+  --theme-success-500: #{$teal-dk};
+  --theme-success-600: #10a091;
+  --theme-success-700: #0c8377;
+
+  --theme-bg: #0c1413;
+  --theme-input-bg: #101c1a;
+  --theme-baseColor: #{$teal-dk};
+}
+
+// -------------------------------------------------------------------------
+// Component touchpoints — the high-visibility surfaces. Explicit so we don't
+// depend on guessing every Payload token name. Harmless if a selector is
+// unmatched by a given Payload version.
+// -------------------------------------------------------------------------
+
+// Primary action buttons (Save draft / Publish changes) — teal, not near-black.
+.btn--style-primary {
+  --color: #fff;
+  background-color: #{$teal};
+  border-color: #{$teal};
+  color: #fff;
+
+  .btn__content { color: #fff; }
+
+  &:hover,
+  &:focus {
+    background-color: #{$teal-600};
+    border-color: #{$teal-600};
+  }
+  &:active { background-color: #{$teal-700}; }
+}
+html[data-theme="dark"] .btn--style-primary {
+  background-color: #{$teal-dk};
+  border-color: #{$teal-dk};
+  &:hover { background-color: #10a091; border-color: #10a091; }
+}
+
+// Secondary / icon button hover accents.
+.btn--style-secondary:hover { border-color: #{$teal}; color: #{$teal}; }
+
+// Left nav — active item gets the teal brand, plus a mint hover.
+.nav__link--active,
+.nav a[aria-current="page"],
+.nav__link.active {
+  color: #{$teal};
+  font-weight: 600;
+}
+.nav__link:hover { background-color: rgba(0,150,136,0.08); }
+.nav-group__toggle:hover { color: #{$teal}; }
+
+// Document tabs (Edit / Versions / API) — active underline in teal.
+.doc-tab--active .doc-tab__link,
+.doc-tab__link--active {
+  color: #{$teal};
+  box-shadow: inset 0 -2px 0 #{$teal};
+}
+
+// Links across the admin.
+.template-default a,
+.doc-header a,
+a.btn--style-none { color: #{$teal}; }
+
+// Form focus — teal border + ring on inputs, textareas, and react-select.
+.field-type input:focus,
+.field-type textarea:focus,
+.field-type .rs__control--is-focused,
+input:focus,
+textarea:focus {
+  border-color: #{$teal} !important;
+  box-shadow: 0 0 0 1px #{$teal};
+  outline: none;
+}
+.rs__control--is-focused { border-color: #{$teal} !important; box-shadow: 0 0 0 1px #{$teal}; }
+.rs__option--is-selected { background-color: #{$teal} !important; }
+.rs__option--is-focused { background-color: rgba(0,150,136,0.10) !important; }
+
+// Checkboxes / radios — checked state in teal.
+input[type="checkbox"], input[type="radio"] { accent-color: #{$teal}; }
+.checkbox-input--checked .checkbox-input__input,
+.checkbox-input__input:checked {
+  background-color: #{$teal};
+  border-color: #{$teal};
+}
+
+// Status pills.
+.pill--style-success, .status--has-changes { background-color: rgba(0,150,136,0.12); color: #{$teal-800}; }
+
+// -------------------------------------------------------------------------
+// Custom HUMAIN field components (JSON-LD editor + AI assist).
+// -------------------------------------------------------------------------
+.hc-jsonld { margin-bottom: var(--base, 20px); }
+.hc-jsonld__area {
+  width: 100%;
+  min-height: 150px;
+  resize: vertical;
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--theme-text);
+  background: var(--theme-input-bg);
+  border: 1px solid var(--theme-elevation-150, rgba(0,0,0,0.12));
+  border-radius: 4px;
+  padding: 12px 14px;
+  tab-size: 2;
+  &:focus { border-color: #{$teal}; box-shadow: 0 0 0 1px #{$teal}; outline: none; }
+}
+.hc-jsonld__err { color: var(--theme-error-500, #dc2626); font-size: 12.5px; margin-top: 6px; }
+.hc-jsonld__hint { color: var(--theme-elevation-500, rgba(0,0,0,0.5)); font-size: 12px; margin-top: 6px; }
+
+.hc-ai {
+  margin: 4px 0 22px;
+  padding: 16px 18px;
+  border: 1px solid rgba(0,150,136,0.28);
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(0,150,136,0.06), rgba(187,230,54,0.05));
+}
+html[data-theme="dark"] .hc-ai {
+  background: linear-gradient(180deg, rgba(18,182,164,0.10), rgba(187,230,54,0.06));
+  border-color: rgba(18,182,164,0.30);
+}
+.hc-ai__title { display:flex; align-items:center; gap:8px; font-weight:700; font-size:14px; color:var(--theme-text); margin-bottom:4px; }
+.hc-ai__sub { font-size:12.5px; color:var(--theme-elevation-500, rgba(0,0,0,0.5)); margin-bottom:12px; }
+.hc-ai__row { display:flex; gap:10px; align-items:flex-start; }
+.hc-ai__input {
+  flex:1; min-height:44px; resize:vertical;
+  border:1px solid var(--theme-elevation-150, rgba(0,0,0,0.12));
+  border-radius:8px; padding:11px 13px; font-size:14px;
+  color:var(--theme-text); background:var(--theme-input-bg);
+  &:focus { border-color:#{$teal}; box-shadow:0 0 0 1px #{$teal}; outline:none; }
+}
+.hc-ai__btn {
+  flex:none; height:44px; padding:0 20px; border:none; border-radius:8px;
+  background:#{$teal}; color:#fff; font-weight:700; font-size:13.5px; cursor:pointer;
+  white-space:nowrap; transition:background .15s;
+  &:hover:not(:disabled) { background:#{$teal-600}; }
+  &:disabled { opacity:.6; cursor:default; }
+}
+.hc-ai__msg { margin-top:10px; font-size:12.5px; }
+.hc-ai__msg--ok { color:#{$teal-700}; }
+.hc-ai__msg--err { color:var(--theme-error-500, #dc2626); }

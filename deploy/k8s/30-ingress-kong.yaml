@@ -1,0 +1,42 @@
+# Edge: Cloud Load Balancer → Cloud Armor (WAF) → Kong gateway → services.
+# Matches HUMAIN Create's "LB → WAF → API gateway (Kong) → backend" ingress path.
+apiVersion: v1
+kind: Service
+metadata:
+  name: kong-proxy
+  namespace: humain-cms
+  annotations:
+    cloud.google.com/backend-config: '{"default":"cms-backendconfig"}'
+spec:
+  type: NodePort
+  selector: { app: kong }
+  ports: [{ name: proxy, port: 80, targetPort: 8000 }]
+---
+apiVersion: cloud.google.com/v1
+kind: BackendConfig
+metadata: { name: cms-backendconfig, namespace: humain-cms }
+spec:
+  securityPolicy: { name: "humain-cms-waf" }   # Cloud Armor WAF policy (OWASP rules)
+  timeoutSec: 120
+  healthCheck: { requestPath: /status, port: 8100, type: HTTP }
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: cms-ingress
+  namespace: humain-cms
+  annotations:
+    kubernetes.io/ingress.class: "gce"
+    networking.gke.io/managed-certificates: "cms-cert"
+    kubernetes.io/ingress.global-static-ip-name: "humain-cms-ip"
+spec:
+  rules:
+    - host: create.humain.sa
+      http:
+        paths:
+          - { path: /*, pathType: ImplementationSpecific, backend: { service: { name: kong-proxy, port: { number: 80 } } } }
+---
+apiVersion: networking.gke.io/v1
+kind: ManagedCertificate
+metadata: { name: cms-cert, namespace: humain-cms }
+spec: { domains: [create.humain.sa] }

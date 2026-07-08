@@ -1,0 +1,72 @@
+# CMS (Payload + Studio console) — blue-green.
+# Two identical Deployments (blue/green). The Service selector picks the ACTIVE color; a release
+# rolls out the idle color, smoke-tests it, then flips the selector (see scripts/blue-green.sh).
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: cms-blue, namespace: humain-cms, labels: { app: cms, color: blue } }
+spec:
+  replicas: 3
+  selector: { matchLabels: { app: cms, color: blue } }
+  template:
+    metadata: { labels: { app: cms, color: blue } }
+    spec:
+      containers:
+        - name: cms
+          image: REGION-docker.pkg.dev/PROJECT/humain-cms/cms:__TAG__
+          ports: [{ containerPort: 3001 }, { containerPort: 3000 }]
+          envFrom: [{ configMapRef: { name: cms-config } }, { secretRef: { name: cms-secrets } }]
+          readinessProbe: { httpGet: { path: /api/health, port: 3001 }, initialDelaySeconds: 15, periodSeconds: 10 }
+          livenessProbe:  { httpGet: { path: /api/health, port: 3001 }, initialDelaySeconds: 40, periodSeconds: 20 }
+          resources: { requests: { cpu: "500m", memory: "768Mi" }, limits: { cpu: "1500m", memory: "1536Mi" } }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: cms-green, namespace: humain-cms, labels: { app: cms, color: green } }
+spec:
+  replicas: 0   # idle until a release promotes it
+  selector: { matchLabels: { app: cms, color: green } }
+  template:
+    metadata: { labels: { app: cms, color: green } }
+    spec:
+      containers:
+        - name: cms
+          image: REGION-docker.pkg.dev/PROJECT/humain-cms/cms:__TAG__
+          ports: [{ containerPort: 3001 }, { containerPort: 3000 }]
+          envFrom: [{ configMapRef: { name: cms-config } }, { secretRef: { name: cms-secrets } }]
+          readinessProbe: { httpGet: { path: /api/health, port: 3001 }, initialDelaySeconds: 15, periodSeconds: 10 }
+          livenessProbe:  { httpGet: { path: /api/health, port: 3001 }, initialDelaySeconds: 40, periodSeconds: 20 }
+          resources: { requests: { cpu: "500m", memory: "768Mi" }, limits: { cpu: "1500m", memory: "1536Mi" } }
+---
+# Live service — selector.color is flipped by the release to cut traffic over atomically.
+apiVersion: v1
+kind: Service
+metadata: { name: cms, namespace: humain-cms, labels: { app: cms } }
+spec:
+  selector: { app: cms, color: blue }
+  ports: [{ name: payload, port: 3001, targetPort: 3001 }, { name: console, port: 3000, targetPort: 3000 }]
+---
+# Preview service — always points at the IDLE color for pre-flip smoke tests.
+apiVersion: v1
+kind: Service
+metadata: { name: cms-preview, namespace: humain-cms }
+spec:
+  selector: { app: cms, color: green }
+  ports: [{ name: payload, port: 3001, targetPort: 3001 }]
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata: { name: cms-blue, namespace: humain-cms }
+spec:
+  scaleTargetRef: { apiVersion: apps/v1, kind: Deployment, name: cms-blue }
+  minReplicas: 3
+  maxReplicas: 12
+  metrics:
+    - type: Resource
+      resource: { name: cpu, target: { type: Utilization, averageUtilization: 65 } }
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata: { name: cms, namespace: humain-cms }
+spec:
+  minAvailable: 2
+  selector: { matchLabels: { app: cms } }

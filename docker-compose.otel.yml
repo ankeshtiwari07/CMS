@@ -1,0 +1,13 @@
+# OpenTelemetry collector for the prod stack (the stock prod compose omits it;
+# only the dev compose had it). Receives OTLP on 4317/4318 over the project
+# network; exporter is 'debug' (stdout) per infra/docker/otel-collector-config.yaml.
+# NOTE: app services are not yet OTel-instrumented, so nothing exports to it until
+# they set OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318 + load an SDK.
+# Added 2026-06-23.
+services:
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.108.0
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    volumes:
+      - ./infra/docker/otel-collector-config.yaml:/etc/otel-collector-config.yaml:ro
+    restart: unless-stopped

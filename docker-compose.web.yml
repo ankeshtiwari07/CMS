@@ -1,0 +1,5 @@
+# Publish the public web app on a loopback port so host nginx can proxy it
+# at web.34-14-150-134.sslip.io. Added 2026-06-23.
+services:
+  web:
+    ports: ["127.0.0.1:8040:3000"]

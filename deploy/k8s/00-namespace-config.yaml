@@ -1,0 +1,42 @@
+# HUMAIN Create — CMS module · GKE base (namespace, config, secrets)
+# Region: KSA landing zone (me-central2) per residency requirement.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: humain-cms
+  labels: { app.kubernetes.io/part-of: humain-create, module: cms, residency: ksa }
+---
+apiVersion: v1
+kind: ConfigMap
+metadata: { name: cms-config, namespace: humain-cms }
+data:
+  NODE_ENV: "production"
+  CMS_BASE_URL: "http://cms:3001"
+  AI_SERVICE_URL: "http://ai-service:4000"
+  PAYLOAD_PUBLIC_SERVER_URL: "https://create.humain.sa"
+  OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4318"
+  HUMAIN_DEFAULT_TENANT: "humain"
+  HUMAIN_GATEWAY_URL: "http://model-gateway.humain-create.svc.cluster.local:8080/v1"
+  DATA_RESIDENCY: "ksa"
+---
+# Secrets are projected from GCP Secret Manager via the External Secrets Operator, with the
+# underlying KMS keys managed by GCP KMS (residency requirement). This manifest is the binding;
+# values never live in git.
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata: { name: cms-secrets, namespace: humain-cms }
+spec:
+  refreshInterval: "1h"
+  secretStoreRef: { name: gcp-secret-store, kind: ClusterSecretStore }
+  target: { name: cms-secrets, creationPolicy: Owner }
+  data:
+    - { secretKey: DATABASE_URI,             remoteRef: { key: cms-database-uri } }
+    - { secretKey: PAYLOAD_SECRET,           remoteRef: { key: cms-payload-secret } }
+    - { secretKey: REDIS_URL,                remoteRef: { key: cms-redis-url } }
+    - { secretKey: ANTHROPIC_API_KEY,        remoteRef: { key: cms-anthropic-key } }
+    - { secretKey: HUMAIN_GATEWAY_KEY,       remoteRef: { key: cms-humain-gateway-key } }
+    - { secretKey: HUMAIN_WEBHOOK_SECRET,    remoteRef: { key: cms-humain-webhook-secret } }
+    - { secretKey: HUMAIN_INTEGRATION_TOKEN, remoteRef: { key: cms-humain-integration-token } }
+    - { secretKey: HUMAIN_SVC_PASSWORD,      remoteRef: { key: cms-svc-password } }
+    - { secretKey: AZURE_CLIENT_ID,          remoteRef: { key: cms-azure-client-id } }
+    - { secretKey: GCS_BUCKET,               remoteRef: { key: cms-gcs-bucket } }

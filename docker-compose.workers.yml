@@ -1,0 +1,10 @@
+# Override for the workers service. Runs BOTH the pgvector RAG worker and the
+# OpenSearch lexical indexer (OpenSearch deployed 2026-06-23). Identical to the
+# stock prod command; kept as a named override so deploys are explicit.
+services:
+  workers:
+    command: ["sh", "-lc", "pnpm --filter @humain/ai-service worker & pnpm --filter @humain/ai-service indexer & wait"]
+    # Backstop memory cap (durable form of the 2026-07-07 runtime `docker update`).
+    # Runs RAG worker + OpenSearch indexer; cap + block swap.
+    mem_limit: 1536m
+    memswap_limit: 1536m

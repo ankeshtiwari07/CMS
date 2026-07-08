@@ -1,0 +1,5 @@
+# Layers OpenTelemetry zero-code auto-instrumentation onto the existing stack
+# image, without rebuilding the monorepo. Activated per-service via
+# NODE_OPTIONS=--require .../register + OTEL_* env. Added 2026-06-23.
+FROM humain-cms-stack:latest
+RUN npm install --prefix /otel --no-fund --no-audit       @opentelemetry/api       @opentelemetry/auto-instrumentations-node  && ls /otel/node_modules/@opentelemetry/auto-instrumentations-node/build/src/register.js

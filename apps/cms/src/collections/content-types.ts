@@ -53,6 +53,14 @@ const workflowField: Field = {
   access: { update: canReview },
 };
 
+// AI-by-prompt inside the admin edit view — a prompt box that drafts this
+// document's text fields via the AI service. See src/components/AiAssist.tsx.
+const aiAssistField: Field = {
+  name: "aiAssist",
+  type: "ui",
+  admin: { components: { Field: "/components/AiAssist#default" } },
+};
+
 const base = (slug: string, title: string, extra: Field[]): CollectionConfig => ({
   slug,
   versions: { drafts: { autosave: { interval: 2000 } }, maxPerDoc: 50 },
@@ -64,7 +72,7 @@ const base = (slug: string, title: string, extra: Field[]): CollectionConfig => 
     delete: editorSiteScoped,
     readVersions: isEditor,
   },
-  fields: [...extra, siteField, ...hitlFields, workflowField, seoField()],
+  fields: [aiAssistField, ...extra, siteField, ...hitlFields, workflowField, seoField()],
   hooks: {
     beforeChange: [setCreatedBy, enforcePublishPermission],
     afterChange: [emitContentEvent],

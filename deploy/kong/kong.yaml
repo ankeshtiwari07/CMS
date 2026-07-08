@@ -1,0 +1,54 @@
+# Kong declarative config (DB-less) — single entry point in front of the CMS module,
+# mirroring HUMAIN Create's Kong gateway. Applied via the Kong Ingress Controller or `deck sync`.
+_format_version: "3.0"
+_transform: true
+
+services:
+  - name: cms-console
+    url: http://cms.humain-cms.svc.cluster.local:3000
+    routes:
+      - name: console
+        paths: ["/"]
+    plugins:
+      - name: cors
+        config: { origins: ["https://create.humain.sa"], credentials: true, methods: [GET, POST, PATCH, DELETE, OPTIONS] }
+
+  - name: cms-payload-api
+    url: http://cms.humain-cms.svc.cluster.local:3001
+    routes:
+      - name: payload-api
+        paths: ["/api"]
+    plugins:
+      - name: rate-limiting
+        config: { minute: 600, policy: local }
+      - name: request-size-limiting
+        config: { allowed_payload_size: 8 }
+
+  # Integration surface — service-to-service, protected by JWT (HUMAIN issues the token).
+  - name: humain-integration
+    url: http://cms.humain-cms.svc.cluster.local:3000
+    routes:
+      - name: humain-integration
+        paths: ["/api/humain"]
+    plugins:
+      - name: jwt
+        config: { claims_to_verify: [exp] }
+      - name: rate-limiting
+        config: { minute: 300, policy: local }
+
+  - name: ai-service
+    url: http://ai-service.humain-cms.svc.cluster.local:4000
+    routes:
+      - name: ai-internal
+        paths: ["/ai"]
+        strip_path: true
+    plugins:
+      - name: ip-restriction
+        config: { allow: ["10.0.0.0/8"] }   # cluster-internal only
+
+# End-user auth is federated via OIDC (Azure/Google SSO). With Kong Enterprise use the `openid-connect`
+# plugin here; on OSS the Next.js /api/auth/sso bridge performs the OIDC exchange (see studio route).
+consumers:
+  - username: humain-create
+    jwt_secrets:
+      - { key: "humain-create", algorithm: "HS256" }   # secret injected from GCP Secret Manager

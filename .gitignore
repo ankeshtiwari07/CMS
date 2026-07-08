@@ -22,3 +22,9 @@ test-results
 backups/
 *.bak
 nginx/*.bak.*
+# secrets + suffixed backup/diag artifacts (VM-side, never commit)
+ops/.minimax-key
+*.minimax-key
+*.bak-*
+*.bak.*
+*.pre-fix-*

@@ -1,0 +1,6 @@
+# Console (studio app) runs the conversational-CMS build. Added 2026-06-30.
+services:
+  cms:
+    image: humain-cms-stack:cmsapp
+  console:
+    image: humain-cms-stack:cms

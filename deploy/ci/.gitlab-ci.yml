@@ -1,0 +1,61 @@
+# HUMAIN Create — CMS module · GitLabOps pipeline (build → dev → stage → prod, blue-green).
+# Matches HUMAIN Create's GitLab CI + dev/stage/prod promotion path.
+stages: [build, test, deploy-dev, deploy-stage, deploy-prod]
+
+variables:
+  REGION: "me-central2"
+  PROJECT: "$GCP_PROJECT"
+  REGISTRY: "me-central2-docker.pkg.dev/$GCP_PROJECT/humain-cms"
+  TAG: "$CI_COMMIT_SHORT_SHA"
+
+.docker-auth: &docker-auth
+  - gcloud auth configure-docker $REGION-docker.pkg.dev --quiet
+
+build:
+  stage: build
+  image: google/cloud-sdk:slim
+  services: [docker:dind]
+  script:
+    - *docker-auth
+    - for svc in cms ai-service web mcp; do
+        docker build -f apps/$svc/Dockerfile -t $REGISTRY/$svc:$TAG . ;
+        docker push $REGISTRY/$svc:$TAG ;
+      done
+
+test:
+  stage: build
+  image: node:22
+  script:
+    - corepack enable && pnpm install --frozen-lockfile
+    - pnpm -r lint && pnpm -r typecheck
+    - pnpm --filter @humain/cms test        # API suite (RBAC, workflow, audit)
+    - pnpm --filter @humain/studio test:e2e  # Playwright journeys
+  artifacts: { when: always, paths: [playwright-report/], expire_in: 1 week }
+
+.deploy: &deploy
+  image: google/cloud-sdk:slim
+  script:
+    - gcloud container clusters get-credentials $CLUSTER --region $REGION --project $PROJECT
+    - ./deploy/scripts/blue-green.sh "$ENV" "$TAG"   # rollout idle color → smoke → flip
+
+deploy-dev:
+  <<: *deploy
+  stage: deploy-dev
+  variables: { ENV: dev, CLUSTER: humain-cms-dev }
+  environment: { name: dev }
+  rules: [{ if: '$CI_COMMIT_BRANCH == "develop"' }]
+
+deploy-stage:
+  <<: *deploy
+  stage: deploy-stage
+  variables: { ENV: stage, CLUSTER: humain-cms-stage }
+  environment: { name: stage }
+  rules: [{ if: '$CI_COMMIT_BRANCH == "main"' }]
+
+deploy-prod:
+  <<: *deploy
+  stage: deploy-prod
+  variables: { ENV: prod, CLUSTER: humain-cms-prod }
+  environment: { name: prod }
+  when: manual                       # gated production promotion
+  rules: [{ if: '$CI_COMMIT_BRANCH == "main"' }]

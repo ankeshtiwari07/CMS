@@ -1,0 +1,16 @@
+# Jaeger all-in-one as the trace backend for the otel-collector. OTLP-native
+# (gRPC 4317 / HTTP 4318 inside the container); UI on 16686 bound to loopback
+# (no built-in auth — reach via SSH/IAP tunnel). In-memory storage. Added 2026-06-24.
+services:
+  jaeger:
+    image: jaegertracing/all-in-one:1.60
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+      SPAN_STORAGE_TYPE: "memory"
+      MEMORY_MAX_TRACES: "50000"
+    ports: ["127.0.0.1:16686:16686"]
+    restart: unless-stopped
+    # Backstop memory cap (durable form of the 2026-07-07 runtime `docker update`).
+    # In-memory trace store (50k traces) can grow unbounded; cap + block swap.
+    mem_limit: 1g
+    memswap_limit: 1g

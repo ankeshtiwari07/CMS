@@ -1,0 +1,7 @@
+# The MCP server uses stdio transport (not a network service): clients spawn a
+# session via 'docker exec -i haow-cms-mcp-1 node apps/mcp-server/dist/server.js'.
+# We keep a resident container so the built server + DB/AI env are always ready.
+# Added 2026-06-23.
+services:
+  mcp:
+    command: ["sh", "-lc", "echo mcp-server image resident; tail -f /dev/null"]

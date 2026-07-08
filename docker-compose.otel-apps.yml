@@ -1,0 +1,28 @@
+# OpenTelemetry zero-code auto-instrumentation on Node app services (image :otel)
+# + a hotfix mount on ai-service that extends /studio/chat's availability-error
+# classification so it degrades to the fallback provider (Grok) when Anthropic is
+# unavailable (e.g. credit exhausted) instead of erroring. Added 2026-06-23/24.
+x-otel-env: &otelenv
+  NODE_OPTIONS: "--require /otel/node_modules/@opentelemetry/auto-instrumentations-node/build/src/register.js"
+  OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4318"
+  OTEL_EXPORTER_OTLP_PROTOCOL: "http/protobuf"
+  OTEL_TRACES_EXPORTER: "otlp"
+  OTEL_METRICS_EXPORTER: "none"
+  OTEL_LOGS_EXPORTER: "none"
+services:
+  ai-service:
+    image: humain-cms-stack:minimax
+    environment: { <<: *otelenv, OTEL_SERVICE_NAME: "ai-service" }
+  workers:
+    image: humain-cms-stack:otel
+    environment: { <<: *otelenv, OTEL_SERVICE_NAME: "workers" }
+  cms:
+    image: humain-cms-stack:otel
+    environment: { <<: *otelenv, OTEL_SERVICE_NAME: "cms" }
+  console:
+    image: humain-cms-stack:otel
+    environment: { <<: *otelenv, OTEL_SERVICE_NAME: "console" }
+  web:
+    image: humain-cms-stack:otel
+    ports: ["127.0.0.1:8040:3000"]
+    environment: { <<: *otelenv, OTEL_SERVICE_NAME: "web" }

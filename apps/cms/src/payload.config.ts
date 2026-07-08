@@ -49,6 +49,14 @@ export default buildConfig({
   admin: {
     user: Users.slug,
     importMap: { baseDir: path.resolve(dirname) },
+    components: {
+      // Brand the embedded Payload admin with the HUMAIN mark instead of the
+      // stock Payload logo/hexagon. Login wordmark + compact nav monogram.
+      graphics: {
+        Logo: "/components/graphics/Logo#default",
+        Icon: "/components/graphics/Icon#default",
+      },
+    },
     meta: {
       titleSuffix: "· HUMAIN CMS",
     },

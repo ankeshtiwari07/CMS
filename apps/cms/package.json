@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "next dev -p 3001",
-    "build": "next build",
+    "build": "payload generate:importmap && next build",
     "start": "next start -p 3001",
     "payload": "payload",
     "generate:types": "payload generate:types",

@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "next dev -p 3001",
-    "build": "payload generate:importmap && next build",
+    "build": "CMS_BUILD=1 payload generate:importmap && CMS_BUILD=1 next build",
     "start": "next start -p 3001",
     "payload": "payload",
     "generate:types": "payload generate:types",

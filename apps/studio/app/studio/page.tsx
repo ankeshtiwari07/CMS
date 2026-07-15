@@ -43,7 +43,7 @@ export default async function StudioHome() {
           style={{
             minHeight: "calc(100vh - 20px)",
             borderRadius: 22,
-            background: "linear-gradient(180deg, var(--mint-tint) 0%, #eafaf6 7%, #ffffff 16%, #ffffff 100%)",
+            background: "linear-gradient(180deg, var(--mint-tint) 0%, var(--hero-mid) 7%, var(--hero-end) 16%, var(--hero-end) 100%)",
             border: "1px solid var(--hairline)",
             padding: "72px 40px 56px",
           }}

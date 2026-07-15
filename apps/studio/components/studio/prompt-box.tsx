@@ -149,6 +149,24 @@ export default function PromptBox({ onActive }: { onActive?: (active: boolean) =
   const abortRef = useRef<AbortController | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
   const stickRef = useRef(true); // keep pinned to the latest tokens unless the user scrolls up
+  const taRef = useRef<HTMLTextAreaElement>(null); // composer textarea (auto-grow)
+  const listeningRef = useRef(false); // intended dictation state (survives onend restarts)
+
+  // Auto-grow the composer textarea with content, capped so it can't overrun the UI.
+  function autoGrow() {
+    const el = taRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = Math.min(el.scrollHeight, 220) + "px";
+  }
+  useEffect(() => { autoGrow(); }, [prompt]);
+
+  // Open a dedicated Studio (Deck / Website) carrying whatever is typed so it
+  // pre-fills and runs there — the rich builders live in their own workspaces.
+  function openStudio(path: string) {
+    const p = prompt.trim();
+    window.location.href = path + (p ? `?prompt=${encodeURIComponent(p)}` : "");
+  }
 
   // Close any open menu (+, ratio, style, model, suggestions) on an outside
   // click or Escape.
@@ -265,9 +283,17 @@ export default function PromptBox({ onActive }: { onActive?: (active: boolean) =
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [busy]);
 
-  const suggestions =
+  // Actionable "do this with what you typed" suggestions — distinct from the
+  // prompt text itself. Deck/Website open their builders; the rest set the mode.
+  const suggestions: { label: string; kind: string }[] =
     prompt.trim().length >= 3 && open !== null
-      ? ["deck", "image", "email"].map((s) => `${prompt.trim()} ${s}`)
+      ? [
+          { label: "Turn this into a presentation deck", kind: "deck" },
+          { label: "Build this as a website", kind: "website" },
+          { label: "Write a long-form article about this", kind: "writing" },
+          { label: "Draft a marketing email about this", kind: "email" },
+          { label: "Generate an image from this", kind: "image" },
+        ]
       : [];
 
   async function onFiles(list: FileList | null) {
@@ -388,7 +414,17 @@ export default function PromptBox({ onActive }: { onActive?: (active: boolean) =
       return;
     }
 
-    // ---- Rich artifact modes (websiteBuild / video / image / deck) ----
+    // ---- Image mode: render a REAL image via the Replicate pipeline ----
+    // (ImageRender does the /api/image/render + poll + <img> display). The old
+    // path returned a text "concept preview" and never produced a picture.
+    if (mode === "image") {
+      setTurns((p) => [...p, { role: "assistant", text: "", mode, imagePrompt: userText, ratio }]);
+      abortRef.current = null;
+      setBusy(false);
+      return;
+    }
+
+    // ---- Rich artifact modes (websiteBuild / video / deck) ----
     try {
       const res = await fetch("/api/generate", {
         method: "POST",
@@ -433,12 +469,31 @@ export default function PromptBox({ onActive }: { onActive?: (active: boolean) =
   function toggleMic() {
     const SR = (globalThis as any).webkitSpeechRecognition || (globalThis as any).SpeechRecognition;
     if (!SR) { setTurns((p) => [...p, { role: "assistant", text: "Voice input needs Chrome or Edge." }]); return; }
-    if (listening) return recRef.current?.stop();
+    if (listening) { listeningRef.current = false; recRef.current?.stop(); return; }
     const rec = new SR();
     rec.lang = "en-US";
+    rec.continuous = true;      // keep listening across natural pauses
     rec.interimResults = true;
-    rec.onresult = (e: any) => setPrompt(Array.from(e.results).map((r: any) => r[0].transcript).join(" "));
-    rec.onend = () => setListening(false);
+    // Accumulate finalized speech onto whatever is already in the box; only the
+    // trailing interim chunk changes as the user speaks.
+    let base = prompt ? prompt.replace(/\s+$/, "") + " " : "";
+    rec.onresult = (e: any) => {
+      let interim = "";
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const r = e.results[i];
+        if (r.isFinal) base += r[0].transcript.trim() + " ";
+        else interim += r[0].transcript;
+      }
+      setPrompt((base + interim).replace(/\s+/g, " ").trimStart());
+    };
+    // Chrome ends recognition on a longer pause — if the user hasn't stopped,
+    // restart so they can keep dictating the next sentence/paragraph.
+    rec.onend = () => {
+      if (listeningRef.current) { try { rec.start(); } catch { /* already starting */ } }
+      else setListening(false);
+    };
+    rec.onerror = (ev: any) => { if (ev?.error === "not-allowed" || ev?.error === "service-not-allowed") { listeningRef.current = false; setListening(false); } };
+    listeningRef.current = true;
     rec.start();
     recRef.current = rec;
     setListening(true);
@@ -489,12 +544,13 @@ export default function PromptBox({ onActive }: { onActive?: (active: boolean) =
 
         <textarea
           id="studio-prompt"
+          ref={taRef}
           value={prompt}
-          onChange={(e) => { setPrompt(e.target.value); setOpen(e.target.value.trim().length >= 3 ? "suggest" : null); }}
+          onChange={(e) => { setPrompt(e.target.value); autoGrow(); setOpen(e.target.value.trim().length >= 3 ? "suggest" : null); }}
           onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); generate(); } }}
           placeholder={turns.length ? t("prompt.followup") : t("prompt.placeholder")}
           rows={1}
-          style={{ width: "100%", border: "none", outline: "none", resize: "none", fontSize: 16, color: "var(--ink)", minHeight: 26, lineHeight: 1.5 }}
+          style={{ width: "100%", border: "none", outline: "none", resize: "none", fontSize: 16, color: "var(--ink)", minHeight: 26, maxHeight: 220, overflowY: "auto", lineHeight: 1.5 }}
         />
 
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
@@ -509,10 +565,10 @@ export default function PromptBox({ onActive }: { onActive?: (active: boolean) =
                 <button style={item} onClick={() => { fileRef.current?.click(); setOpen(null); }}><PaperclipIcon size={17} color="var(--muted)" /> Add photos &amp; files</button>
                 <button style={item} onClick={() => globalThis.dispatchEvent(new CustomEvent("humain:recent"))}><ClockIcon size={17} color="var(--muted)" /> Recent projects</button>
                 <div style={{ height: 1, background: "var(--hairline)", margin: "4px 0" }} />
-                <button style={item} onClick={() => { setMode("deck"); setOpen(null); }}><MonitorIcon size={17} color="var(--muted)" /> Create Deck</button>
+                <button style={item} onClick={() => openStudio("/cms/deck")}><MonitorIcon size={17} color="var(--muted)" /> Create Deck</button>
                 <button style={item} onClick={() => { setMode("image"); setOpen(null); }}><ImageIcon size={17} color="var(--muted)" /> Create Image</button>
                 <button style={item} onClick={() => { setMode("video"); setOpen(null); }}><VideoIcon size={17} color="var(--muted)" /> Create Video</button>
-                <button style={item} onClick={() => { setMode("websiteBuild"); setOpen(null); }}><CodeIcon size={17} color="var(--muted)" /> Build Website</button>
+                <button style={item} onClick={() => openStudio("/cms/website")}><CodeIcon size={17} color="var(--muted)" /> Build Website</button>
                 <button style={item} onClick={() => { setMode("website"); setOpen(null); }}><GlobeIcon size={17} color="var(--muted)" /> Website Copy</button>
                 <button style={item} onClick={() => { setMode("email"); setOpen(null); }}><MailIcon size={17} color="var(--muted)" /> Create Email</button>
                 <button style={item} onClick={() => { setMode("event"); setOpen(null); }}><CalendarIcon size={17} color="var(--muted)" /> Create Event</button>
@@ -630,6 +686,15 @@ export default function PromptBox({ onActive }: { onActive?: (active: boolean) =
       {/* quick-action buttons below the chat (landing only) */}
       {!active && (
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center", marginTop: 14 }}>
+        {/* Deck / Website open their dedicated builders (carry the typed prompt). */}
+        <button onClick={() => openStudio("/cms/deck")}
+          style={{ display: "inline-flex", alignItems: "center", gap: 7, height: 38, padding: "0 16px", borderRadius: 999, cursor: "pointer", fontSize: 13.5, fontWeight: 700, border: "none", background: "var(--studio-primary)", color: "#fff" }}>
+          <MonitorIcon size={16} /> Deck
+        </button>
+        <button onClick={() => openStudio("/cms/website")}
+          style={{ display: "inline-flex", alignItems: "center", gap: 7, height: 38, padding: "0 16px", borderRadius: 999, cursor: "pointer", fontSize: 13.5, fontWeight: 700, border: "none", background: "var(--studio-primary)", color: "#fff" }}>
+          <CodeIcon size={16} /> Website
+        </button>
         {QUICK_ACTIONS.map((a) => {
           const on = mode === a.mode;
           const I = a.Icon;
@@ -657,15 +722,17 @@ export default function PromptBox({ onActive }: { onActive?: (active: boolean) =
       {open === "suggest" && suggestions.length > 0 && !turns.length && (
         <div style={{ marginTop: 10, background: "#fff", border: "1px solid var(--hairline)", borderRadius: 14, boxShadow: "var(--shadow-card)", padding: 10 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--muted)", fontSize: 13, padding: "4px 8px" }}><SparkIcon size={15} /> Suggestions</div>
-          {suggestions.map((s, i) => {
-            const m = ["deck", "image", "email"][i] as Mode;
-            return (
-              <button key={i} onClick={() => { setPrompt(s); setMode(m); setOpen(null); }}
-                style={{ display: "block", width: "100%", textAlign: "left", padding: "9px 10px", border: "none", background: "transparent", borderRadius: 8, fontSize: 15, cursor: "pointer" }}>
-                <span style={{ color: "var(--studio-primary)", fontWeight: 600 }}>{prompt.trim()}</span> <span style={{ color: "var(--ink)" }}>{["deck", "image", "email"][i]}</span>
-              </button>
-            );
-          })}
+          {suggestions.map((s, i) => (
+            <button key={i} onClick={() => {
+              setOpen(null);
+              if (s.kind === "deck") return openStudio("/cms/deck");
+              if (s.kind === "website") return openStudio("/cms/website");
+              setMode(s.kind as Mode); focusPrompt();
+            }}
+              style={{ display: "flex", alignItems: "center", gap: 9, width: "100%", textAlign: "left", padding: "9px 10px", border: "none", background: "transparent", borderRadius: 8, fontSize: 14.5, cursor: "pointer", color: "var(--ink)" }}>
+              <SparkIcon size={14} color="var(--studio-primary)" /> {s.label}
+            </button>
+          ))}
         </div>
       )}
 

@@ -23,7 +23,7 @@ export const Media: CollectionConfig = {
   hooks: {
     afterChange: [async ({ doc, operation }) => {
       if (operation === "create" && !doc.alt) {
-        await ragQueue.add("alt-text", { id: doc.id }); // worker calls AI service
+        await ragQueue?.add("alt-text", { id: doc.id }); // worker calls AI service
       }
       return doc;
     }],

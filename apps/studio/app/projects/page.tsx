@@ -16,8 +16,10 @@ export default async function ProjectsPage() {
     if (res.ok) {
       projects = ((await res.json()).docs ?? []).map((d: any) => ({
         id: d.id, title: d.title, type: d.type, updatedAt: d.updatedAt,
+        status: d.status ?? "draft",
         text: typeof d.asset?.text === "string" ? d.asset.text : "",
         preview: Boolean(d.asset?.preview),
+        deckId: d.asset?.deckId, siteId: d.asset?.siteId, sitePath: d.asset?.path,
       }));
     }
   } catch {

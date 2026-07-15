@@ -70,20 +70,30 @@ export const enforcePublishPermission: CollectionBeforeChangeHook = async ({ dat
   return data;
 };
 
-const connection = new IORedis(process.env.REDIS_URL || "redis://localhost:6379", {
-  maxRetriesPerRequest: null,
-  enableOfflineQueue: false,
-  lazyConnect: true,
-});
-connection.on("error", () => {}); // swallow connection noise; adds are guarded below
+// During the production BUILD (`payload generate:importmap` + `next build`) Redis
+// is unreachable, and bullmq's infinite reconnect timers would keep the Node
+// process alive forever — hanging generate:importmap so `next build` never starts.
+// Skip all queue/connection setup at build time; hooks don't run during a build.
+const IS_BUILD =
+  process.env.CMS_BUILD === "1" || process.env.NEXT_PHASE === "phase-production-build";
+
+const connection = IS_BUILD
+  ? null
+  : new IORedis(process.env.REDIS_URL || "redis://localhost:6379", {
+      maxRetriesPerRequest: null,
+      enableOfflineQueue: false,
+      lazyConnect: true,
+    });
+connection?.on("error", () => {}); // swallow connection noise; adds are guarded below
 
 // `connection as any`: bullmq bundles ioredis@5.10 types while we resolve 5.11;
 // the instances are runtime-compatible but the d.ts identities differ.
-export const ragQueue = new Queue("rag", { connection: connection as any });
-export const indexQueue = new Queue("index", { connection: connection as any });
+export const ragQueue: Queue | null = connection ? new Queue("rag", { connection: connection as any }) : null;
+export const indexQueue: Queue | null = connection ? new Queue("index", { connection: connection as any }) : null;
 
 // Never let a down Redis hang or break a content mutation.
-async function safeAdd(queue: Queue, name: string, data: Record<string, unknown>) {
+async function safeAdd(queue: Queue | null, name: string, data: Record<string, unknown>) {
+  if (!queue) return;
   try {
     await Promise.race([
       queue.add(name, data),

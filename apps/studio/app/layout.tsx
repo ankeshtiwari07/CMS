@@ -23,8 +23,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const raw = (await headers()).get("x-humain-locale") || (await cookies()).get("humain-locale")?.value || "en";
   const locale = (LOCALES.find((l) => l.code === raw)?.code || "en") as Locale;
   const dir = isRtl(locale) ? "rtl" : "ltr";
+  // No-flash theme init: set data-theme from the persisted choice BEFORE paint.
+  const themeScript = `(function(){try{var t=localStorage.getItem('humain-theme')||'system';document.documentElement.setAttribute('data-theme',t);}catch(e){document.documentElement.setAttribute('data-theme','system');}})();`;
   return (
-    <html lang={locale} dir={dir} className={`${inter.variable} ${plexAr.variable}`}>
+    <html lang={locale} dir={dir} data-theme="system" className={`${inter.variable} ${plexAr.variable}`} suppressHydrationWarning>
+      <head><script dangerouslySetInnerHTML={{ __html: themeScript }} /></head>
       <body><LocaleProvider locale={locale}>{children}</LocaleProvider></body>
     </html>
   );

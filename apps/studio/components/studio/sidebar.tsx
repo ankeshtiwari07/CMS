@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { HumainLockup, HumainMark } from "@/components/brand";
 import NotificationsBell from "@/components/notifications/notifications-bell";
 import ChatHistory from "@/components/studio/chat-history";
+import ThemeToggle from "@/components/studio/theme-toggle";
 import { useT, LanguageSwitcher } from "@/lib/i18n-client";
 import {
   PlusIcon,
@@ -235,6 +236,10 @@ export default function Sidebar({
         </button>
       </div>
 
+      {/* Scrollable middle: nav + CMS Admin accordion + chat history all share
+          one scroll region so expanding CMS Admin (or a long chat list) scrolls
+          instead of being clipped. Brand stays pinned above, user footer below. */}
+      <div style={{ flex: 1, minHeight: 0, overflowY: "auto", overflowX: "hidden", display: "flex", flexDirection: "column", gap: 6, marginRight: -6, paddingRight: 6 }}>
       {/* Nav */}
       <div style={{ display: "grid", gap: 4 }}>
         {NAV.filter((n) => !(n as any).approverOnly || (user.roles || []).some((r) => ["reviewer", "publisher", "brand", "siteAdmin", "compliance", "admin"].includes(r))).map(({ key, Icon, label, href }) => {
@@ -366,8 +371,10 @@ export default function Sidebar({
 
       {/* Per-user chat history (topics) */}
       <ChatHistory collapsed={collapsed} />
+      </div>{/* end scrollable middle */}
 
-      <div style={{ flex: 1 }} />
+      {/* Theme: light / dark / system */}
+      <div style={{ marginTop: 6 }}><ThemeToggle collapsed={collapsed} /></div>
 
       {/* Notifications (real activity feed) */}
       <NotificationsBell variant="sidebar" collapsed={collapsed} />

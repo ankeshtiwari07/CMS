@@ -8,9 +8,23 @@ import { startRender, pollRender, videoConfigured } from "./providers/video.js";
 import { startImageRender, pollImageRender, imageConfigured } from "./providers/image.js";
 import { runSlaSweep, getBreaches, startSlaScheduler } from "./sla.js";
 import { runOrchestrator } from "./agents/orchestrator.js";
+import { THEMES, generateDeckQuestions, generateOutline, generateDeck, regenerateSlide, translateDeck } from "./deck.js";
+import { planWebsite, generateWebsite, generateSection, assemble } from "./website.js";
 
 const app = Fastify({ logger: true, bodyLimit: 1_000_000 });
 const provider = getProvider();
+
+// Is ANY model provider usable? Generation must degrade to a configured provider
+// (grok/minimax/…) rather than dead-ending just because the DEFAULT model's key
+// is absent. Used to guard the "not configured" messages below.
+function anyProviderConfigured(): boolean {
+  return MODELS.some((m) => providerByName(m.provider).configured);
+}
+// First configured (non-hidden) model — the target we degrade to when the
+// selected model's provider has no key.
+function firstConfiguredModel() {
+  return MODELS.find((m) => !m.hidden && providerByName(m.provider).configured);
+}
 
 await app.register(rateLimit, {
   max: Number(process.env.RATE_LIMIT_MAX || 60),
@@ -207,7 +221,10 @@ app.post("/studio/generate", async (req) => {
   // Route to the chosen model's provider (defaults to Claude Opus).
   const { provider: chosen, model, fast, entry } = resolveModel(body.model);
 
-  if (chosen.configured === false) {
+  // Only refuse when NO provider at all is usable. If the SELECTED model is
+  // unconfigured but others are, we fall through — completeWithFallback (below)
+  // filters to configured providers and answers on one of them.
+  if (chosen.configured === false && !anyProviderConfigured()) {
     return {
       ok: true,
       mode: body.mode,
@@ -295,12 +312,18 @@ app.post("/studio/chat", async (req, reply) => {
   });
   const send = (e: unknown) => reply.raw.write(`data: ${JSON.stringify(e)}\n\n`);
 
-  const { entry, model } = resolveModel(body.model);
-  const agentic = providerByName(entry.provider);
-  if (agentic.configured === false) {
-    send({ type: "delta", text: `⚙️ ${entry.label} is not configured. Add its API key on the ai-service, or pick another model.` });
-    send({ type: "done", model: entry.id, modelLabel: entry.label, artifact: "" });
-    return reply.raw.end();
+  let { entry, model } = resolveModel(body.model);
+  // If the selected model's provider has no key, transparently switch to the
+  // first configured model so chat still works (instead of dead-ending).
+  if (providerByName(entry.provider).configured === false) {
+    const alt = firstConfiguredModel();
+    if (!alt) {
+      send({ type: "delta", text: `⚙️ No AI model is configured. Add a provider API key on the ai-service.` });
+      send({ type: "done", model: entry.id, modelLabel: entry.label, artifact: "" });
+      return reply.raw.end();
+    }
+    send({ type: "status", label: `Using ${alt.label}` });
+    entry = alt; model = alt.model;
   }
   // The agent tool-use loop now runs on the SELECTED provider — Claude via the
   // Anthropic loop, or any tool-capable OpenAI-compatible model (MiniMax, HUMAIN
@@ -361,6 +384,153 @@ app.post("/studio/chat", async (req, reply) => {
     }
   }
   reply.raw.end();
+});
+
+// ---- Deck Studio (gamma-style presentations) ------------------------------
+// Themes (design systems) the deck can render with.
+app.get("/deck/themes", async () => ({ themes: THEMES }));
+
+// Clarifying questions the agent asks before drafting the outline.
+app.post("/studio/deck/questions", async (req, reply) => {
+  const body = z.object({ prompt: z.string().min(1).max(8000), model: z.string().optional() }).parse(req.body);
+  const { entry } = resolveModel(body.model);
+  try {
+    const q = await generateDeckQuestions(body.prompt, entry.provider);
+    return { ok: true, questions: q.questions, provider: q._provider };
+  } catch (e: any) {
+    req.log.warn({ err: e?.message }, "deck/questions error");
+    return reply.code(502).send({ error: e?.message || "questions_failed" });
+  }
+});
+
+// Plan a deck: prompt -> title + slide outline.
+app.post("/studio/deck/outline", async (req, reply) => {
+  const body = z.object({ prompt: z.string().min(1).max(8000), model: z.string().optional() }).parse(req.body);
+  const { entry } = resolveModel(body.model);
+  try {
+    const o = await generateOutline(body.prompt, undefined, entry.provider);
+    return { ok: true, title: o.title, subtitle: o.subtitle, slides: o.slides, provider: o._provider };
+  } catch (e: any) {
+    req.log.warn({ err: e?.message }, "deck/outline error");
+    return reply.code(502).send({ error: e?.message || "outline_failed" });
+  }
+});
+
+// Generate the full deck (optionally from an approved outline).
+app.post("/studio/deck", async (req, reply) => {
+  const body = z
+    .object({
+      prompt: z.string().min(1).max(8000),
+      theme: z.string().optional(),
+      model: z.string().optional(),
+      outline: z.object({ title: z.string().optional(), slides: z.array(z.object({ title: z.string(), intent: z.string().optional() })) }).optional(),
+    })
+    .parse(req.body);
+  const { entry } = resolveModel(body.model);
+  try {
+    const deck = await generateDeck({ prompt: body.prompt, outline: body.outline as any, theme: body.theme, primary: entry.provider });
+    return { ok: true, title: deck.title, subtitle: deck.subtitle, theme: deck.theme, slides: deck.slides, provider: deck._provider, fellBack: deck._fellBack };
+  } catch (e: any) {
+    req.log.warn({ err: e?.message }, "deck/generate error");
+    return reply.code(502).send({ error: e?.message || "deck_failed" });
+  }
+});
+
+// Translate a whole deck into a target language.
+app.post("/studio/deck/translate", async (req, reply) => {
+  const body = z.object({
+    lang: z.string().min(1).max(40),
+    deck: z.object({ title: z.string(), subtitle: z.string().optional(), slides: z.array(z.record(z.unknown())) }),
+    model: z.string().optional(),
+  }).parse(req.body);
+  const { entry } = resolveModel(body.model);
+  try {
+    const out = await translateDeck({ deck: body.deck as any, lang: body.lang, primary: entry.provider });
+    return { ok: true, title: out.title, subtitle: out.subtitle, slides: out.slides, provider: out._provider };
+  } catch (e: any) {
+    req.log.warn({ err: e?.message }, "deck/translate error");
+    return reply.code(502).send({ error: e?.message || "translate_failed" });
+  }
+});
+
+// Regenerate a single slide.
+app.post("/studio/deck/slide", async (req, reply) => {
+  const body = z.object({ deckTitle: z.string().default("Presentation"), slide: z.record(z.unknown()), instruction: z.string().max(2000).optional(), model: z.string().optional() }).parse(req.body);
+  const { entry } = resolveModel(body.model);
+  try {
+    const s = await regenerateSlide({ deckTitle: body.deckTitle, slide: body.slide as any, instruction: body.instruction, primary: entry.provider });
+    return { ok: true, ...s };
+  } catch (e: any) {
+    req.log.warn({ err: e?.message }, "deck/slide error");
+    return reply.code(502).send({ error: e?.message || "slide_failed" });
+  }
+});
+
+// ---- Website Studio (gamma/Apple-style full sites) ------------------------
+// Plan a site: prompt -> title + brand + ordered section list.
+app.post("/studio/website/plan", async (req, reply) => {
+  const body = z.object({ prompt: z.string().min(1).max(8000), model: z.string().optional() }).parse(req.body);
+  const { entry } = resolveModel(body.model);
+  try {
+    const plan = await planWebsite(body.prompt, entry.provider);
+    return { ok: true, title: plan.title, description: plan.description, brand: plan.brand, sections: plan.sections, provider: plan._provider };
+  } catch (e: any) {
+    req.log.warn({ err: e?.message }, "website/plan error");
+    return reply.code(502).send({ error: e?.message || "plan_failed" });
+  }
+});
+
+// Generate the full site (plan + every section in parallel + assembled HTML).
+app.post("/studio/website", async (req, reply) => {
+  const body = z
+    .object({
+      prompt: z.string().min(1).max(8000),
+      model: z.string().optional(),
+      plan: z
+        .object({
+          title: z.string(),
+          description: z.string().optional(),
+          brand: z.record(z.unknown()),
+          sections: z.array(z.object({ id: z.string(), kind: z.string(), brief: z.string() })),
+        })
+        .optional(),
+    })
+    .parse(req.body);
+  const { entry } = resolveModel(body.model);
+  try {
+    const site = await generateWebsite({ prompt: body.prompt, plan: body.plan as any, primary: entry.provider });
+    return { ok: true, title: site.title, brand: site.brand, sections: site.sections, html: site.html, provider: site.provider };
+  } catch (e: any) {
+    req.log.warn({ err: e?.message }, "website/generate error");
+    return reply.code(502).send({ error: e?.message || "website_failed" });
+  }
+});
+
+// Regenerate a single section; caller re-assembles.
+app.post("/studio/website/section", async (req, reply) => {
+  const body = z
+    .object({
+      siteTitle: z.string().default("Website"),
+      sitePrompt: z.string().default(""),
+      brand: z.record(z.unknown()),
+      section: z.object({ id: z.string(), kind: z.string(), brief: z.string() }),
+      model: z.string().optional(),
+    })
+    .parse(req.body);
+  const { entry } = resolveModel(body.model);
+  try {
+    const sec = await generateSection({ section: body.section as any, brand: body.brand as any, siteTitle: body.siteTitle, sitePrompt: body.sitePrompt, primary: entry.provider });
+    return { ok: true, id: sec.id, kind: sec.kind, brief: sec.brief, html: sec.html, provider: sec._provider };
+  } catch (e: any) {
+    req.log.warn({ err: e?.message }, "website/section error");
+    return reply.code(502).send({ error: e?.message || "section_failed" });
+  }
+});
+
+// Assemble a full HTML doc from an ordered section list (client edits + reorders).
+app.post("/studio/website/assemble", async (req) => {
+  const body = z.object({ title: z.string().default("Website"), brand: z.record(z.unknown()), sections: z.array(z.object({ html: z.string() })) }).parse(req.body);
+  return { ok: true, html: assemble(body.title, body.brand as any, body.sections) };
 });
 
 // Defense-in-depth: never let a raw provider/upstream error propagate to the

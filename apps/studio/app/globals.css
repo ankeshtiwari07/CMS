@@ -30,6 +30,63 @@
   --font-ar: var(--font-plex-ar), "IBM Plex Sans Arabic", sans-serif;
 }
 
+/* ---- Theme: light / dark / system --------------------------------------------
+   <html data-theme="light|dark|system">. Theme-scoped variables (incl. the
+   hard-coded shell/card colors as vars) so the [style*] overrides below can be
+   written once and resolve to LIGHT values under system-light (no visual change)
+   and DARK values under explicit-dark or system-dark. */
+:root {
+  --shell-bg: #eef4f3;   /* outer page background used inline across pages */
+  --card-bg: #ffffff;    /* cards / panels */
+  --soft-bg: #fafcfb;    /* subtle inner panels */
+  --hero-mid: #eafaf6;   /* studio-home hero gradient stops */
+  --hero-end: #ffffff;
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --canvas: #0e1614; --ink: #e9f0ed; --muted: #93a49e; --hairline: #24322f;
+  --mint-tint: #16302b; --mint-pill: #14322c; --surface: #141d1b;
+  --shadow-card: 0 10px 28px rgba(0, 0, 0, 0.55);
+  --shell-bg: #0a1210; --card-bg: #141d1b; --soft-bg: #10201c;
+  --hero-mid: #0f221d; --hero-end: #0e1614;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="system"] {
+    color-scheme: dark;
+    --canvas: #0e1614; --ink: #e9f0ed; --muted: #93a49e; --hairline: #24322f;
+    --mint-tint: #16302b; --mint-pill: #14322c; --surface: #141d1b;
+    --shadow-card: 0 10px 28px rgba(0, 0, 0, 0.55);
+    --shell-bg: #0a1210; --card-bg: #141d1b; --soft-bg: #10201c;
+    --hero-mid: #0f221d; --hero-end: #0e1614;
+  }
+}
+/* Overrides apply for dark + system; under system-LIGHT the vars are still the
+   light values, so appearance is unchanged. Explicit light never matches. */
+:is(:root[data-theme="dark"], :root[data-theme="system"]) body { background: var(--shell-bg); color: var(--ink); }
+:is(:root[data-theme="dark"], :root[data-theme="system"]) [style*="#eef4f3"] { background: var(--shell-bg) !important; }
+:is(:root[data-theme="dark"], :root[data-theme="system"]) [style*="background: #fff"],
+:is(:root[data-theme="dark"], :root[data-theme="system"]) [style*="background:#fff"],
+:is(:root[data-theme="dark"], :root[data-theme="system"]) [style*="background: #ffffff"],
+:is(:root[data-theme="dark"], :root[data-theme="system"]) [style*="background:#ffffff"],
+:is(:root[data-theme="dark"], :root[data-theme="system"]) [style*="background: white"] { background: var(--card-bg) !important; }
+:is(:root[data-theme="dark"], :root[data-theme="system"]) [style*="background: #fafcfb"],
+:is(:root[data-theme="dark"], :root[data-theme="system"]) [style*="background:#fafcfb"],
+:is(:root[data-theme="dark"], :root[data-theme="system"]) [style*="background: #f5f8f7"] { background: var(--soft-bg) !important; }
+/* Dark-text hexes hard-coded inline → flip to the theme ink so headings/body
+   aren't near-invisible in dark. (Under system-light these map to the light
+   ink, an imperceptible change.) */
+:is(:root[data-theme="dark"], :root[data-theme="system"]) [style*="color: #12241f"],
+:is(:root[data-theme="dark"], :root[data-theme="system"]) [style*="color:#12241f"],
+:is(:root[data-theme="dark"], :root[data-theme="system"]) [style*="color: #1a1a1a"],
+:is(:root[data-theme="dark"], :root[data-theme="system"]) [style*="color: #111726"],
+:is(:root[data-theme="dark"], :root[data-theme="system"]) [style*="color: #0b1416"],
+:is(:root[data-theme="dark"], :root[data-theme="system"]) [style*="color: #1c3b34"],
+:is(:root[data-theme="dark"], :root[data-theme="system"]) [style*="color: #12241f"] { color: var(--ink) !important; }
+:is(:root[data-theme="dark"], :root[data-theme="system"]) [style*="color: #5b6d67"],
+:is(:root[data-theme="dark"], :root[data-theme="system"]) [style*="color: #6b7d77"],
+:is(:root[data-theme="dark"], :root[data-theme="system"]) [style*="color: #6b7280"],
+:is(:root[data-theme="dark"], :root[data-theme="system"]) [style*="color:#5b6d67"] { color: var(--muted) !important; }
+
 * {
   box-sizing: border-box;
 }

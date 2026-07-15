@@ -9,7 +9,15 @@ import {
 import { useT, useLocale } from "@/lib/i18n-client";
 import { relativeTime } from "@/lib/i18n";
 
-export type Project = { id: string | number; title: string; type: string; updatedAt?: string; text?: string; preview?: boolean };
+export type Project = { id: string | number; title: string; type: string; updatedAt?: string; text?: string; preview?: boolean; status?: string; deckId?: string | number; siteId?: string | number; sitePath?: string };
+
+// Status pill colors for project cards.
+const STATUS_STYLE: Record<string, { bg: string; fg: string }> = {
+  draft: { bg: "#f1f0ec", fg: "#6b6257" },
+  ready: { bg: "#e6f4f1", fg: "#0f6b5c" },
+  published: { bg: "#e7f6ea", fg: "#137a3a" },
+  promoted: { bg: "#e7f6ea", fg: "#137a3a" },
+};
 
 const META: Record<string, { label: string; Icon: any; grad: string }> = {
   deck: { label: "DECK", Icon: MonitorIcon, grad: "linear-gradient(135deg,#e7f5ef,#d3ecdd)" },
@@ -54,15 +62,25 @@ export default function ProjectsGrid({ projects }: { projects: Project[] }) {
   const [openId, setOpenId] = useState<string | number | null>(null);
   const [creating, setCreating] = useState(false);
   const [deleting, setDeleting] = useState<string | number | null>(null);
+  const [confirmId, setConfirmId] = useState<string | number | null>(null); // styled delete-confirm
   const open = projects.find((p) => p.id === openId) || null;
+  const confirmProj = projects.find((p) => p.id === confirmId) || null;
 
-  async function remove(id: string | number) {
-    if (!confirm(t("pg.deleteConfirm"))) return;
+  // Clicking a project opens it where it can be worked on: deck/website projects
+  // open their dedicated builder (loaded by id); everything else opens the reader.
+  function openProject(p: Project) {
+    if (p.type === "deck" && p.deckId != null) return router.push(`/cms/deck?id=${p.deckId}`);
+    if ((p.type === "website" || p.type === "websiteBuild") && p.siteId != null) return router.push(`/cms/website?id=${p.siteId}`);
+    setOpenId(p.id);
+  }
+
+  async function doRemove(id: string | number) {
     setDeleting(id);
     try {
       const res = await fetch(`/api/projects/${id}`, { method: "DELETE" });
       if (res.ok) {
         if (openId === id) setOpenId(null);
+        setConfirmId(null);
         router.refresh();
       } else {
         alert(t("pg.deleteFail"));
@@ -99,21 +117,26 @@ export default function ProjectsGrid({ projects }: { projects: Project[] }) {
           return (
             <div key={p.id} style={{ position: "relative", border: "1px solid var(--hairline)", borderRadius: 14, overflow: "hidden", background: "#fff" }}>
               <button
-                onClick={() => setOpenId(p.id)}
+                onClick={() => openProject(p)}
                 style={{ display: "block", width: "100%", textAlign: "left", border: "none", background: "transparent", cursor: "pointer", padding: 0 }}
               >
                 <div style={{ height: 84, background: m.grad, display: "grid", placeItems: "center", color: "var(--studio-teal-dark)" }}>
                   <Icon size={26} />
                 </div>
                 <div style={{ padding: "12px 14px 14px" }}>
-                  <span style={{ display: "inline-block", fontSize: 10.5, fontWeight: 700, letterSpacing: "0.06em", color: "var(--studio-teal-dark)", background: "var(--mint-pill)", padding: "2px 8px", borderRadius: 999, textTransform: "uppercase" }}>{t(`type.${p.type}`)}</span>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                    <span style={{ display: "inline-block", fontSize: 10.5, fontWeight: 700, letterSpacing: "0.06em", color: "var(--studio-teal-dark)", background: "var(--mint-pill)", padding: "2px 8px", borderRadius: 999, textTransform: "uppercase" }}>{t(`type.${p.type}`)}</span>
+                    {p.status && (() => { const s = STATUS_STYLE[p.status] ?? STATUS_STYLE.draft; return (
+                      <span style={{ display: "inline-block", fontSize: 10, fontWeight: 700, letterSpacing: "0.04em", color: s.fg, background: s.bg, padding: "2px 8px", borderRadius: 999, textTransform: "capitalize" }}>{p.status}</span>
+                    ); })()}
+                  </div>
                   <div style={{ fontSize: 14.5, fontWeight: 600, color: "var(--ink)", marginTop: 8, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.title}</div>
                   {p.text && <div style={{ fontSize: 12.5, color: "var(--muted)", marginTop: 6, lineHeight: 1.5, maxHeight: 54, overflow: "hidden" }}>{p.text.slice(0, 120)}</div>}
                   <div style={{ fontSize: 11.5, color: "var(--muted)", marginTop: 8 }}>{t("card.updated")} {relativeTime(locale, p.updatedAt)} · {t("pg.open")} →</div>
                 </div>
               </button>
               <button
-                onClick={() => remove(p.id)}
+                onClick={() => setConfirmId(p.id)}
                 disabled={deleting === p.id}
                 aria-label="Delete project"
                 title="Delete"
@@ -128,6 +151,28 @@ export default function ProjectsGrid({ projects }: { projects: Project[] }) {
 
       {creating && <CreateModal onClose={() => setCreating(false)} onDone={() => { setCreating(false); router.refresh(); }} />}
 
+      {/* styled delete-confirmation modal (replaces the native confirm()) */}
+      {confirmProj && (
+        <div onClick={() => setConfirmId(null)} style={{ position: "fixed", inset: 0, background: "rgba(11,20,22,0.45)", display: "grid", placeItems: "center", zIndex: 120, padding: 24 }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ width: "100%", maxWidth: 420, background: "#fff", borderRadius: 16, padding: "22px 24px", boxShadow: "var(--shadow-card)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+              <span style={{ width: 38, height: 38, borderRadius: "50%", background: "#fdecea", color: "#b42318", display: "grid", placeItems: "center" }}><TrashIcon size={18} /></span>
+              <h2 style={{ fontSize: 17, fontWeight: 700, color: "var(--ink)", margin: 0 }}>Delete project?</h2>
+            </div>
+            <p style={{ fontSize: 14, color: "var(--muted)", lineHeight: 1.55, margin: "6px 0 18px" }}>
+              “<strong style={{ color: "var(--ink)" }}>{confirmProj.title}</strong>” will be permanently deleted. This can’t be undone.
+            </p>
+            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+              <button onClick={() => setConfirmId(null)} style={{ height: 40, padding: "0 16px", borderRadius: 10, border: "1px solid var(--hairline)", background: "#fff", color: "var(--ink)", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+              <button onClick={() => doRemove(confirmProj.id)} disabled={deleting === confirmProj.id}
+                style={{ height: 40, padding: "0 18px", borderRadius: 10, border: "none", background: "#b42318", color: "#fff", fontSize: 14, fontWeight: 700, cursor: "pointer" }}>
+                {deleting === confirmProj.id ? "Deleting…" : "Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {open && (
         <div onClick={() => setOpenId(null)} style={{ position: "fixed", inset: 0, background: "rgba(11,20,22,0.45)", display: "grid", placeItems: "center", zIndex: 100, padding: 24 }}>
           <div onClick={(e) => e.stopPropagation()} style={{ width: "100%", maxWidth: 760, maxHeight: "86vh", overflow: "auto", background: "#fff", borderRadius: 18, padding: "24px 26px", boxShadow: "var(--shadow-card)" }}>
@@ -141,7 +186,7 @@ export default function ProjectsGrid({ projects }: { projects: Project[] }) {
               </div>
               <div style={{ display: "flex", gap: 8 }}>
                 <button onClick={() => navigator.clipboard?.writeText(open.text || "")} style={{ border: "1px solid var(--hairline)", background: "#fff", borderRadius: 8, padding: "6px 12px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>{t("pg.copy")}</button>
-                <button onClick={() => remove(open.id)} style={{ border: "1px solid #f4cdcb", background: "#fff", borderRadius: 8, padding: "6px 12px", fontSize: 13, fontWeight: 600, color: "#b42318", cursor: "pointer" }}>{t("pg.delete")}</button>
+                <button onClick={() => setConfirmId(open.id)} style={{ border: "1px solid #f4cdcb", background: "#fff", borderRadius: 8, padding: "6px 12px", fontSize: 13, fontWeight: 600, color: "#b42318", cursor: "pointer" }}>{t("pg.delete")}</button>
                 <button onClick={() => setOpenId(null)} aria-label="Close" style={{ border: "1px solid var(--hairline)", background: "#fff", borderRadius: 8, width: 32, height: 32, display: "grid", placeItems: "center", cursor: "pointer" }}><XIcon size={16} /></button>
               </div>
             </div>
@@ -208,8 +253,12 @@ function CreateModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
           <button onClick={onClose} aria-label="Close" style={{ border: "1px solid var(--hairline)", background: "#fff", borderRadius: 8, width: 32, height: 32, display: "grid", placeItems: "center", cursor: "pointer" }}><XIcon size={16} /></button>
         </div>
 
-        <label style={{ display: "block", fontSize: 12.5, fontWeight: 600, color: "var(--ink)", marginBottom: 6 }}>{t("pg.title")}</label>
-        <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t("pg.titlePh")} style={{ ...field, marginBottom: 14 }} />
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
+          <label style={{ fontSize: 12.5, fontWeight: 600, color: "var(--ink)" }}>{t("pg.title")} <span style={{ color: "#b42318" }}>*</span></label>
+          <span style={{ fontSize: 11.5, color: title.length > 180 ? "#b42318" : "var(--muted)" }}>{title.length}/200</span>
+        </div>
+        <input value={title} maxLength={200} onChange={(e) => { setTitle(e.target.value); if (err) setErr(null); }} placeholder={t("pg.titlePh")}
+          style={{ ...field, marginBottom: 14, borderColor: err && !title.trim() ? "#f4a9a3" : "var(--hairline)" }} />
 
         <label style={{ display: "block", fontSize: 12.5, fontWeight: 600, color: "var(--ink)", marginBottom: 6 }}>{t("pg.type")}</label>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 14 }}>

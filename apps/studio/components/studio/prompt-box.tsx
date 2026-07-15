@@ -470,6 +470,16 @@ export default function PromptBox({ onActive }: { onActive?: (active: boolean) =
     const lastUser = [...turns].reverse().find((x) => x.role === "user");
     if (lastUser) send(lastUser.text, false);
   }
+  // Edit a previous prompt: load it back into the composer and truncate the
+  // conversation to before it, so sending regenerates from that point.
+  function editTurn(i: number) {
+    if (busy) return;
+    const turn = turns[i];
+    if (!turn || turn.role !== "user") return;
+    setPrompt(turn.text);
+    setTurns((p) => p.slice(0, i));
+    focusPrompt();
+  }
 
   function toggleMic() {
     const SR = (globalThis as any).webkitSpeechRecognition || (globalThis as any).SpeechRecognition;
@@ -746,8 +756,9 @@ export default function PromptBox({ onActive }: { onActive?: (active: boolean) =
         <div style={{ marginTop: active ? 0 : 18, marginBottom: active ? 18 : 0, order: active ? -1 : 0, display: "flex", flexDirection: "column", gap: 18 }}>
           {turns.map((t, i) =>
             t.role === "user" ? (
-              <div key={i} style={{ alignSelf: "flex-end", maxWidth: "85%", background: "var(--mint-pill)", color: "var(--studio-teal-dark)", borderRadius: 14, padding: "10px 14px", fontSize: 14.5, lineHeight: 1.5, whiteSpace: "pre-wrap" }}>
-                {t.text}
+              <div key={i} style={{ alignSelf: "flex-end", maxWidth: "85%", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 3 }}>
+                <div style={{ background: "var(--mint-pill)", color: "var(--studio-teal-dark)", borderRadius: 14, padding: "10px 14px", fontSize: 14.5, lineHeight: 1.5, whiteSpace: "pre-wrap" }}>{t.text}</div>
+                <button onClick={() => editTurn(i)} disabled={busy} title="Edit this prompt" style={{ border: "none", background: "transparent", color: "var(--muted)", fontSize: 12, cursor: "pointer", padding: "0 4px" }}>✎ Edit</button>
               </div>
             ) : (
               <AssistantTurn key={i} t={t} onRegen={i === turns.length - 1 ? regenerate : undefined} />

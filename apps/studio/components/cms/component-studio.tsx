@@ -72,6 +72,8 @@ export default function ComponentStudio({ user, canPublish }: { user: { name?: s
   const [toast, setToast] = useState<string | null>(null);
   const [showNew, setShowNew] = useState(false);
   const [form, setForm] = useState({ name: "", type: "section", status: "live", html: "", description: "" });
+  const [editingId, setEditingId] = useState<string | number | null>(null);
+  function startEdit(c: any) { setEditingId(c.id); setForm({ name: c.name || "", type: c.type || "section", status: c.status || "live", html: c.html || "", description: c.description || "" }); setShowNew(true); }
   const [aiPrompt, setAiPrompt] = useState("");
   const uidRef = useRef(0);
 
@@ -106,11 +108,12 @@ export default function ComponentStudio({ user, canPublish }: { user: { name?: s
   }
 
   async function saveComponent() {
-    if (!form.name.trim() || !form.html.trim()) { flash("Name and HTML are required"); return; }
+    if (!form.name.trim()) { flash("Name is required"); return; }
+    if (!form.html.trim()) { flash("HTML is required"); return; }
     setBusy(true);
     try {
-      const r = await fetch("/api/components", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(form) });
-      if (r.ok) { flash("Component saved to the library"); setShowNew(false); setForm({ name: "", type: "section", status: "live", html: "", description: "" }); await loadLib(); }
+      const r = await fetch(editingId ? `/api/components/${editingId}` : "/api/components", { method: editingId ? "PATCH" : "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(form) });
+      if (r.ok) { flash(editingId ? "Component updated" : "Component saved to the library"); setShowNew(false); setEditingId(null); setForm({ name: "", type: "section", status: "live", html: "", description: "" }); await loadLib(); }
       else { const e = await r.json().catch(() => ({})); flash(e.error || "Save failed"); }
     } catch { flash("Save failed"); }
     setBusy(false);
@@ -144,7 +147,7 @@ export default function ComponentStudio({ user, canPublish }: { user: { name?: s
         <aside style={{ width: 300, flexShrink: 0, borderRight: "1px solid var(--hc-border)", display: "flex", flexDirection: "column", padding: 14, gap: 10, minHeight: 0 }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <span style={{ fontWeight: 800, ...TYPE.sm }}>Component Library</span>
-            {isAdmin && <button onClick={() => { setForm({ name: "", type: "section", status: "live", html: "", description: "" }); setShowNew(true); }} style={{ ...btn(true, false), padding: "5px 10px" }}><PlusIcon size={13} color="#fff" /> New</button>}
+            {isAdmin && <button onClick={() => { setEditingId(null); setForm({ name: "", type: "section", status: "live", html: "", description: "" }); setShowNew(true); }} style={{ ...btn(true, false), padding: "5px 10px" }}><PlusIcon size={13} color="#fff" /> New</button>}
           </div>
           <input value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="Search components…" style={{ padding: "8px 11px", borderRadius: R.lg, border: "1px solid var(--hc-input)", background: "var(--hc-card)", color: "var(--hc-fg)", ...TYPE.sm, outline: "none" }} />
           {isAdmin && (
@@ -160,7 +163,10 @@ export default function ComponentStudio({ user, canPublish }: { user: { name?: s
                 style={{ ...card, padding: 12, cursor: "grab", display: "grid", gap: 8, alignContent: "start" }}>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
                   <span style={{ fontWeight: 700, ...TYPE.sm }}>{c.name}</span>
-                  <span style={{ fontSize: 10.5, fontWeight: 700, color: c.status === "live" ? "var(--hc-success)" : "var(--hc-warning)" }}>{c.status}</span>
+                  <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    {isAdmin && <button onClick={(e) => { e.stopPropagation(); startEdit(c); }} title="Edit component" style={{ border: "none", background: "transparent", cursor: "pointer", color: "var(--hc-fg-muted)", padding: 0, fontSize: 13 }}>✎</button>}
+                    <span style={{ fontSize: 10.5, fontWeight: 700, color: c.status === "live" ? "var(--hc-success)" : "var(--hc-warning)" }}>{c.status}</span>
+                  </span>
                 </div>
                 <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 6 }}>
                   <span style={pill()}>{c.type}</span>
@@ -204,14 +210,14 @@ export default function ComponentStudio({ user, canPublish }: { user: { name?: s
         </section>
       </div>
 
-      {toast && <div style={{ position: "fixed", bottom: 26, left: "50%", transform: "translateX(-50%)", background: "var(--hc-fg)", color: "var(--hc-bg)", padding: "10px 18px", borderRadius: R.full, ...TYPE.sm, fontWeight: 600, boxShadow: "var(--hc-shadow-lg)", zIndex: 90 }}>{toast}</div>}
+      {toast && <div style={{ position: "fixed", bottom: 26, left: "50%", transform: "translateX(-50%)", background: "var(--hc-fg)", color: "var(--hc-bg)", padding: "10px 18px", borderRadius: R.full, ...TYPE.sm, fontWeight: 600, boxShadow: "var(--hc-shadow-lg)", zIndex: 200 }}>{toast}</div>}
 
       {/* New / AI-review component modal */}
       {showNew && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.45)", display: "grid", placeItems: "center", zIndex: 100 }} onClick={() => setShowNew(false)}>
           <div onClick={(e) => e.stopPropagation()} style={{ ...cmsVars(theme), width: 620, maxWidth: "92vw", maxHeight: "88vh", overflowY: "auto", background: "var(--hc-card)", color: "var(--hc-fg)", borderRadius: R.x2, boxShadow: "var(--hc-shadow-xl)", padding: 18 } as any}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-              <span style={{ fontWeight: 800, ...TYPE.base }}>{form.html ? "Review & save component" : "New component"}</span>
+              <span style={{ fontWeight: 800, ...TYPE.base }}>{editingId ? "Edit component" : form.html ? "Review & save component" : "New component"}</span>
               <button onClick={() => setShowNew(false)} style={miniBtn(false)}><XIcon size={14} /></button>
             </div>
             <div style={{ display: "grid", gap: 10 }}>

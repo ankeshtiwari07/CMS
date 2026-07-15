@@ -49,6 +49,10 @@ export async function POST(req: Request) {
 
   const reader = upstream.body.getReader();
   const decoder = new TextDecoder();
+  const encoder = new TextEncoder();
+  // Reuse ONE project across the whole conversation: the client sends the id it
+  // was given on the first turn, and we PATCH it instead of creating a new one.
+  const existingProjectId: string | number | null = body?.projectId ?? null;
   let buffer = "";
   let artifact = "";
   let modelLabel = "";
@@ -63,22 +67,35 @@ export async function POST(req: Request) {
         if (hasContent) {
           const title = builtDoc?.title || deriveTitle(builtHtml || artifact, prompt);
           const assetText = builtDoc?.bodyMarkdown || artifact;
+          const docBody = {
+            title,
+            type: builtHtml ? "websiteBuild" : builtDoc ? "writing" : mode && mode !== "auto" ? mode : "writing",
+            prompt,
+            model: modelLabel || body.model,
+            options,
+            asset: { text: assetText, ...(builtHtml ? { html: true } : {}) },
+            status: "ready",
+            owner: user.id,
+          };
           try {
-            await fetch(`${CMS_URL}/api/projects`, {
-              method: "POST",
-              cache: "no-store",
-              headers: { "content-type": "application/json", ...(token ? { Authorization: `JWT ${token}` } : {}) },
-              body: JSON.stringify({
-                title,
-                type: builtHtml ? "websiteBuild" : builtDoc ? "writing" : mode && mode !== "auto" ? mode : "writing",
-                prompt,
-                model: modelLabel || body.model,
-                options,
-                asset: { text: assetText, ...(builtHtml ? { html: true } : {}) },
-                status: "ready",
-                owner: user.id,
-              }),
-            });
+            if (existingProjectId != null) {
+              // Same conversation → update the one project instead of spawning more.
+              await fetch(`${CMS_URL}/api/projects/${existingProjectId}`, {
+                method: "PATCH", cache: "no-store",
+                headers: { "content-type": "application/json", ...(token ? { Authorization: `JWT ${token}` } : {}) },
+                body: JSON.stringify(docBody),
+              });
+            } else {
+              const res = await fetch(`${CMS_URL}/api/projects`, {
+                method: "POST", cache: "no-store",
+                headers: { "content-type": "application/json", ...(token ? { Authorization: `JWT ${token}` } : {}) },
+                body: JSON.stringify(docBody),
+              });
+              const j = await res.json().catch(() => ({}));
+              const newId = j?.doc?.id;
+              // Hand the new project id back so the next turn reuses it.
+              if (newId != null) controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: "project", id: newId })}\n\n`));
+            }
           } catch {
             /* non-fatal */
           }

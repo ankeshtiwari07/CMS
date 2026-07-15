@@ -151,6 +151,7 @@ export default function PromptBox({ onActive }: { onActive?: (active: boolean) =
   const stickRef = useRef(true); // keep pinned to the latest tokens unless the user scrolls up
   const taRef = useRef<HTMLTextAreaElement>(null); // composer textarea (auto-grow)
   const listeningRef = useRef(false); // intended dictation state (survives onend restarts)
+  const projectIdRef = useRef<string | null>(null); // one Project per conversation (reused across turns)
 
   // Auto-grow the composer textarea with content, capped so it can't overrun the UI.
   function autoGrow() {
@@ -196,12 +197,14 @@ export default function PromptBox({ onActive }: { onActive?: (active: boolean) =
       if (d.prompt !== undefined) setPrompt(d.prompt);
       if (d.mode) setMode(d.mode);
       convIdRef.current = null;
+      projectIdRef.current = null;
       setTurns([]);
       focusPrompt();
     };
     // "Create new" in the sidebar resets to a blank conversation.
     const newChat = () => {
       convIdRef.current = null;
+      projectIdRef.current = null;
       setPrompt("");
       setTurns([]);
       setFiles([]);
@@ -219,6 +222,7 @@ export default function PromptBox({ onActive }: { onActive?: (active: boolean) =
         if (!res.ok) return;
         const d = await res.json();
         convIdRef.current = String(d.id);
+        projectIdRef.current = d.projectId ? String(d.projectId) : null;
         setTurns(Array.isArray(d.messages) ? (d.messages as Turn[]) : []);
         if (d.mode) setMode(d.mode);
         setPrompt("");
@@ -363,7 +367,7 @@ export default function PromptBox({ onActive }: { onActive?: (active: boolean) =
         const res = await fetch("/api/chat", {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ mode: aiMode, prompt: userText, model: modelId, history, options }),
+          body: JSON.stringify({ mode: aiMode, prompt: userText, model: modelId, history, options, projectId: projectIdRef.current }),
           signal: ctrl.signal,
         });
         if (!res.ok || !res.body) {
@@ -396,6 +400,7 @@ export default function PromptBox({ onActive }: { onActive?: (active: boolean) =
             else if (ev.type === "artifact" && ev.kind === "brand") patchLastAssistant((t) => ({ ...t, brandArt: ev.brand }));
             else if (ev.type === "artifact" && ev.kind === "theme") patchLastAssistant((t) => ({ ...t, themeArt: ev.theme }));
             else if (ev.type === "error") patchLastAssistant((t) => ({ ...t, text: `${t.text ? t.text + "\n\n" : ""}⚠️ ${ev.message}`, streaming: false }));
+            else if (ev.type === "project") { projectIdRef.current = String(ev.id); }
             else if (ev.type === "done") patchLastAssistant((t) => ({ ...t, model: ev.modelLabel || t.model, streaming: false }));
             // "status" / "agents" events carry agent activity — no visual change.
           }

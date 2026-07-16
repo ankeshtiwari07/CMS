@@ -10,6 +10,7 @@ import { runSlaSweep, getBreaches, startSlaScheduler } from "./sla.js";
 import { runOrchestrator } from "./agents/orchestrator.js";
 import { THEMES, generateDeckQuestions, generateOutline, generateDeck, regenerateSlide, translateDeck } from "./deck.js";
 import { planWebsite, generateWebsite, generateSection, assemble } from "./website.js";
+import { generateContentOutline, generateArticle, regenerateContentSection } from "./content.js";
 
 const app = Fastify({ logger: true, bodyLimit: 1_000_000 });
 const provider = getProvider();
@@ -464,6 +465,26 @@ app.post("/studio/deck/slide", async (req, reply) => {
     req.log.warn({ err: e?.message }, "deck/slide error");
     return reply.code(502).send({ error: e?.message || "slide_failed" });
   }
+});
+
+// ---- Content Studio (long-form articles / blogs) --------------------------
+app.post("/studio/content/outline", async (req, reply) => {
+  const body = z.object({ prompt: z.string().min(1).max(8000), model: z.string().optional() }).parse(req.body);
+  const { entry } = resolveModel(body.model);
+  try { const o = await generateContentOutline(body.prompt, entry.provider); return { ok: true, title: o.title, subtitle: o.subtitle, sections: o.sections, provider: o._provider }; }
+  catch (e: any) { req.log.warn({ err: e?.message }, "content/outline error"); return reply.code(502).send({ error: e?.message || "outline_failed" }); }
+});
+app.post("/studio/content", async (req, reply) => {
+  const body = z.object({ prompt: z.string().min(1).max(8000), model: z.string().optional(), outline: z.object({ title: z.string().optional(), subtitle: z.string().optional(), sections: z.array(z.object({ heading: z.string(), intent: z.string().optional() })) }).optional() }).parse(req.body);
+  const { entry } = resolveModel(body.model);
+  try { const a = await generateArticle({ prompt: body.prompt, outline: body.outline as any, primary: entry.provider }); return { ok: true, title: a.title, subtitle: a.subtitle, sections: a.sections, provider: a._provider }; }
+  catch (e: any) { req.log.warn({ err: e?.message }, "content/generate error"); return reply.code(502).send({ error: e?.message || "content_failed" }); }
+});
+app.post("/studio/content/section", async (req, reply) => {
+  const body = z.object({ title: z.string().default("Article"), section: z.object({ id: z.string(), heading: z.string(), body: z.string() }), instruction: z.string().max(2000).optional(), model: z.string().optional() }).parse(req.body);
+  const { entry } = resolveModel(body.model);
+  try { const s = await regenerateContentSection({ title: body.title, section: body.section as any, instruction: body.instruction, primary: entry.provider }); return { ok: true, ...s }; }
+  catch (e: any) { req.log.warn({ err: e?.message }, "content/section error"); return reply.code(502).send({ error: e?.message || "section_failed" }); }
 });
 
 // ---- Website Studio (gamma/Apple-style full sites) ------------------------

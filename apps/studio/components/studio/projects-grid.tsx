@@ -63,8 +63,21 @@ export default function ProjectsGrid({ projects }: { projects: Project[] }) {
   const [creating, setCreating] = useState(false);
   const [deleting, setDeleting] = useState<string | number | null>(null);
   const [confirmId, setConfirmId] = useState<string | number | null>(null); // styled delete-confirm
+  const [pEdit, setPEdit] = useState(false); // edit the opened project
+  const [eTitle, setETitle] = useState("");
+  const [eText, setEText] = useState("");
+  const [pSaving, setPSaving] = useState(false);
   const open = projects.find((p) => p.id === openId) || null;
   const confirmProj = projects.find((p) => p.id === confirmId) || null;
+
+  function beginEdit() { if (!open) return; setETitle(open.title || ""); setEText(open.text || ""); setPEdit(true); }
+  async function saveProject() {
+    if (!open) return; setPSaving(true);
+    try {
+      const res = await fetch(`/api/projects/${open.id}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ title: eTitle, asset: { text: eText } }) });
+      if (res.ok) { setPEdit(false); router.refresh(); }
+    } finally { setPSaving(false); }
+  }
 
   // Clicking a project opens it where it can be worked on: deck/website projects
   // open their dedicated builder (loaded by id); everything else opens the reader.
@@ -181,18 +194,26 @@ export default function ProjectsGrid({ projects }: { projects: Project[] }) {
                 <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: "0.06em", color: "var(--studio-teal-dark)", background: "var(--mint-pill)", padding: "3px 9px", borderRadius: 999 }}>
                   {t(`type.${open.type}`)}{open.preview ? ` · ${t("pg.preview")}` : ""}
                 </span>
-                <h2 style={{ fontSize: 19, fontWeight: 700, color: "var(--ink)", margin: "10px 0 0" }}>{open.title}</h2>
+                {pEdit
+                  ? <input value={eTitle} onChange={(e) => setETitle(e.target.value)} style={{ fontSize: 19, fontWeight: 700, color: "var(--ink)", border: "none", borderBottom: "2px solid var(--hairline)", background: "transparent", margin: "10px 0 0", outline: "none", width: 420, maxWidth: "60vw" }} />
+                  : <h2 style={{ fontSize: 19, fontWeight: 700, color: "var(--ink)", margin: "10px 0 0" }}>{open.title}</h2>}
                 <div style={{ fontSize: 12.5, color: "var(--muted)", marginTop: 2 }}>{t("card.updated")} {relativeTime(locale, open.updatedAt)}</div>
               </div>
               <div style={{ display: "flex", gap: 8 }}>
-                <button onClick={() => navigator.clipboard?.writeText(open.text || "")} style={{ border: "1px solid var(--hairline)", background: "#fff", borderRadius: 8, padding: "6px 12px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>{t("pg.copy")}</button>
-                <button onClick={() => setConfirmId(open.id)} style={{ border: "1px solid #f4cdcb", background: "#fff", borderRadius: 8, padding: "6px 12px", fontSize: 13, fontWeight: 600, color: "#b42318", cursor: "pointer" }}>{t("pg.delete")}</button>
-                <button onClick={() => setOpenId(null)} aria-label="Close" style={{ border: "1px solid var(--hairline)", background: "#fff", borderRadius: 8, width: 32, height: 32, display: "grid", placeItems: "center", cursor: "pointer" }}><XIcon size={16} /></button>
+                {pEdit ? (<>
+                  <button onClick={() => setPEdit(false)} style={{ border: "1px solid var(--hairline)", background: "#fff", borderRadius: 8, padding: "6px 12px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>Cancel</button>
+                  <button onClick={saveProject} disabled={pSaving} style={{ border: "none", background: "var(--studio-primary)", color: "#fff", borderRadius: 8, padding: "6px 14px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}>{pSaving ? "Saving…" : "Save"}</button>
+                </>) : (<>
+                  <button onClick={beginEdit} style={{ border: "1px solid var(--hairline)", background: "#fff", borderRadius: 8, padding: "6px 12px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>✎ Edit</button>
+                  <button onClick={() => navigator.clipboard?.writeText(open.text || "")} style={{ border: "1px solid var(--hairline)", background: "#fff", borderRadius: 8, padding: "6px 12px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>{t("pg.copy")}</button>
+                  <button onClick={() => setConfirmId(open.id)} style={{ border: "1px solid #f4cdcb", background: "#fff", borderRadius: 8, padding: "6px 12px", fontSize: 13, fontWeight: 600, color: "#b42318", cursor: "pointer" }}>{t("pg.delete")}</button>
+                </>)}
+                <button onClick={() => { setPEdit(false); setOpenId(null); }} aria-label="Close" style={{ border: "1px solid var(--hairline)", background: "#fff", borderRadius: 8, width: 32, height: 32, display: "grid", placeItems: "center", cursor: "pointer" }}><XIcon size={16} /></button>
               </div>
             </div>
-            <div style={{ marginTop: 18, whiteSpace: "pre-wrap", color: "var(--ink)", lineHeight: 1.7, fontSize: 14.5 }}>
-              {open.text || t("pg.noContent")}
-            </div>
+            {pEdit
+              ? <textarea value={eText} onChange={(e) => setEText(e.target.value)} style={{ marginTop: 18, width: "100%", minHeight: 300, border: "1px solid var(--hairline)", borderRadius: 10, padding: 14, color: "var(--ink)", lineHeight: 1.7, fontSize: 14.5, resize: "vertical", fontFamily: "inherit", outline: "none" }} />
+              : <div style={{ marginTop: 18, whiteSpace: "pre-wrap", color: "var(--ink)", lineHeight: 1.7, fontSize: 14.5 }}>{open.text || t("pg.noContent")}</div>}
           </div>
         </div>
       )}

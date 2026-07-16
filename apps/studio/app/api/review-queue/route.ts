@@ -3,6 +3,11 @@
 // time-based ESCALATION to senior approvers, and DELEGATION (a user inherits
 // the authority of anyone out-of-office who delegated to them). Own content is
 // excluded (separation of duties).
+//
+// Covers both Payload-versioned collections (_status: draft/published) AND the
+// component-based collections that track their own status field — components
+// (draft/live) and AI websites (draft/published) — so a delegated component and
+// the page consuming it BOTH surface here for approval (Flow B).
 import { NextResponse } from "next/server";
 import { getCurrentUser, payloadFetch } from "@/lib/payload";
 
@@ -19,9 +24,26 @@ const SLA_HOURS: Record<string, number> = {
   legal: Number(process.env.SLA_LEGAL_HOURS || 72), final: Number(process.env.SLA_FINAL_HOURS || 24),
 };
 const ESCALATION_ROLES = (process.env.SLA_ESCALATION_ROLES || "siteAdmin,admin").split(",").map((s) => s.trim());
-const COLLS: Record<string, string> = {
-  articles: "title", blogPosts: "headline", pressReleases: "headline", events: "title", products: "name",
-  caseStudies: "title", leadership: "name", faqs: "question", mediaGalleries: "title", campaignMicrosites: "title", careers: "title", pages: "title",
+
+// Per-collection: title field + the status field/published-value used to detect
+// "not yet published" (Payload _status vs. custom status columns).
+type CollCfg = { title: string; statusField: string; publishedValue: string };
+const COLLS: Record<string, CollCfg> = {
+  articles: { title: "title", statusField: "_status", publishedValue: "published" },
+  blogPosts: { title: "headline", statusField: "_status", publishedValue: "published" },
+  pressReleases: { title: "headline", statusField: "_status", publishedValue: "published" },
+  events: { title: "title", statusField: "_status", publishedValue: "published" },
+  products: { title: "name", statusField: "_status", publishedValue: "published" },
+  caseStudies: { title: "title", statusField: "_status", publishedValue: "published" },
+  leadership: { title: "name", statusField: "_status", publishedValue: "published" },
+  faqs: { title: "question", statusField: "_status", publishedValue: "published" },
+  mediaGalleries: { title: "title", statusField: "_status", publishedValue: "published" },
+  campaignMicrosites: { title: "title", statusField: "_status", publishedValue: "published" },
+  careers: { title: "title", statusField: "_status", publishedValue: "published" },
+  pages: { title: "title", statusField: "_status", publishedValue: "published" },
+  // Component-based collections (own status field) — Flow B artefacts.
+  components: { title: "name", statusField: "status", publishedValue: "live" },
+  aiwebsites: { title: "title", statusField: "status", publishedValue: "published" },
 };
 const requiredStages = (tier: string, ai: boolean) => {
   const base = REQUIRED[tier] ?? REQUIRED.low;
@@ -58,10 +80,10 @@ export async function GET() {
   const now = Date.now();
 
   const items: any[] = [];
-  for (const [slug, titleField] of Object.entries(COLLS)) {
+  for (const [slug, cfg] of Object.entries(COLLS)) {
     let docs: any[] = [];
     try {
-      const r = await payloadFetch(`/api/${slug}?where[_status][not_equals]=published&limit=50&depth=0&sort=-updatedAt`);
+      const r = await payloadFetch(`/api/${slug}?where[${cfg.statusField}][not_equals]=${cfg.publishedValue}&limit=50&depth=0&sort=-updatedAt`);
       if (r.ok) docs = (await r.json()).docs || [];
     } catch { continue; }
     if (!docs.length) continue;
@@ -101,8 +123,9 @@ export async function GET() {
       if (!actionable.length) continue;
       const escalated = actionable.some((st) => pending.find((p) => p.stage === st)?.sla === "overdue") && !pending.filter((s) => s.sla === "overdue").every((s) => canDecide(s.stage));
       items.push({
-        collection: slug, id: d.id, title: d[titleField] || `${slug}#${d.id}`,
+        collection: slug, id: d.id, title: d[cfg.title] || `${slug}#${d.id}`,
         riskTier: tier, aiGenerated: Boolean(d.aiGenerated), updatedAt: d.updatedAt,
+        kind: slug === "components" ? "component" : slug === "aiwebsites" ? "website" : "content",
         stages, pendingStages: pending.map((s) => s.stage), actionable, overdue,
         escalatedToYou: escalated, viaDelegation: delegatedFrom.length > 0,
       });

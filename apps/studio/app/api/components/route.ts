@@ -1,6 +1,8 @@
 // Component library API for the in-CMS Component Studio. GET lists components
-// (editors see all; the builder needs drafts too); POST creates a building block
-// (admin-only — component curation is an admin function, matching the collection).
+// (editors see all; the builder needs drafts too); POST creates a building block.
+// Editors (and the delegated Component Agent) may create components as DRAFTS;
+// the collection's status→live gate ensures only publish authorities can put one
+// live, and only after approval (Flow B).
 import { NextResponse } from "next/server";
 import { payloadFetch, getCurrentUser, hasRole } from "@/lib/payload";
 
@@ -12,7 +14,9 @@ export async function GET() {
 
 export async function POST(req: Request) {
   const user = await getCurrentUser();
-  if (!hasRole(user, ["admin"])) return NextResponse.json({ error: "Admins only" }, { status: 403 });
+  if (!hasRole(user, ["author", "reviewer", "publisher", "brand", "siteAdmin", "admin"])) {
+    return NextResponse.json({ error: "Editors only" }, { status: 403 });
+  }
   let body: any;
   try {
     body = await req.json();

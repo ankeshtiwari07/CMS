@@ -1,5 +1,6 @@
 import type { Access, CollectionConfig, Where } from "payload";
 import { hasRole, isAdmin } from "../access/roles";
+import { enforcePublishOnField, emitContentEvent, onDelete } from "../hooks/events";
 
 // AI-generated marketing websites (see apps/ai-service/src/website.ts). Built in
 // the Website Studio, stored here, and served at /site/<slug> by the web app.
@@ -17,15 +18,22 @@ const ownOrAdmin: Access = ({ req: { user } }) => {
 
 export const AiWebsites: CollectionConfig = {
   slug: "aiwebsites",
-  admin: { useAsTitle: "title", defaultColumns: ["title", "slug", "status", "updatedAt"], group: "Create", description: "AI-generated websites built in the Website Studio." },
+  admin: { useAsTitle: "title", defaultColumns: ["title", "slug", "status", "updatedAt"], group: "Create", description: "AI-generated websites built in the Website Studio. Publishing routes through the approval flow (Flow A)." },
   access: { read: readAccess, create: ({ req: { user } }) => Boolean(user), update: ownOrAdmin, delete: ownOrAdmin },
   hooks: {
     beforeChange: [
       ({ data, req, operation }) => {
         if (operation === "create" && req.user && !data.createdBy) data.createdBy = req.user.id;
+        // AI websites are agent-generated → force at least an editorial review.
+        if (operation === "create" && data.aiGenerated == null) data.aiGenerated = true;
         return data;
       },
+      // Publishing an AI website (status → published) requires a publish role AND
+      // cleared HITL approval — agents propose, authorised humans dispose (Flow A).
+      enforcePublishOnField("status", "published"),
     ],
+    afterChange: [emitContentEvent],
+    afterDelete: [onDelete],
   },
   fields: [
     { name: "title", type: "text", required: true },
@@ -36,5 +44,8 @@ export const AiWebsites: CollectionConfig = {
     { name: "sections", type: "json", admin: { description: "Ordered generated sections (kind + html)." } },
     { name: "html", type: "textarea", admin: { description: "Full assembled standalone HTML document." } },
     { name: "createdBy", type: "relationship", relationTo: "users", admin: { readOnly: true, position: "sidebar" } },
+    // ---- Governance / approval (Flow A) ----
+    { name: "aiGenerated", type: "checkbox", defaultValue: true, admin: { position: "sidebar", description: "AI-built — forces editorial review before publish." } },
+    { name: "riskTier", type: "text", defaultValue: "low", admin: { position: "sidebar", description: "Approval depth: trivial | low | medium | high." } },
   ],
 };

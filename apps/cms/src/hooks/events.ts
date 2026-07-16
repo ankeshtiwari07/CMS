@@ -70,6 +70,60 @@ export const enforcePublishPermission: CollectionBeforeChangeHook = async ({ dat
   return data;
 };
 
+// Generic variant of the publish gate for collections that track their OWN status
+// field (e.g. components.status: draft|live, aiwebsites.status: draft|published)
+// rather than Payload's versioned _status. Same rule: only a PUBLISH_ROLE holder
+// may go-live, and every approval stage required for the risk tier + AI-generated
+// flag must be freshly cleared. This powers Flow B (a delegated component and the
+// page consuming it are EACH gated) and Flow A on AI-generated websites.
+export function enforcePublishOnField(statusField: string, publishedValue: string): CollectionBeforeChangeHook {
+  return async ({ data, req, originalDoc, collection }) => {
+    const becoming = (data as any)?.[statusField] === publishedValue && (originalDoc as any)?.[statusField] !== publishedValue;
+    if (!becoming) return data;
+
+    const roles: string[] = req.user?.roles ?? [];
+    if (!roles.some((r) => (PUBLISH_ROLES as string[]).includes(r))) {
+      throw new APIError("You do not have permission to publish. Save as draft or request review.", 403);
+    }
+
+    const riskTier = ((data as any)?.riskTier ?? (originalDoc as any)?.riskTier ?? "low") as string;
+    const aiGenerated = Boolean((data as any)?.aiGenerated ?? (originalDoc as any)?.aiGenerated);
+    const required = requiredStagesFor(riskTier, aiGenerated);
+    const slug = (collection as any)?.slug;
+    if (required.length && slug && originalDoc?.id != null) {
+      const lastEdit = originalDoc?.updatedAt ? new Date(originalDoc.updatedAt).getTime() : 0;
+      let decisions: any[] = [];
+      try {
+        const res = await req.payload.find({
+          collection: "approvals" as any,
+          where: { and: [{ collectionSlug: { equals: slug } }, { documentId: { equals: String(originalDoc.id) } }] },
+          sort: "-createdAt",
+          limit: 200,
+          depth: 0,
+          overrideAccess: true,
+        });
+        decisions = res.docs || [];
+      } catch {
+        /* fail closed below */
+      }
+      const cleared = (s: Stage) => {
+        const latest = decisions.find((d) => d.stage === s);
+        return Boolean(latest && latest.decision === "approve" && new Date(latest.createdAt).getTime() >= lastEdit);
+      };
+      const pending = required.filter((s) => !cleared(s));
+      if (pending.length) {
+        const names = pending.map((s) => STAGE_LABEL[s] || s).join(", ");
+        throw new APIError(
+          `Cannot publish — human-in-the-loop approval incomplete. Pending: ${names}. ` +
+            `(Risk tier: ${riskTier}${aiGenerated ? ", AI-generated" : ""}.) Route it through the Review queue.`,
+          403,
+        );
+      }
+    }
+    return data;
+  };
+}
+
 // During the production BUILD (`payload generate:importmap` + `next build`) Redis
 // is unreachable, and bullmq's infinite reconnect timers would keep the Node
 // process alive forever — hanging generate:importmap so `next build` never starts.
@@ -151,20 +205,28 @@ async function audit(
   }
 }
 
+// A collection is "published" either via Payload's _status or via a custom
+// status field (components → live, aiwebsites → published). Recognise both so
+// go-live is audited/indexed for the component-based collections too.
+function publishedStatus(doc: any): boolean {
+  const s = doc?._status ?? doc?.status;
+  return s === "published" || s === "live";
+}
+
 export const emitContentEvent: CollectionAfterChangeHook = async ({
   doc, collection, operation, req,
 }) => {
-  const status = (doc as any)._status;
-  const event = status === "published" ? "content.published" : "content.updated";
-  await emitWebhook(event, { collection: collection.slug, id: doc.id, status });
+  const published = publishedStatus(doc);
+  const event = published ? "content.published" : "content.updated";
+  await emitWebhook(event, { collection: collection.slug, id: doc.id, status: (doc as any)._status ?? (doc as any).status });
   await audit(
     req,
-    status === "published" ? "publish" : operation === "create" ? "create" : "update",
+    published ? "publish" : operation === "create" ? "create" : "update",
     collection.slug,
     doc.id,
-    `${operation} ${collection.slug} #${doc.id}${status ? ` (${status})` : ""}`,
+    `${operation} ${collection.slug} #${doc.id}${published ? " (published)" : ""}`,
   );
-  if (status === "published") {
+  if (published) {
     await safeAdd(ragQueue, "embed", { collection: collection.slug, id: doc.id });
     await safeAdd(indexQueue, "index", { collection: collection.slug, id: doc.id });
   }

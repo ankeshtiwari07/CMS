@@ -1,6 +1,13 @@
 // Gamma/Apple-style WEBSITE generation. Beats the single-shot token limit by
 // generating the page SECTION-BY-SECTION (each section self-contained, well
 // within budget) and assembling a complete, responsive, standalone HTML page.
+//
+// Component-based build (LEAP D2): before generating, the builder consults the
+// CMS component library. Every section is built FROM a reusable component —
+// either one that already exists (reused) or, when the required component is
+// MISSING, the builder DELEGATES to the Component Agent to generate it, then
+// consumes it. Delegated components are returned so the caller can persist them
+// to the library and route them (with the page) through the approval flow (D3).
 import { completeWithFallback } from "./providers/index.js";
 
 export type Brand = {
@@ -12,12 +19,31 @@ export type SectionKind =
   | "useCase" | "logos" | "features" | "testimonial" | "faq" | "cta" | "footer";
 export type PlannedSection = { id: string; kind: SectionKind; brief: string };
 export type WebsitePlan = { title: string; description?: string; brand: Brand; sections: PlannedSection[] };
-export type Section = PlannedSection & { html: string };
+export type Section = PlannedSection & { html: string; componentKey?: string; componentSource?: "library" | "delegated" };
+
+// A reusable building-block the Component Agent produced for a gap in the library.
+export type DelegatedComponent = {
+  key: string; name: string; type: string; category: string; description: string;
+  html: string; props: Array<{ name: string; label?: string; type?: string; default?: string }>;
+  forKind: SectionKind; _provider: string;
+};
+export type LibraryComponent = { key: string; type: string; name: string; description?: string; html?: string };
 
 const DEFAULT_BRAND: Brand = {
   bg: "#ffffff", ink: "#0b1416", muted: "#5a6a6c", accent: "#00b3a4", accent2: "#c2e54b",
   line: "#e6ebeb", soft: "#f5f8f7", font: "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif", radius: 20,
 };
+
+// Maps a planned website section to the component-library `type` that fulfils it.
+// The library is keyed by component TYPE (hero, card, feature, cta, …); this is
+// how the builder decides whether a suitable component already exists.
+const KIND_TO_TYPE: Record<SectionKind, string> = {
+  nav: "nav", hero: "hero", cardGrid: "card", domains: "gallery", buildYourOwn: "cta",
+  platform: "feature", useCase: "stats", logos: "logoCloud", features: "feature",
+  testimonial: "testimonial", faq: "faq", cta: "cta", footer: "footer",
+};
+
+const CMS = process.env.CMS_BASE_URL || "http://localhost:3001";
 
 function extractJson(text: string): any {
   let t = String(text || "").trim().replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/i, "").trim();
@@ -112,9 +138,63 @@ const KIND_GUIDE: Record<SectionKind, string> = {
   footer: "A rich <footer>: brand + a tagline (e.g. 'A PIF COMPANY'), 3-4 link columns, a bottom row with copyright, legal links and social icons.",
 };
 
-export async function generateSection(args: { section: PlannedSection; brand: Brand; siteTitle: string; sitePrompt: string; primary?: string }): Promise<Section & { _provider: string }> {
+// ------------------------------------------------------------------ //
+// Component library + Component Agent (delegation)                    //
+// ------------------------------------------------------------------ //
+
+// Pull the LIVE component library the admin curated. Only LIVE components are
+// offered to the build — draft/in-review components (incl. ones awaiting Flow B
+// approval) are deliberately NOT reused until an authority approves them.
+export async function getLiveLibrary(): Promise<LibraryComponent[]> {
+  try {
+    const res = await fetch(`${CMS}/api/components?where[status][equals]=live&limit=100&depth=0&sort=-updatedAt`);
+    if (!res.ok) return [];
+    const docs = ((await res.json()) as any)?.docs ?? [];
+    return docs.map((d: any) => ({ key: d.key, type: d.type, name: d.name, description: d.description, html: String(d.html || "") }));
+  } catch { return []; }
+}
+
+// The Component Agent. Given a gap (a section kind with no matching library
+// component), it generates ONE reusable, brand-consistent building block with
+// {{placeholder}} props so it can be reused across pages — not a one-off.
+export async function generateComponent(args: { kind: SectionKind; brief: string; brand: Brand; siteTitle: string; primary?: string }): Promise<DelegatedComponent> {
+  const type = KIND_TO_TYPE[args.kind] || "section";
+  const sys =
+    "You are HUMAIN Create's Component Agent. You produce ONE reusable, brand-consistent building-block component for the CMS component library. " +
+    "The component must be generic enough to be reused across pages (not hard-coded to one site): expose configurable text via {{placeholder}} tokens. " +
+    "Return ONLY minified JSON, no markdown, no code fences.";
+  const cats = ["layout", "content", "media", "navigation", "marketing", "form"];
+  const user =
+    `Create a reusable "${type}" component (fulfils "${args.kind}" sections). ${brandVars(args.brand)}\n` +
+    `Structure guide: ${KIND_GUIDE[args.kind]}\n` +
+    `Purpose/brief: ${args.brief}\nSite context: ${args.siteTitle}\n` +
+    `Return JSON: {"name": short human name, "key": kebab-case-unique-id, "description": one line on when to use it, ` +
+    `"category": one of [${cats.join(", ")}], "props": [{"name": camelCase, "label": string, "type": "text"|"richtext"|"image"|"url", "default": string}], ` +
+    `"html": "the component as a single <section>/<nav>/<footer> element with ALL styling inline via a scoped <style> block; use {{propName}} tokens where text/props go; premium Apple.com aesthetic; fully responsive; well-formed; no external assets, scripts or fonts; no markdown"}`;
+  const fb = await completeWithFallback({ system: sys, messages: [{ role: "user", content: user }], maxTokens: 2800 }, { primary: args.primary });
+  const data = extractJson(fb.text);
+  const key = (String(data.key || `${type}-${args.kind}`).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 44)) || `${type}-${sid()}`;
+  const props = Array.isArray(data.props)
+    ? data.props.slice(0, 24).map((p: any) => ({ name: String(p?.name || "").slice(0, 40), label: p?.label ? String(p.label).slice(0, 80) : undefined, type: p?.type ? String(p.type).slice(0, 20) : "text", default: p?.default != null ? String(p.default).slice(0, 400) : undefined })).filter((p: any) => p.name)
+    : [];
+  return {
+    key, name: String(data.name || `${type} block`).slice(0, 80), type,
+    category: cats.includes(data.category) ? data.category : "content",
+    description: String(data.description || args.brief).slice(0, 300),
+    props, html: balanceTags(cleanHtml(String(data.html || ""))), forKind: args.kind, _provider: fb.provider,
+  };
+}
+
+export async function generateSection(args: { section: PlannedSection; brand: Brand; siteTitle: string; sitePrompt: string; primary?: string; component?: { html: string; source: "library" | "delegated"; key: string } }): Promise<Section & { _provider: string }> {
+  // When a component (reused from the library or freshly delegated) fulfils this
+  // section, the section is built FROM that component's template — the component
+  // is the source of truth (component-based CMS), not ad-hoc markup.
+  const usingComponent = Boolean(args.component?.html);
   const sys =
     "You are HUMAIN Create Studio, an elite front-end engineer. Output the HTML for ONE website section only. " +
+    (usingComponent
+      ? "You are given an APPROVED component template. Build this section by INSTANTIATING that template: keep its structure, classes and styling; replace every {{token}} and placeholder with real, specific copy for THIS site. Do not redesign it. "
+      : "") +
     "Rules: return ONLY raw HTML for a single <section>/<nav>/<footer> element with ALL styles inline via a <style> block scoped with a unique wrapper class OR inline style attributes. " +
     "NO <html>, <head>, or <body> tags. NO markdown, NO code fences, NO commentary. " +
     "Premium Apple.com aesthetic: generous whitespace, refined type scale, rounded cards, subtle shadows and hover transitions, fully responsive (mobile-friendly with @media). " +
@@ -123,10 +203,12 @@ export async function generateSection(args: { section: PlannedSection; brand: Br
   const user =
     `Website: "${args.siteTitle}". Overall brief: ${args.sitePrompt.slice(0, 400)}\n` +
     `${brandVars(args.brand)}\n` +
-    `Build this section — kind="${args.section.kind}". ${KIND_GUIDE[args.section.kind]}\n` +
+    (usingComponent
+      ? `Component template to instantiate (kind="${args.section.kind}", key="${args.component!.key}"):\n"""${args.component!.html.slice(0, 4000)}"""\n`
+      : `Build this section — kind="${args.section.kind}". ${KIND_GUIDE[args.section.kind]}\n`) +
     `Section brief: ${args.section.brief}`;
   const fb = await completeWithFallback({ system: sys, messages: [{ role: "user", content: user }], maxTokens: 3000, model: undefined }, { primary: args.primary });
-  return { ...args.section, html: balanceTags(cleanHtml(fb.text)), _provider: fb.provider };
+  return { ...args.section, html: balanceTags(cleanHtml(fb.text)), componentKey: args.component?.key, componentSource: args.component?.source, _provider: fb.provider };
 }
 
 export function assemble(title: string, brand: Brand, sections: { html: string }[]): string {
@@ -153,17 +235,69 @@ ${body}
 </html>`;
 }
 
-// Full pipeline: plan -> generate every section IN PARALLEL -> assemble in order.
-// Parallel keeps a full 7-11 section page under ~15s (vs ~90s sequential), so a
-// single request completes well within proxy timeouts.
-export async function generateWebsite(args: { prompt: string; plan?: WebsitePlan; primary?: string }): Promise<{ title: string; brand: Brand; sections: Section[]; html: string; provider: string }> {
+// Component-gap DELEGATION pass. For the set of section kinds this site needs,
+// decide which are already covered by a LIVE library component (reuse) and which
+// are MISSING. For each missing kind, delegate to the Component Agent to build a
+// reusable component. Returns the resolution map + the newly delegated components.
+async function resolveComponents(plan: WebsitePlan, primary?: string): Promise<{
+  library: LibraryComponent[];
+  byKind: Record<string, { html: string; source: "library" | "delegated"; key: string }>;
+  used: Array<{ kind: SectionKind; key: string; name: string; type: string }>;
+  delegated: DelegatedComponent[];
+}> {
+  const library = await getLiveLibrary();
+  const byType = new Map<string, LibraryComponent>();
+  for (const c of library) if (!byType.has(c.type)) byType.set(c.type, c);
+
+  const neededKinds = Array.from(new Set(plan.sections.map((s) => s.kind))) as SectionKind[];
+  const gapKinds = neededKinds.filter((k) => !byType.has(KIND_TO_TYPE[k]));
+
+  // Delegate every gap in parallel — automatic, so the user never dead-ends.
+  const delegatedList = (
+    await Promise.all(
+      gapKinds.map((k) => {
+        const sec = plan.sections.find((s) => s.kind === k)!;
+        return generateComponent({ kind: k, brief: sec.brief, brand: plan.brand, siteTitle: plan.title, primary }).catch(() => null);
+      }),
+    )
+  ).filter(Boolean) as DelegatedComponent[];
+  const delegatedByKind = new Map(delegatedList.map((d) => [d.forKind, d]));
+
+  const byKind: Record<string, { html: string; source: "library" | "delegated"; key: string }> = {};
+  const used: Array<{ kind: SectionKind; key: string; name: string; type: string }> = [];
+  for (const k of neededKinds) {
+    const lib = byType.get(KIND_TO_TYPE[k]);
+    if (lib) {
+      byKind[k] = { html: lib.html || "", source: "library", key: lib.key };
+      used.push({ kind: k, key: lib.key, name: lib.name, type: lib.type });
+    } else {
+      const del = delegatedByKind.get(k);
+      if (del) byKind[k] = { html: del.html, source: "delegated", key: del.key };
+    }
+  }
+  return { library, byKind, used, delegated: delegatedList };
+}
+
+// Full pipeline: plan -> resolve components (reuse or delegate) -> generate every
+// section IN PARALLEL from its component -> assemble in order. Parallel keeps a
+// full 7-11 section page under ~15s (vs ~90s sequential).
+export async function generateWebsite(args: { prompt: string; plan?: WebsitePlan; primary?: string }): Promise<{
+  title: string; brand: Brand; sections: Section[]; html: string; provider: string;
+  usedComponents: Array<{ kind: string; key: string; name: string; type: string }>;
+  delegatedComponents: DelegatedComponent[];
+}> {
   const plan = args.plan ?? (await planWebsite(args.prompt, args.primary));
+  const { byKind, used, delegated } = await resolveComponents(plan, args.primary);
   const sections = await Promise.all(
     plan.sections.map((ps) =>
-      generateSection({ section: ps, brand: plan.brand, siteTitle: plan.title, sitePrompt: args.prompt, primary: args.primary })
+      generateSection({ section: ps, brand: plan.brand, siteTitle: plan.title, sitePrompt: args.prompt, primary: args.primary, component: byKind[ps.kind] })
         .catch((): Section & { _provider: string } => ({ ...ps, html: "", _provider: "error" })),
     ),
   );
   const ok = sections.filter((s) => s.html);
-  return { title: plan.title, brand: plan.brand, sections: ok, html: assemble(plan.title, plan.brand, ok), provider: (plan as any)._provider || args.primary || "anthropic" };
+  return {
+    title: plan.title, brand: plan.brand, sections: ok, html: assemble(plan.title, plan.brand, ok),
+    provider: (plan as any)._provider || args.primary || "anthropic",
+    usedComponents: used, delegatedComponents: delegated,
+  };
 }

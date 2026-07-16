@@ -128,7 +128,7 @@ export default function DeckStudio({ deckId, userName }: { deckId: string | null
   const [other, setOther] = useState("");
   // outline + deck
   const [themes, setThemes] = useState<Theme[]>([FALLBACK_THEME]);
-  const [themeId, setThemeId] = useState("midnight");
+  const [themeId, setThemeId] = useState("humain");
   const [outline, setOutline] = useState<OutlineItem[]>([]);
   const [outTitle, setOutTitle] = useState("");
   const [deck, setDeck] = useState<Deck | null>(null);

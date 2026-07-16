@@ -25,7 +25,7 @@ export const THEMES: DeckTheme[] = [
   { id: "solstice", name: "Solstice", bg: "#1a1206", surface: "#2a1e0d", fg: "#fff6e9", muted: "#c7a878", accent: "#ffb454", accent2: "#ff7a59", font: "Inter, system-ui, sans-serif", heading: "Inter, system-ui, sans-serif", radius: 18 },
   { id: "porcelain", name: "Porcelain", bg: "#f7f8fb", surface: "#ffffff", fg: "#111726", muted: "#5b6577", accent: "#3b5bff", accent2: "#8b5cf6", font: "Inter, system-ui, sans-serif", heading: "Inter, system-ui, sans-serif", radius: 16 },
   { id: "sand", name: "Sand", bg: "#f4efe6", surface: "#fffdf8", fg: "#2b2418", muted: "#7a6f59", accent: "#b8622c", accent2: "#2f7d6b", font: "Inter, system-ui, sans-serif", heading: "Inter, system-ui, sans-serif", radius: 16 },
-  { id: "humain", name: "HUMAIN", bg: "#04110f", surface: "#0a201c", fg: "#eafaf5", muted: "#7fae9f", accent: "#20e3b2", accent2: "#12b3a6", font: "Inter, system-ui, sans-serif", heading: "Inter, system-ui, sans-serif", radius: 18 },
+  { id: "humain", name: "HUMAIN Light", bg: "#04110f", surface: "#0a201c", fg: "#eafaf5", muted: "#7fae9f", accent: "#20e3b2", accent2: "#12b3a6", font: "Inter, system-ui, sans-serif", heading: "Inter, system-ui, sans-serif", radius: 18 },
   { id: "mono", name: "Mono", bg: "#0c0c0d", surface: "#171719", fg: "#fafafa", muted: "#9b9b9f", accent: "#e5e5e7", accent2: "#b0b0b4", font: "Inter, system-ui, sans-serif", heading: "Inter, system-ui, sans-serif", radius: 14 },
   { id: "coral", name: "Coral", bg: "#1b0d12", surface: "#2c141c", fg: "#fff0f3", muted: "#d29aa7", accent: "#ff5d8f", accent2: "#ffab5d", font: "Inter, system-ui, sans-serif", heading: "Inter, system-ui, sans-serif", radius: 18 },
 ];

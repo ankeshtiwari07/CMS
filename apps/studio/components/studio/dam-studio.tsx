@@ -18,7 +18,21 @@ export default function DamStudio() {
   const [sel, setSel] = useState<Asset | null>(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
+  const [altDraft, setAltDraft] = useState("");
+  const [savingAlt, setSavingAlt] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  function open(a: Asset) { setSel(a); setAltDraft(a.alt || ""); }
+
+  async function saveAlt() {
+    if (!sel) return;
+    setSavingAlt(true);
+    try {
+      const r = await fetch(`/api/dam/${sel.id}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ alt: altDraft }) });
+      if (r.ok) { setAssets((xs) => xs.map((x) => (x.id === sel.id ? { ...x, alt: altDraft } : x))); setSel({ ...sel, alt: altDraft }); }
+    } catch {}
+    setSavingAlt(false);
+  }
 
   async function load() {
     try {
@@ -79,7 +93,7 @@ export default function DamStudio() {
       {/* grid */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(180px,1fr))", gap: 14, marginTop: 18 }}>
         {shown.map((a) => (
-          <div key={a.id} onClick={() => setSel(a)} style={{ ...card, overflow: "hidden", cursor: "pointer" }}>
+          <div key={a.id} onClick={() => open(a)} style={{ ...card, overflow: "hidden", cursor: "pointer" }}>
             <div style={{ height: 130, background: "#f4f8f7", display: "grid", placeItems: "center", borderBottom: `1px solid ${LINE}` }}>
               {isImg(a.mimeType)
                 ? <img src={(a.sizes.find((s) => s.name === "thumbnail")?.url) || a.url} alt={a.alt || a.filename} style={{ maxWidth: "100%", maxHeight: 130, objectFit: "contain" }} />
@@ -112,7 +126,16 @@ export default function DamStudio() {
                 <Row k="Dimensions" v={sel.width && sel.height ? `${sel.width} × ${sel.height}` : "—"} />
                 <Row k="Size" v={kb(sel.filesize)} />
                 <Row k="Store" v={`S3 / MinIO · ${store}`} />
-                {sel.alt && <Row k="AI alt-text" v={sel.alt} />}
+                <Row k="Uploaded" v={sel.createdAt ? new Date(sel.createdAt).toLocaleString() : "—"} />
+                <div style={{ marginTop: 8 }}>
+                  <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: ".1em", color: MUT, fontWeight: 700, marginBottom: 4 }}>AI alt-text (editable)</div>
+                  <textarea value={altDraft} onChange={(e) => setAltDraft(e.target.value)} rows={2}
+                    style={{ width: "100%", border: `1px solid ${LINE}`, borderRadius: 8, padding: "7px 9px", fontSize: 12.5, resize: "vertical", outline: "none", color: INK }} />
+                  <button onClick={saveAlt} disabled={savingAlt || altDraft === (sel.alt || "")}
+                    style={{ marginTop: 6, border: "none", background: TEAL, color: "#fff", borderRadius: 8, padding: "6px 12px", fontWeight: 700, fontSize: 12.5, cursor: savingAlt ? "default" : "pointer", opacity: savingAlt || altDraft === (sel.alt || "") ? 0.5 : 1 }}>
+                    {savingAlt ? "Saving…" : "Save alt-text"}
+                  </button>
+                </div>
                 <div style={{ marginTop: 8 }}>
                   <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: ".1em", color: MUT, fontWeight: 700, marginBottom: 4 }}>Renditions ({sel.sizes.length})</div>
                   {sel.sizes.map((s) => (

@@ -5,6 +5,7 @@
 // (non-streamed) mode for the rich artifact endpoints.
 import Anthropic from "@anthropic-ai/sdk";
 import { getProvider, providerByName } from "../providers/index.js";
+import { generateWebsite } from "../website.js";
 import { retrieveContext, getBrandGuidelines, getComponents, auditAgentRun } from "./tools.js";
 import { SPECIALISTS, type SpecialistId } from "./specialists.js";
 import { prompts } from "../prompts/library.js";
@@ -247,12 +248,14 @@ async function execTool(
         ? `\n\n=== CMS COMPONENT LIBRARY (reuse these building blocks) ===\nAssemble the page primarily from these admin-curated components. Adapt their HTML, keep their structure/classes, and REPLACE any {{placeholders}} with real, specific copy. Only invent new sections when the library lacks a needed block:\n${lib.text}`
         : "";
     if (libNote) trace.push({ kind: "tool", name: "list_components" });
-    let html = await provider.complete({
-      system: SITE_BUILDER_SYSTEM,
-      messages: [{ role: "user", content: `${input.brief}\n\n${lang}${libNote}` }],
-      maxTokens: 8192,
-    });
-    html = html.replace(/^```html\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "").trim();
+    // Build with the section-by-section engine on CLAUDE (falls back to MiniMax).
+    // The chat's default provider (LLM_PROVIDER=haow-v4) has a ~4096-token context,
+    // so a single-shot maxTokens:8192 build always 400s. generateWebsite runs on
+    // Claude, section by section (no token-limit issue), and assembles a full,
+    // component-based page — the same engine as the Website Studio.
+    void libNote; // library consultation is handled inside generateWebsite
+    const site = await generateWebsite({ prompt: `${input.brief}\n\n${lang}`, primary: "anthropic" });
+    let html = site.html;
     trace.push({ kind: "agent", name: "Build Agent", detail: String(input.title || input.brief || "site").slice(0, 80) });
     // Show the built site to the user immediately; do NOT feed the HTML back to
     // the model — just tell it the site is rendered so it can introduce it.

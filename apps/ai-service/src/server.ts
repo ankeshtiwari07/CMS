@@ -361,8 +361,42 @@ app.post("/studio/chat", async (req, reply) => {
     // still produces a useful reply instead of an error. (Tool-use / specialist
     // delegation isn't available in this degraded path — it's an outage cushion.)
     if (!streamed && availability) {
-      req.log.warn({ err: msg }, "studio/chat orchestrator unavailable — degrading to fallback provider");
+      req.log.warn({ err: msg }, "studio/chat orchestrator unavailable — retrying tool-loop on a live provider");
+      // Find a LIVE, tool-capable fallback provider (MiniMax → Grok → …) and
+      // re-run the FULL tool-use loop so the chat can still BUILD (websites, etc.),
+      // not merely chat. Falls back to single-shot text only if that also fails.
+      let fbProv: string | null = null;
+      let fbModel: string | undefined;
       try {
+        // Exclude Claude (down) and the local default (haow-v4 — no tool-calling)
+        // so we land on a live, tool-capable cloud provider (MiniMax → Grok → …).
+        const probe = await completeWithFallback({ system: "ok", messages: [{ role: "user", content: "ok" }], maxTokens: 5 }, { exclude: ["anthropic", "haowv4"] });
+        fbProv = probe.provider;
+        fbModel = MODELS.find((m) => m.provider === fbProv && !m.hidden)?.model;
+      } catch { /* no live provider */ }
+      let built = false;
+      if (fbProv) {
+        try {
+          send({ type: "status", label: `Building on ${fbProv} (Claude unavailable)` });
+          collected = "";
+          await runOrchestrator({
+            deliverableSpec,
+            conversational: true,
+            messages: [...history, { role: "user", content: body.prompt }],
+            model: fbModel || "",
+            providerName: fbProv,
+            maxTokens: LONG_MODES.includes(body.mode) ? 4096 : 2048,
+            onText: (d) => { collected += d; send({ type: "delta", text: d }); },
+            onEvent: (e) => { if (e.type === "reset") collected = ""; send(e); },
+          });
+          send({ type: "done", model: fbProv, modelLabel: `${fbProv} (fallback)`, artifact: collected });
+          built = true;
+        } catch (e3: any) {
+          req.log.warn({ err: e3?.message }, "studio/chat tool-loop fallback failed — using single-shot text");
+        }
+      }
+      if (built) { /* handled */ }
+      else try {
         const fb = await completeWithFallback(
           {
             system: deliverableSpec + " Respond directly and helpfully in clean markdown.",

@@ -10,6 +10,7 @@ import { runSlaSweep, getBreaches, startSlaScheduler } from "./sla.js";
 import { runOrchestrator } from "./agents/orchestrator.js";
 import { THEMES, generateDeckQuestions, generateOutline, generateDeck, regenerateSlide, translateDeck } from "./deck.js";
 import { planWebsite, generateWebsite, generateSection, assemble, generateComponent } from "./website.js";
+import { getBrandProfile, reviewArtifact, remediate } from "./governance.js";
 import { generateContentOutline, generateArticle, regenerateContentSection } from "./content.js";
 
 const app = Fastify({ logger: true, bodyLimit: 1_000_000 });
@@ -520,6 +521,8 @@ app.post("/studio/website", async (req, reply) => {
   const { entry } = resolveModel(body.model);
   try {
     const site = await generateWebsite({ prompt: body.prompt, plan: body.plan as any, primary: entry.provider });
+    // Note: brand governance runs on demand via /studio/governance/review (and the
+    // Governance Studio) so it never blocks the user seeing their generated site.
     return {
       ok: true, title: site.title, brand: site.brand, sections: site.sections, html: site.html, provider: site.provider,
       // Component-based build telemetry (LEAP D2): which library components were
@@ -561,6 +564,43 @@ app.post("/studio/component", async (req, reply) => {
   } catch (e: any) {
     req.log.warn({ err: e?.message }, "studio/component error");
     return reply.code(502).send({ error: e?.message || "component_failed" });
+  }
+});
+
+// ---- D1 GOVERNANCE AGENT (RAG-grounded brand consistency, audited) ----
+// Return the grounded brand profile the agent reviews against.
+app.get("/studio/governance/brand", async (_req, reply) => {
+  try {
+    const profile = await getBrandProfile();
+    return { ok: true, profile };
+  } catch (e: any) {
+    return reply.code(502).send({ error: e?.message || "brand_unavailable" });
+  }
+});
+
+// Review an artifact (website / component / deck / article) against the brand.
+app.post("/studio/governance/review", async (req, reply) => {
+  const body = z.object({ html: z.string().min(1).max(200000), kind: z.string().default("artifact"), model: z.string().optional() }).parse(req.body);
+  const { entry } = resolveModel(body.model);
+  try {
+    const report = await reviewArtifact({ html: body.html, kind: body.kind, primary: entry.provider });
+    return { ok: true, report };
+  } catch (e: any) {
+    req.log.warn({ err: e?.message }, "governance/review error");
+    return reply.code(502).send({ error: e?.message || "review_failed" });
+  }
+});
+
+// Auto-remediate an artifact to the brand (colour remap + grounded copy fixes).
+app.post("/studio/governance/remediate", async (req, reply) => {
+  const body = z.object({ html: z.string().min(1).max(200000), kind: z.string().default("artifact"), model: z.string().optional() }).parse(req.body);
+  const { entry } = resolveModel(body.model);
+  try {
+    const out = await remediate({ html: body.html, kind: body.kind, primary: entry.provider });
+    return { ok: true, html: out.html, changes: out.changes, report: out.report };
+  } catch (e: any) {
+    req.log.warn({ err: e?.message }, "governance/remediate error");
+    return reply.code(502).send({ error: e?.message || "remediate_failed" });
   }
 });
 

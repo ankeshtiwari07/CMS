@@ -36,6 +36,8 @@ export const DICT: Record<string, Tr> = {
   "nav.templates": { en: "Templates", ar: "القوالب", fr: "Modèles", de: "Vorlagen", es: "Plantillas", pl: "Szablony" },
   "nav.review": { en: "Review", ar: "المراجعة", fr: "Révision", de: "Prüfung", es: "Revisión", pl: "Przegląd" },
   "nav.brand": { en: "Brand", ar: "العلامة التجارية", fr: "Marque", de: "Marke", es: "Marca", pl: "Marka" },
+  "nav.governance": { en: "Governance", ar: "الحوكمة", fr: "Gouvernance", de: "Governance", es: "Gobernanza", pl: "Zarządzanie" },
+  "nav.dam": { en: "Assets", ar: "الأصول", fr: "Ressources", de: "Medien", es: "Recursos", pl: "Zasoby" },
   "nav.design": { en: "Design", ar: "التصميم", fr: "Design", de: "Design", es: "Diseño", pl: "Projekt" },
   // create-new menu
   "create.addfiles": { en: "Add photos & files", ar: "إضافة صور وملفات", fr: "Ajouter photos et fichiers", de: "Fotos & Dateien hinzufügen", es: "Agregar fotos y archivos", pl: "Dodaj zdjęcia i pliki" },

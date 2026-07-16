@@ -111,7 +111,7 @@ function PresentSlide({ slide, t, index, total }: { slide: Slide; t: Theme; inde
 // =====================================================================
 type Phase = "compose" | "setup" | "outline" | "deck";
 
-export default function DeckStudio({ deckId }: { deckId: string | null }) {
+export default function DeckStudio({ deckId, userName }: { deckId: string | null; userName?: string }) {
   const urlPrompt = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("prompt") || "" : "";
   const [phase, setPhase] = useState<Phase>("compose");
   const [busy, setBusy] = useState("");
@@ -354,10 +354,41 @@ export default function DeckStudio({ deckId }: { deckId: string | null }) {
   // ---- Compose hero (Figma home) — shown before a deck is started ----
   if (phase === "compose" && !deck && chat.length === 0) {
     const chip: React.CSSProperties = { display: "inline-flex", alignItems: "center", gap: 6, height: 34, padding: "0 12px", borderRadius: 999, border: "1px solid var(--hairline)", background: "var(--card-bg,#fff)", fontSize: 13, fontWeight: 600, color: "var(--ink)", cursor: "pointer" };
+    const first = (userName || "").trim().split(/[\s@]+/)[0] || "";
+    const greeting = first ? `Good morning ${first.charAt(0).toUpperCase() + first.slice(1)}! What do you want to create today?` : "What do you want to create today?";
+    // Realistic fanned previews (deck slide · city visual · email) — matches Figma.
+    const deckMock = (
+      <div style={{ position: "absolute", inset: 0, background: "#fff", padding: "12px 13px", display: "flex", flexDirection: "column" }}>
+        <div style={{ fontSize: 8, fontWeight: 800, color: "#0b1416" }}>Q4 2024 GROWTH</div>
+        <div style={{ fontSize: 13, fontWeight: 800, color: "#0b1416", marginBottom: 6 }}>STRATEGY</div>
+        <div style={{ display: "flex", gap: 8, flex: 1 }}>
+          <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 4 }}>
+            {["Expand market reach", "Innovate product line", "Optimize journey"].map((t, k) => <div key={k} style={{ fontSize: 6.5, color: "#3a4a4a" }}>▸ {t}</div>)}
+          </div>
+          <div style={{ width: 46, display: "flex", alignItems: "flex-end", gap: 3 }}>
+            {[10, 18, 13, 24].map((h, k) => <div key={k} style={{ width: 8, height: h, background: k === 3 ? "#c2e54b" : "#00a18b", borderRadius: 2 }} />)}
+          </div>
+        </div>
+      </div>
+    );
+    const cityMock = (
+      <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg,#04121a,#0a2b2f)", overflow: "hidden" }}>
+        {[14, 30, 46, 60, 74, 88].map((l, k) => <div key={k} style={{ position: "absolute", left: `${l}%`, bottom: 0, width: 3, height: `${30 + (k % 3) * 22}%`, background: k % 2 ? "linear-gradient(#7de7c6,transparent)" : "linear-gradient(#c2e54b,transparent)", opacity: 0.85 }} />)}
+        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg,transparent 55%,rgba(0,0,0,.5))" }} />
+      </div>
+    );
+    const emailMock = (
+      <div style={{ position: "absolute", inset: 0, background: "#eef4f3", padding: "12px 13px" }}>
+        <div style={{ fontSize: 8, color: "#5a6a6c" }}>To: janet.chen@…</div>
+        <div style={{ fontSize: 9.5, fontWeight: 800, color: "#0b1416", margin: "4px 0" }}>Subject: Q4 Project Alpha</div>
+        <div style={{ fontSize: 8, color: "#5a6a6c", marginBottom: 8 }}>From: Janet Chen</div>
+        {[100, 92, 80, 96, 60].map((w, k) => <div key={k} style={{ height: 3, width: `${w}%`, background: "#cdd9d6", borderRadius: 2, marginBottom: 4 }} />)}
+      </div>
+    );
     const previews = [
-      { rot: -13, x: -150, grad: "linear-gradient(135deg,#0b1020,#1c6f5f)" },
-      { rot: 0, x: 0, grad: "linear-gradient(135deg,#0e2a2e,#39e0a5)", front: true },
-      { rot: 13, x: 150, grad: "linear-gradient(135deg,#141a2e,#0b1020)" },
+      { rot: -13, x: -150, content: deckMock },
+      { rot: 0, x: 0, front: true, content: cityMock },
+      { rot: 13, x: 150, content: emailMock },
     ];
     return (
       <div style={{ ...pane, height: "calc(100vh - 20px)", position: "relative" }}>
@@ -366,10 +397,10 @@ export default function DeckStudio({ deckId }: { deckId: string | null }) {
           {/* fanned deck previews */}
           <div style={{ position: "relative", width: 420, height: 150, marginBottom: 34 }}>
             {previews.map((p, i) => (
-              <div key={i} style={{ position: "absolute", left: "50%", top: 0, width: 220, height: 132, marginLeft: -110, transform: `translateX(${p.x * 0.55}px) rotate(${p.rot}deg)`, background: p.grad, borderRadius: 14, boxShadow: "0 12px 30px rgba(0,0,0,.18)", border: "1px solid rgba(255,255,255,.15)", zIndex: p.front ? 3 : 1 }} />
+              <div key={i} style={{ position: "absolute", left: "50%", top: 0, width: 220, height: 132, marginLeft: -110, transform: `translateX(${p.x * 0.55}px) rotate(${p.rot}deg)`, borderRadius: 14, overflow: "hidden", boxShadow: "0 12px 30px rgba(0,0,0,.18)", border: "1px solid rgba(255,255,255,.35)", zIndex: p.front ? 3 : 1, background: "#fff" }}>{p.content}</div>
             ))}
           </div>
-          <h1 style={{ fontSize: 30, fontWeight: 800, color: "var(--ink)", textAlign: "center", margin: "0 0 22px" }}>What do you want to create today?</h1>
+          <h1 style={{ fontSize: 30, fontWeight: 800, color: "var(--ink)", textAlign: "center", margin: "0 0 22px" }}>{greeting}</h1>
           <div style={{ width: "100%", maxWidth: 760, border: "1.5px solid var(--studio-primary)", borderRadius: 16, padding: 14, background: "var(--card-bg,#fff)" }}>
             <textarea value={compose} onChange={(e) => setCompose(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); if (compose.trim()) { startFromPrompt(compose); setCompose(""); } } }}

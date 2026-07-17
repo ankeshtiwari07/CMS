@@ -231,6 +231,9 @@ function CreateModal({ onClose, onDone }: { onClose: () => void; onDone: () => v
 
   async function generate() {
     if (!prompt.trim()) { setErr(t("pg.enterPrompt")); return; }
+    // Decks go to the real Deck Studio (plans + renders + saves slides), not the
+    // /api/generate text path.
+    if (type === "deck") { window.location.href = `/cms/deck?prompt=${encodeURIComponent(prompt)}`; return; }
     setBusy("gen"); setErr(null);
     try {
       const res = await fetch("/api/generate", {

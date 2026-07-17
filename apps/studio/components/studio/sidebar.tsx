@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { HumainLockup, HumainMark } from "@/components/brand";
 import NotificationsBell from "@/components/notifications/notifications-bell";
 import ChatHistory from "@/components/studio/chat-history";
@@ -123,6 +123,20 @@ export default function Sidebar({
   active?: string;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
+  // Derive the active nav item from the URL so the highlight is correct instantly
+  // on load / navigation (the server `active` prop is only a fallback).
+  const activeKey = (() => {
+    const p = pathname || "";
+    const map: [string, string][] = [
+      ["/cms/pages", "pages"], ["/cms/data", "data"], ["/cms/governance", "governance"], ["/cms/dam", "dam"],
+      ["/cms/deck", "cms"], ["/cms/website", "cms"], ["/cms/studio", "cms"], ["/cms", "cms"],
+      ["/design", "design"], ["/search", "search"], ["/projects", "projects"], ["/brand", "brand"],
+      ["/review", "review"], ["/settings", "settings"], ["/studio", "create"],
+    ];
+    for (const [pre, key] of map) if (p.startsWith(pre)) return key;
+    return active;
+  })();
   const t = useT();
   const [collapsed, setCollapsed] = useState(false);
   const [menu, setMenu] = useState(false);
@@ -299,9 +313,9 @@ export default function Sidebar({
               onClick={() => router.push(href)}
               onMouseEnter={() => setHover(key)}
               onMouseLeave={() => setHover(null)}
-              style={row(key === active || (hover === key && key !== active))}
+              style={row(key === activeKey || (hover === key && key !== activeKey))}
             >
-              <Icon size={21} color={key === active ? "var(--studio-teal-dark)" : "var(--ink)"} />
+              <Icon size={21} color={key === activeKey ? "var(--studio-teal-dark)" : "var(--ink)"} />
               {!collapsed && <span>{t(`nav.${key}`)}</span>}
             </button>
           );

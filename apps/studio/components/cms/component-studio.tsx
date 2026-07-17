@@ -8,6 +8,10 @@ type Block = { uid: string; comp: Comp };
 
 const TYPES = ["container", "section", "hero", "text", "image", "gallery", "card", "feature", "cta", "testimonial", "stats", "logoCloud", "pricing", "faq", "nav", "footer", "form", "banner"];
 
+// Humanize a stored key for display (VALUE stays the raw key so saves don't break).
+const TYPE_LABELS: Record<string, string> = { logoCloud: "Logo cloud", cta: "Call to action", faq: "FAQ", cms: "CMS" };
+const titleCase = (s: string) => TYPE_LABELS[s] ?? String(s || "").replace(/([a-z])([A-Z])/g, "$1 $2").replace(/^./, (c) => c.toUpperCase());
+
 // A neutral wrapper so bare component markup renders reasonably in the canvas.
 function pageDoc(html: string): string {
   return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -215,25 +219,25 @@ export default function ComponentStudio({ user, canPublish }: { user: { name?: s
       {/* New / AI-review component modal */}
       {showNew && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.45)", display: "grid", placeItems: "center", zIndex: 100 }} onClick={() => setShowNew(false)}>
-          <div onClick={(e) => e.stopPropagation()} style={{ ...cmsVars(theme), width: 620, maxWidth: "92vw", maxHeight: "88vh", overflowY: "auto", background: "var(--hc-card)", color: "var(--hc-fg)", borderRadius: R.x2, boxShadow: "var(--hc-shadow-xl)", padding: 18 } as any}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ ...cmsVars(theme), width: 620, maxWidth: "92vw", maxHeight: "88vh", display: "flex", flexDirection: "column", background: "var(--hc-card)", color: "var(--hc-fg)", borderRadius: R.x2, boxShadow: "var(--hc-shadow-xl)", padding: 18 } as any}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12, flexShrink: 0 }}>
               <span style={{ fontWeight: 800, ...TYPE.base }}>{editingId ? "Edit component" : form.html ? "Review & save component" : "New component"}</span>
               <button onClick={() => setShowNew(false)} style={miniBtn(false)}><XIcon size={14} /></button>
             </div>
-            <div style={{ display: "grid", gap: 10 }}>
+            <div style={{ display: "grid", gap: 10, overflowY: "auto", flex: 1, minHeight: 0, paddingRight: 4 }}>
               <label style={lbl()}>Name<input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} style={inp()} /></label>
               <div style={{ display: "flex", gap: 10 }}>
                 <label style={{ ...lbl(), flex: 1 }}>Type
-                  <select value={form.type} onChange={(e) => setForm((f) => ({ ...f, type: e.target.value }))} style={inp()}>{TYPES.map((t) => <option key={t} value={t}>{t}</option>)}</select>
+                  <select value={form.type} onChange={(e) => setForm((f) => ({ ...f, type: e.target.value }))} style={inp()}>{TYPES.map((t) => <option key={t} value={t}>{titleCase(t)}</option>)}</select>
                 </label>
                 <label style={{ ...lbl(), flex: 1 }}>Status
-                  <select value={form.status} onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))} style={inp()}><option value="live">live</option><option value="draft">draft</option></select>
+                  <select value={form.status} onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))} style={inp()}><option value="live">Live</option><option value="draft">Draft</option></select>
                 </label>
               </div>
               <label style={lbl()}>HTML<textarea value={form.html} onChange={(e) => setForm((f) => ({ ...f, html: e.target.value }))} rows={8} style={{ ...inp(), fontFamily: "ui-monospace,monospace", fontSize: 12.5, resize: "vertical" }} /></label>
               {form.html && <iframe title="preview" srcDoc={pageDoc(renderTemplate(form.html))} style={{ width: "100%", height: 180, border: "1px solid var(--hc-border)", borderRadius: R.lg, background: "#fff" }} />}
             </div>
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 14 }}>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 14, flexShrink: 0 }}>
               <button onClick={() => setShowNew(false)} style={btn(false, false)}>Cancel</button>
               <button onClick={saveComponent} disabled={busy} style={btn(true, busy)}><CheckIcon size={14} color="#fff" /> Save to library</button>
             </div>

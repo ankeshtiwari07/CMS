@@ -461,6 +461,9 @@ export default function PromptBox({ onActive }: { onActive?: (active: boolean) =
   function generate() {
     const t = prompt.trim();
     if (!t || busy) return;
+    // Decks: route into the real Deck Studio (which plans + renders + saves
+    // slides) instead of the /api/generate text path that only returns a brief.
+    if (mode === "deck") { openStudio("/cms/deck"); return; }
     setPrompt(""); // clear the composer after sending, like Claude
     send(t, true);
   }
@@ -805,7 +808,11 @@ function AssistantTurn({ t, onRegen }: { t: Turn; onRegen?: () => void }) {
       ) : (
         <div style={{ color: "var(--ink)", lineHeight: 1.65, fontSize: 15 }}>
           {t.streaming && !t.text ? (
-            <span style={{ color: "var(--muted)" }}>{tr("prompt.thinking")}</span>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 8, color: "var(--muted)" }}>
+              <span style={{ width: 15, height: 15, border: "2.5px solid var(--hairline)", borderTopColor: "var(--studio-primary)", borderRadius: "50%", display: "inline-block", animation: "humainspin .7s linear infinite" }} />
+              {tr("prompt.thinking")}
+              <style>{`@keyframes humainspin{to{transform:rotate(360deg)}}`}</style>
+            </span>
           ) : (
             <>
               <Markdown text={t.text} />

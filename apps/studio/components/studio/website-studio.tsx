@@ -103,6 +103,12 @@ export default function WebsiteStudio({ siteId }: { siteId: string | null }) {
     const blob = new Blob([site.html], { type: "text/html" });
     const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `${slugify(site.title) || "site"}.html`; a.click();
   };
+  // Open the assembled site full-screen / standalone in a new tab.
+  const preview = () => {
+    if (!site) return;
+    const w = window.open("", "_blank");
+    if (w) { w.document.open(); w.document.write(site.html); w.document.close(); }
+  };
 
   // D2 — edit the EXISTING saved site with a natural-language instruction. The
   // Website Builder agent plans edit ops and regenerates only affected sections.
@@ -187,6 +193,7 @@ export default function WebsiteStudio({ siteId }: { siteId: string | null }) {
         </div>
         <span style={{ fontSize: 12, color: "#5b6d67" }}>/site/</span>
         <input value={slug} onChange={(e) => setSlug(slugify(e.target.value))} style={{ ...btn(), width: 150, fontWeight: 500 }} />
+        <button style={btn()} disabled={!site} onClick={preview}>Preview</button>
         <button style={btn()} onClick={exportHtml}>Export HTML</button>
         <button style={btn()} disabled={!!busy} onClick={() => save(false)}>{savedId ? "Save" : "Save draft"}</button>
         <button style={primaryBtn} disabled={!!busy} onClick={() => save(true)}>Publish</button>

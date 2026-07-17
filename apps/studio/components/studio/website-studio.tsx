@@ -27,6 +27,7 @@ export default function WebsiteStudio({ siteId }: { siteId: string | null }) {
   const [slug, setSlug] = useState("");
   const [publishedPath, setPublishedPath] = useState("");
   const [device, setDevice] = useState<"desktop" | "mobile">("desktop");
+  const [aiEdit, setAiEdit] = useState("");
   const flash = (m: string) => { setNotice(m); setTimeout(() => setNotice(""), 2600); };
 
   useEffect(() => {
@@ -103,6 +104,23 @@ export default function WebsiteStudio({ siteId }: { siteId: string | null }) {
     const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = `${slugify(site.title) || "site"}.html`; a.click();
   };
 
+  // D2 — edit the EXISTING saved site with a natural-language instruction. The
+  // Website Builder agent plans edit ops and regenerates only affected sections.
+  const aiEditSite = async () => {
+    if (!site || !aiEdit.trim()) return;
+    if (!savedId) { flash("Save the site first, then edit it with AI."); return; }
+    setErr(""); setBusy("Editing with AI…");
+    try {
+      const r = await fetch(`/api/website/${savedId}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ instruction: aiEdit }) });
+      const j = await r.json();
+      if (!r.ok || !j.html) throw new Error(j.error || "AI edit failed");
+      setSite({ ...site, sections: (j.sections && j.sections.length ? j.sections : site.sections), html: j.html });
+      const n = Array.isArray(j.changed) ? j.changed.length : 0;
+      flash(n ? `AI updated ${n} section${n > 1 ? "s" : ""}` : "AI applied your edit");
+      setAiEdit("");
+    } catch (e: any) { flash(e.message); } finally { setBusy(""); }
+  };
+
   const shell: React.CSSProperties = { background: "#fff", borderRadius: 14, minHeight: "calc(100vh - 20px)", padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,.06)" };
   const btn = (x?: React.CSSProperties): React.CSSProperties => ({ padding: "9px 14px", borderRadius: 9, border: "1px solid #d7e0dd", background: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 600, color: "#1c3b34", ...x });
   const primaryBtn = btn({ background: "#0f6b5c", color: "#fff", border: "none" });
@@ -175,6 +193,16 @@ export default function WebsiteStudio({ siteId }: { siteId: string | null }) {
       </div>
       {notice && <div style={{ position: "fixed", top: 16, right: 16, background: "#0f6b5c", color: "#fff", padding: "8px 14px", borderRadius: 8, zIndex: 50 }}>{notice}</div>}
       {publishedPath && <div style={{ marginBottom: 12, padding: "8px 12px", background: "#e6f4f1", borderRadius: 8, fontSize: 13 }}>✅ Published — live at <a href={publishedPath} target="_blank" rel="noreferrer" style={{ color: "#0f6b5c", fontWeight: 700 }}>{publishedPath}</a></div>}
+
+      {/* D2 — edit the whole site by instruction (agent regenerates only what changes) */}
+      <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 14, padding: 10, borderRadius: 10, border: "1px solid #d7e0dd", background: "#f6faf9" }}>
+        <span style={{ fontSize: 12, fontWeight: 800, color: "#0f6b5c", whiteSpace: "nowrap" }}>✦ Edit with AI</span>
+        <input value={aiEdit} onChange={(e) => setAiEdit(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") aiEditSite(); }}
+          placeholder={savedId ? "Tell the agent what to change — e.g. “rewrite the hero headline to be punchier and add a testimonials section”" : "Save the site first to enable AI editing"}
+          disabled={!savedId || !!busy}
+          style={{ flex: 1, border: "1px solid #d7e0dd", borderRadius: 8, padding: "9px 12px", fontSize: 14, fontFamily: "inherit", background: savedId ? "#fff" : "#eef2f1" }} />
+        <button style={primaryBtn} disabled={!!busy || !savedId || !aiEdit.trim()} onClick={aiEditSite}>{busy === "Editing with AI…" ? busy : "Apply edit"}</button>
+      </div>
 
       <div style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
         <div style={{ width: 220, maxHeight: "calc(100vh - 130px)", overflowY: "auto", display: "flex", flexDirection: "column", gap: 6 }}>

@@ -16,7 +16,7 @@ export type Brand = {
 };
 export type SectionKind =
   | "nav" | "hero" | "cardGrid" | "domains" | "buildYourOwn" | "platform"
-  | "useCase" | "logos" | "features" | "testimonial" | "faq" | "cta" | "footer";
+  | "useCase" | "logos" | "features" | "testimonial" | "faq" | "cta" | "leadForm" | "footer";
 export type PlannedSection = { id: string; kind: SectionKind; brief: string };
 export type WebsitePlan = { title: string; description?: string; brand: Brand; sections: PlannedSection[]; lang?: string; dir?: string; bilingual?: boolean };
 export type Outline = { anchor: string; kind: string; brief: string }[];
@@ -41,7 +41,7 @@ const DEFAULT_BRAND: Brand = {
 const KIND_TO_TYPE: Record<SectionKind, string> = {
   nav: "nav", hero: "hero", cardGrid: "card", domains: "gallery", buildYourOwn: "cta",
   platform: "feature", useCase: "stats", logos: "logoCloud", features: "feature",
-  testimonial: "testimonial", faq: "faq", cta: "cta", footer: "footer",
+  testimonial: "testimonial", faq: "faq", cta: "cta", leadForm: "form", footer: "footer",
 };
 
 const CMS = process.env.CMS_BASE_URL || "http://localhost:3001";
@@ -94,8 +94,8 @@ export async function planWebsite(prompt: string, primary?: string): Promise<Web
   const sys =
     "You are HUMAIN Create Studio's web art director. Plan a premium, Apple.com-style marketing website. " +
     "Choose a coherent brand system and an ordered list of sections. Use these section kinds only: " +
-    "nav, hero, cardGrid, domains, buildYourOwn, platform, useCase, logos, features, testimonial, faq, cta, footer. " +
-    "Always start with nav and hero and end with footer. Pick 7-11 sections total. " +
+    "nav, hero, cardGrid, domains, buildYourOwn, platform, useCase, logos, features, testimonial, faq, cta, leadForm, footer. " +
+    "Always start with nav and hero and end with footer. Pick 7-11 sections total. For a landing / marketing page, INCLUDE a leadForm (contact) section near the end so the page can actually convert. " +
     'Detect the requested language(s) from the brief: return "lang" (BCP-47, e.g. en or ar), "dir" (ltr|rtl), and "bilingual":true if the user asks for two languages. ' +
     "Respond with ONLY minified JSON, no markdown, no fences.";
   const user =
@@ -112,7 +112,7 @@ export async function planWebsite(prompt: string, primary?: string): Promise<Web
     line: b.line || DEFAULT_BRAND.line, soft: b.soft || DEFAULT_BRAND.soft,
     font: DEFAULT_BRAND.font, radius: DEFAULT_BRAND.radius,
   };
-  const kinds = ["nav", "hero", "cardGrid", "domains", "buildYourOwn", "platform", "useCase", "logos", "features", "testimonial", "faq", "cta", "footer"];
+  const kinds = ["nav", "hero", "cardGrid", "domains", "buildYourOwn", "platform", "useCase", "logos", "features", "testimonial", "faq", "cta", "leadForm", "footer"];
   const sections: PlannedSection[] = (Array.isArray(data.sections) ? data.sections : [])
     .filter((s: any) => kinds.includes(s?.kind))
     .slice(0, 12)
@@ -139,6 +139,7 @@ const KIND_GUIDE: Record<SectionKind, string> = {
   testimonial: "A centered testimonial: a large quote, an author name + role, subtle styling.",
   faq: "An FAQ section: a title and 5-6 accordion rows (use <details>/<summary> so they expand natively) with question + answer.",
   cta: "A bold closing call-to-action band: headline, subcopy, and a primary button, on a soft or gradient background.",
+  leadForm: 'A contact / lead-capture section with a real working form: <form method="post" action="/api/site/lead"> containing a text input name="name" (label Name), an email input name="email" (label Email, required), a <textarea name="message"> (label Message), and a submit <button type="submit">. The form MUST post natively (no JavaScript). Add a short heading + subcopy inviting the visitor to get in touch. Style inputs on-brand with generous padding and rounded corners.',
   footer: "A rich <footer>: brand + a tagline (e.g. 'A PIF COMPANY'), 3-4 link columns, a bottom row with copyright, legal links and social icons.",
 };
 

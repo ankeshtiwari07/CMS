@@ -19,6 +19,7 @@ import { Components } from "./collections/Components";
 import { Decks } from "./collections/Decks";
 import { AiWebsites } from "./collections/AiWebsites";
 import { ContentVersions } from "./collections/ContentVersions";
+import { Leads } from "./collections/Leads";
 import { contentCollections } from "./collections/content-types";
 import { globals } from "./globals";
 
@@ -93,7 +94,7 @@ export default buildConfig({
     defaultLocale: "en",
     fallback: true,
   },
-  collections: [Users, Sites, Media, Pages, Projects, Conversations, BrandGuidelines, AuditLog, Approvals, Components, Decks, AiWebsites, ContentVersions, ...contentCollections],
+  collections: [Users, Sites, Media, Pages, Projects, Conversations, BrandGuidelines, AuditLog, Approvals, Components, Decks, AiWebsites, ContentVersions, Leads, ...contentCollections],
   globals,
   db: postgresAdapter({
     pool: { connectionString: process.env.DATABASE_URI },

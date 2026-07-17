@@ -8,6 +8,7 @@ import { startRender, pollRender, videoConfigured } from "./providers/video.js";
 import { startImageRender, pollImageRender, imageConfigured } from "./providers/image.js";
 import { runSlaSweep, getBreaches, startSlaScheduler } from "./sla.js";
 import { runOrchestrator } from "./agents/orchestrator.js";
+import { semanticSearch } from "./agents/tools.js";
 import { WebsiteBuilder } from "./agents/website-builder.js";
 import { THEMES, generateDeckQuestions, generateOutline, generateDeck, regenerateSlide, translateDeck } from "./deck.js";
 import { planWebsite, generateWebsite, generateSection, assemble, generateComponent } from "./website.js";
@@ -699,6 +700,19 @@ app.post("/studio/website/section", async (req, reply) => {
   } catch (e: any) {
     req.log.warn({ err: e?.message }, "website/section error");
     return reply.code(502).send({ error: e?.message || "section_failed" });
+  }
+});
+
+// Hybrid-search core: semantic (pgvector, Arabic-aware) retrieval over published
+// content. The studio search route fuses these with its keyword results.
+app.post("/search", async (req, reply) => {
+  const body = z.object({ q: z.string().min(1).max(500), locales: z.array(z.string()).optional(), limit: z.number().int().min(1).max(50).optional() }).parse(req.body);
+  try {
+    const hits = await semanticSearch(body.q, body.locales, body.limit || 20);
+    return { ok: true, hits };
+  } catch (e: any) {
+    req.log.warn({ err: e?.message }, "search error");
+    return reply.code(502).send({ error: e?.message || "search_failed" });
   }
 });
 

@@ -31,6 +31,26 @@ export async function retrieveContext(query: string, locale = "en", limit = 5): 
   }
 }
 
+// Structured semantic search over the pgvector index (Arabic-aware via the
+// multilingual embedding model). Powers the hybrid /search endpoint + studio.
+export async function semanticSearch(
+  query: string,
+  locales?: string[],
+  limit = 20,
+): Promise<Array<{ entity: string; entityId: string; locale: string; content: string; score: number }>> {
+  const [vec] = await embedTexts([query]);
+  const params: any[] = [JSON.stringify(vec)];
+  let where = "";
+  if (locales && locales.length) { params.push(locales); where = `WHERE locale = ANY($${params.length})`; }
+  params.push(limit);
+  const { rows } = await pool.query(
+    `SELECT entity, entity_id, locale, content, 1 - (vector <=> $1) AS score
+       FROM embeddings ${where} ORDER BY vector <=> $1 LIMIT $${params.length}`,
+    params,
+  );
+  return rows.map((r: any) => ({ entity: r.entity, entityId: String(r.entity_id), locale: r.locale, content: String(r.content).slice(0, 400), score: Number(r.score) }));
+}
+
 // Fetch HUMAIN brand voice / messaging / visual tokens to keep output on-brand.
 export async function getBrandGuidelines(): Promise<ToolOutput> {
   const fallback =

@@ -28,6 +28,31 @@ function chunk(text: string, size = 1200): string[] {
   return out.length ? out : [""];
 }
 
+// Lexical richtext -> plaintext (collect all `text` nodes).
+function lexicalToText(node: any): string {
+  if (!node) return "";
+  if (typeof node.text === "string") return node.text;
+  const kids = node.root?.children || node.children;
+  return Array.isArray(kids) ? kids.map(lexicalToText).join(" ") : "";
+}
+// Extract HUMAN-readable text from a doc (titles, string/textarea fields, and
+// richtext) instead of JSON.stringify — far better retrieval relevance.
+function docToText(doc: any): string {
+  const parts: string[] = [];
+  const skip = new Set(["id", "_status", "createdAt", "updatedAt", "slug", "vector", "password", "sizes", "url", "filename", "mimeType"]);
+  const walk = (v: any, depth = 0) => {
+    if (v == null || depth > 5) return;
+    if (typeof v === "string") { const s = v.trim(); if (s && !/^https?:\/\//i.test(s) && !/^[0-9a-f]{16,}$/i.test(s)) parts.push(s); return; }
+    if (Array.isArray(v)) { v.forEach((x) => walk(x, depth + 1)); return; }
+    if (typeof v === "object") {
+      if (v.root && Array.isArray(v.root.children)) { parts.push(lexicalToText(v)); return; }
+      for (const [k, val] of Object.entries(v)) { if (!skip.has(k)) walk(val, depth + 1); }
+    }
+  };
+  walk(doc);
+  return parts.join("\n").replace(/\s+/g, " ").trim();
+}
+
 async function fetchContent(entity: string, id: string): Promise<{ locale: string; text: string }[]> {
   // Pull published content via Payload REST (local API in production).
   const base = process.env.CMS_BASE_URL || "http://localhost:3001";
@@ -36,7 +61,8 @@ async function fetchContent(entity: string, id: string): Promise<{ locale: strin
     const res = await fetch(`${base}/api/${entity}/${id}?locale=${locale}&depth=0`);
     if (res.ok) {
       const doc = await res.json();
-      out.push({ locale, text: JSON.stringify(doc).slice(0, 20000) });
+      const text = docToText(doc).slice(0, 20000);
+      if (text) out.push({ locale, text });
     }
   }
   return out;

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { payloadFetch, getCurrentUser } from "@/lib/payload";
+import { AI_URL } from "@/lib/env";
 
 // Authoring-side search across content collections. Widened from title-only to
 // also match body/summary text fields (Payload `like` = case-insensitive
@@ -51,5 +52,23 @@ export async function GET(req: Request) {
 
   // De-dupe (a doc can match on multiple fields but the query already collapses per collection).
   const results = (await Promise.all(queries)).flat();
+
+  // Semantic arm (hybrid): fuse pgvector matches from ai-service /search, deduped
+  // against the keyword hits. Arabic-aware via the multilingual embedding model.
+  const bySlug = new Map(COLLECTIONS.map((c) => [c.slug, c]));
+  try {
+    const sr = await fetch(`${AI_URL}/search`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ q, locales: ["en", "ar"], limit: 20 }) });
+    if (sr.ok) {
+      const sj = await sr.json();
+      const seen = new Set(results.map((r: any) => `${r.collection}:${r.id}`));
+      for (const h of sj.hits ?? []) {
+        const key = `${h.entity}:${h.entityId}`;
+        if (seen.has(key) || !bySlug.has(h.entity)) continue;
+        seen.add(key);
+        results.push({ collection: h.entity, label: bySlug.get(h.entity)!.label, id: h.entityId, title: (h.content || "").trim().slice(0, 70) || "(semantic match)", status: "—", updatedAt: undefined, semantic: true, score: h.score } as any);
+      }
+    }
+  } catch { /* semantic arm is optional — keyword results still return */ }
+
   return NextResponse.json({ results });
 }

@@ -159,6 +159,41 @@ export async function completeWithFallback(
   throw lastErr || new Error("no_provider_available");
 }
 
+// Streaming variant: emits onDelta(text) per token from the first configured
+// provider that supports streaming (falls back to a single-shot delta if not).
+export async function completeStreamWithFallback(
+  req: CompleteRequest,
+  onDelta: (t: string) => void,
+  opts?: { primary?: string; exclude?: string[] },
+): Promise<FallbackResult> {
+  const primary = opts?.primary || process.env.LLM_PROVIDER || "anthropic";
+  const exclude = new Set(opts?.exclude || []);
+  const ordered = [primary, ...FALLBACK_ORDER].filter((n, i, a) => a.indexOf(n) === i && !exclude.has(n));
+  const list = ordered.filter((n) => providers[n]?.configured);
+  const candidates = list.length ? list : [primary];
+  const tried: string[] = [];
+  let lastErr: any;
+  for (const name of candidates) {
+    const p = providers[name];
+    if (!p) continue;
+    tried.push(name);
+    const model = name === primary ? req.model : undefined;
+    try {
+      if (p.completeStream) {
+        const text = await p.completeStream({ ...req, model }, onDelta);
+        return { text, provider: name, model, fellBack: name !== primary, tried };
+      }
+      const text = await p.complete({ ...req, model });
+      onDelta(text);
+      return { text, provider: name, model, fellBack: name !== primary, tried };
+    } catch (e) {
+      lastErr = e;
+      if (!isAvailabilityError(e)) throw e;
+    }
+  }
+  throw lastErr || new Error("no_provider_available");
+}
+
 // Catalog with live "configured" status for the UI. Hidden entries (e.g. the
 // test-only haow-v4) are excluded from the picker.
 export function listModels() {

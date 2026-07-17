@@ -62,6 +62,54 @@ export class OpenAICompatProvider implements LlmProvider {
     return String(content).replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
   }
 
+  // Real token streaming. Calls onDelta(text) per chunk (with <think>…</think>
+  // stripped incrementally) and returns the full accumulated text.
+  async completeStream(req: CompleteRequest, onDelta: (t: string) => void): Promise<string> {
+    const key = process.env[this.cfg.apiKeyEnv];
+    if (!key) throw new Error(`${this.cfg.name} is not configured (set ${this.cfg.apiKeyEnv}).`);
+    const messages = [...(req.system ? [{ role: "system", content: req.system }] : []), ...req.messages];
+    const body: Record<string, unknown> = { model: req.model || this.cfg.defaultModel, messages, stream: true };
+    body[this.cfg.tokenParam || "max_tokens"] = req.maxTokens ?? 1024;
+    if (this.cfg.extraBody) Object.assign(body, this.cfg.extraBody);
+    const res = await fetch(`${this.cfg.baseUrl}/chat/completions`, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${key}` },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok || !res.body) {
+      const text = await res.text().catch(() => "");
+      throw new Error(`${this.cfg.name} error ${res.status}: ${text}`.slice(0, 400));
+    }
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buf = "", full = "", inThink = false;
+    const emit = (piece: string) => {
+      let s = piece;
+      while (s) {
+        if (inThink) { const end = s.indexOf("</think>"); if (end === -1) return; s = s.slice(end + 8); inThink = false; continue; }
+        const start = s.indexOf("<think>");
+        if (start === -1) { full += s; onDelta(s); return; }
+        const before = s.slice(0, start); if (before) { full += before; onDelta(before); }
+        s = s.slice(start + 7); inThink = true;
+      }
+    };
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+      let idx: number;
+      while ((idx = buf.indexOf("\n")) !== -1) {
+        const line = buf.slice(0, idx).trim();
+        buf = buf.slice(idx + 1);
+        if (!line.startsWith("data:")) continue;
+        const payload = line.slice(5).trim();
+        if (payload === "[DONE]") return full.trim();
+        try { const d = JSON.parse(payload)?.choices?.[0]?.delta?.content; if (typeof d === "string" && d) emit(d); } catch { /* partial */ }
+      }
+    }
+    return full.trim();
+  }
+
   // Agentic tool-use turn (OpenAI function-calling). Returns any tool calls the
   // model wants to make plus the raw assistant message to append for the next turn.
   async chatWithTools(req: ChatWithToolsRequest): Promise<ChatWithToolsResult> {

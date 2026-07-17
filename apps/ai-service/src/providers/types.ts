@@ -28,6 +28,7 @@ export interface LlmProvider {
   name: string;
   configured?: boolean;
   complete(req: CompleteRequest): Promise<string>;
+  completeStream?(req: CompleteRequest, onDelta: (t: string) => void): Promise<string>;
   embed(texts: string[]): Promise<number[][]>;
   // Optional: providers that support function-calling implement this so the
   // agent's tool-use loop can run on them (see OpenAICompatProvider).

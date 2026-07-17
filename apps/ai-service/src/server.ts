@@ -1,7 +1,7 @@
 import Fastify from "fastify";
 import rateLimit from "@fastify/rate-limit";
 import { z } from "zod";
-import { getProvider, resolveModel, listModels, providerByName, completeWithFallback, MODELS } from "./providers/index.js";
+import { getProvider, resolveModel, listModels, providerByName, completeWithFallback, completeStreamWithFallback, MODELS } from "./providers/index.js";
 import { parseStructured } from "./providers/types.js";
 import { prompts, type PromptId } from "./prompts/library.js";
 import { startRender, pollRender, videoConfigured } from "./providers/video.js";
@@ -398,18 +398,16 @@ app.post("/studio/chat", async (req, reply) => {
       }
       if (built) { /* handled */ }
       else try {
-        const fb = await completeWithFallback(
+        const fb = await completeStreamWithFallback(
           {
             system: deliverableSpec + " Respond directly and helpfully in clean markdown.",
             messages: [...history, { role: "user", content: body.prompt }],
             maxTokens: LONG_MODES.includes(body.mode) ? 4096 : 2048,
           },
+          (d) => send({ type: "delta", text: d }), // real token streaming
           { exclude: ["anthropic"] },
         );
-        send({ type: "status", label: `Fallback model: ${fb.provider}` });
-        const text = fb.text;
-        for (let i = 0; i < text.length; i += 90) send({ type: "delta", text: text.slice(i, i + 90) });
-        send({ type: "done", model: fb.provider, modelLabel: `${fb.provider} (fallback)`, artifact: text });
+        send({ type: "done", model: fb.provider, modelLabel: `${fb.provider} (fallback)`, artifact: fb.text });
       } catch (e2: any) {
         const m2 = e2?.error?.error?.message || e2?.message || msg;
         req.log.warn({ err: m2 }, "studio/chat fallback also failed");

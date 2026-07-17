@@ -7,7 +7,7 @@
 // like any other agent tool call.
 import { Pool } from "pg";
 import { completeWithFallback } from "./providers/index.js";
-import { retrieveContext } from "./agents/tools.js";
+import { embedTexts } from "./providers/embeddings.js";
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URI });
 
@@ -84,15 +84,80 @@ export async function getBrandProfile(_primary?: string): Promise<BrandProfile> 
   const typo = sections.find((s: any) => s.type === "typography");
   if (typo?.content) (String(typo.content).match(/\b([A-Z][a-zA-Z]+(?: [A-Z][a-zA-Z]+)?)\b/g) || []).slice(0, 4).forEach((f) => fonts.push(f));
   if (data.font) fonts.push(String(data.font));
-  // RAG grounding over the brand corpus (Task 42).
-  const rag = await retrieveContext("brand voice tone visual identity colour palette typography guidelines dos and donts", "en", 4).catch(() => ({ ok: false, text: "" } as any));
+  // RAG grounding over the INDEXED brand corpus (Task 42) — retrieves the
+  // uploaded/curated brand chunks semantically, not just the structured record.
+  const rag = await retrieveBrand("brand voice tone visual identity colour palette typography guidelines dos and donts").catch(() => "");
   return {
     name: doc?.name || data?.name || "Brand",
     palette, paletteMeta, fonts, voice,
-    ragText: rag.ok ? rag.text : "",
+    ragText: rag || "",
     grounded: palette.length > 0 || sections.length > 0,
     sourceIds: doc?.id != null ? [String(doc.id)] : [],
   };
+}
+
+// Fast brand palette (DB only, no RAG) for the inline auto-governance check.
+export async function getBrandPalette(): Promise<{ palette: string[]; name: string }> {
+  try {
+    const { rows } = await pool.query("SELECT name, data FROM brand_guidelines WHERE is_active = true ORDER BY updated_at DESC LIMIT 1");
+    if (!rows.length) return { palette: [], name: "" };
+    const pm = Array.isArray(rows[0].data?.palette) ? rows[0].data.palette : [];
+    return { palette: pm.map((p: any) => normHex(String(p.hex || p))).filter((h: string) => /^#[0-9a-f]{6}$/.test(h)), name: rows[0].name || "" };
+  } catch { return { palette: [], name: "" }; }
+}
+
+// Deterministic, no-LLM brand check — cheap enough to auto-run on EVERY generate.
+export function quickBrandScore(html: string, palette: string[]): { score: number; status: "pass" | "warn" | "fail"; offBrand: string[]; brandName?: string } {
+  const brandPalette = palette.length ? palette : ["#00a18b", "#c2e54b", "#0b1416", "#ffffff"];
+  const used = extractColors(html);
+  const offBrand = used.filter((c) => !isNeutral(c) && nearest(c, brandPalette).dist > 60);
+  const score = used.length ? Math.round((100 * (used.length - offBrand.length)) / used.length) : 100;
+  return { score, status: score >= 85 ? "pass" : score >= 65 ? "warn" : "fail", offBrand };
+}
+
+// Brand-only semantic retrieval over the indexed brand corpus (pgvector).
+async function retrieveBrand(query: string, limit = 4): Promise<string> {
+  try {
+    const [vec] = await embedTexts([query]);
+    const { rows } = await pool.query(
+      `SELECT content, 1 - (vector <=> $1) AS score FROM embeddings WHERE entity = 'brand' ORDER BY vector <=> $1 LIMIT $2`,
+      [JSON.stringify(vec), limit],
+    );
+    return rows.map((r: any, i: number) => `[${i + 1}] ${String(r.content).slice(0, 700)}`).join("\n");
+  } catch { return ""; }
+}
+
+// Index the active brand's corpus (sections, palette, summary) into the RAG
+// pipeline so the Governance Agent retrieves brand guidance semantically —
+// grounding on uploaded/curated brand data, not just the structured record.
+export async function indexBrandCorpus(): Promise<{ indexed: number; brand: string }> {
+  let doc: any = null;
+  try { const { rows } = await pool.query("SELECT id, name, data FROM brand_guidelines WHERE is_active = true ORDER BY updated_at DESC LIMIT 1"); if (rows.length) doc = rows[0]; } catch {}
+  if (!doc) return { indexed: 0, brand: "" };
+  const data = doc.data && typeof doc.data === "object" ? doc.data : {};
+  const sections = Array.isArray(data.sections) ? data.sections : [];
+  const palette = Array.isArray(data.palette) ? data.palette : [];
+  const chunks: string[] = [];
+  for (const s of sections) chunks.push(`${s.title || s.type}: ${s.content || ""}`);
+  if (palette.length) chunks.push(`Brand colour palette: ${palette.map((p: any) => `${p.hex} ${p.name || ""} — ${p.usage || ""}`).join("; ")}`);
+  if (data.summary) chunks.push(`Brand summary: ${data.summary}`);
+  const filtered = chunks.map((c) => c.trim()).filter((c) => c.length > 4);
+  if (!filtered.length) return { indexed: 0, brand: doc.name };
+  let vecs: number[][];
+  try { vecs = await embedTexts(filtered); } catch { return { indexed: 0, brand: doc.name }; }
+  let n = 0;
+  for (let i = 0; i < filtered.length; i++) {
+    try {
+      await pool.query(
+        `INSERT INTO embeddings(entity, entity_id, locale, chunk_idx, content, vector)
+         VALUES('brand', $1, 'en', $2, $3, $4::vector)
+         ON CONFLICT (entity, entity_id, locale, chunk_idx) DO UPDATE SET content = EXCLUDED.content, vector = EXCLUDED.vector`,
+        [String(doc.id), i, filtered[i].slice(0, 2000), JSON.stringify(vecs[i])],
+      );
+      n++;
+    } catch { /* skip this chunk */ }
+  }
+  return { indexed: n, brand: doc.name };
 }
 
 // Review one artifact (website/section/component/deck/article) against the brand.

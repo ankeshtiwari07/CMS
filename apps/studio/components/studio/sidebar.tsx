@@ -56,6 +56,7 @@ const NAV = [
   { key: "templates", Icon: GridIcon, label: "Templates", href: "/cms" },
   { key: "review", Icon: CheckIcon, label: "Review", href: "/review", approverOnly: true },
   { key: "brand", Icon: BookmarkIcon, label: "Brand", href: "/brand" },
+  { key: "pages", Icon: GlobeIcon, label: "Pages", href: "/cms/pages" },
   { key: "governance", Icon: CheckIcon, label: "Governance", href: "/cms/governance" },
   { key: "dam", Icon: ImageIcon, label: "Assets", href: "/cms/dam" },
   { key: "design", Icon: PaletteIcon, label: "Design", href: "/design" },

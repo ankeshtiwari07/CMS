@@ -39,9 +39,10 @@ export const AiWebsites: CollectionConfig = {
     { name: "title", type: "text", required: true },
     { name: "slug", type: "text", required: true, index: true, admin: { description: "Public path: /site/<slug>" } },
     { name: "prompt", type: "textarea" },
+    { name: "contentType", type: "text", defaultValue: "website", admin: { description: "What this artefact is — website | page | blog | post." } },
     { name: "status", type: "select", defaultValue: "draft", options: ["draft", "published"] },
     { name: "brand", type: "json" },
-    { name: "sections", type: "json", admin: { description: "Ordered generated sections (kind + html)." } },
+    { name: "sections", type: "json", admin: { description: "Ordered library-composed blocks (component instances: kind + componentKey + html)." } },
     { name: "html", type: "textarea", admin: { description: "Full assembled standalone HTML document." } },
     { name: "createdBy", type: "relationship", relationTo: "users", admin: { readOnly: true, position: "sidebar" } },
     // ---- Governance / approval (Flow A) ----

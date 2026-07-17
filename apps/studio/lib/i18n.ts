@@ -36,6 +36,7 @@ export const DICT: Record<string, Tr> = {
   "nav.templates": { en: "Templates", ar: "القوالب", fr: "Modèles", de: "Vorlagen", es: "Plantillas", pl: "Szablony" },
   "nav.review": { en: "Review", ar: "المراجعة", fr: "Révision", de: "Prüfung", es: "Revisión", pl: "Przegląd" },
   "nav.brand": { en: "Brand", ar: "العلامة التجارية", fr: "Marque", de: "Marke", es: "Marca", pl: "Marka" },
+  "nav.pages": { en: "Pages", ar: "الصفحات", fr: "Pages", de: "Seiten", es: "Páginas", pl: "Strony" },
   "nav.governance": { en: "Governance", ar: "الحوكمة", fr: "Gouvernance", de: "Governance", es: "Gobernanza", pl: "Zarządzanie" },
   "nav.dam": { en: "Assets", ar: "الأصول", fr: "Ressources", de: "Medien", es: "Recursos", pl: "Zasoby" },
   "nav.design": { en: "Design", ar: "التصميم", fr: "Design", de: "Design", es: "Diseño", pl: "Projekt" },

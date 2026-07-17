@@ -575,6 +575,32 @@ app.post("/studio/website", async (req, reply) => {
 // Component Agent (standalone): generate ONE reusable building-block component.
 // Used by the in-CMS Component Studio and as the delegation target for the
 // Website Builder when a required component is missing from the library.
+// D2 — compose a PAGE / BLOG / POST from the component library. Same engine as
+// the Website Builder (reuse live components + delegate gaps), but content-type
+// aware and returned as STRUCTURED BLOCKS (each tied to a library component) so
+// the studio can do full block-level CRUD, not just serve one HTML blob.
+app.post("/studio/page", async (req, reply) => {
+  const body = z.object({ prompt: z.string().min(1).max(8000), contentType: z.enum(["page", "blog", "post"]).default("page"), model: z.string().optional() }).parse(req.body);
+  const { entry } = resolveModel(body.model);
+  const hint =
+    body.contentType === "blog"
+      ? "Build a BLOG index page: sticky nav, a blog hero/eyebrow, a responsive grid of 6 post-preview cards (image, category tag, title, excerpt, 'Read more'), a newsletter CTA, and a footer."
+      : body.contentType === "post"
+        ? "Build a single BLOG POST / ARTICLE page: sticky nav, an article hero (category, big title, author + date meta), 3-4 rich body sections (headings + paragraphs), a pull-quote/testimonial, a related-posts card row, and a footer."
+        : "Build a complete marketing PAGE.";
+  try {
+    const site = await generateWebsite({ prompt: `${hint}\n\nTopic/brief: ${body.prompt}`, primary: entry.provider });
+    const blocks = site.sections.map((s: any, i: number) => ({ i, id: s.id, kind: s.kind, brief: s.brief, html: s.html, componentKey: s.componentKey ?? null, componentSource: s.componentSource ?? "generated" }));
+    return {
+      ok: true, title: site.title, contentType: body.contentType, brand: site.brand, blocks, html: site.html,
+      usedComponents: site.usedComponents, delegatedComponents: site.delegatedComponents, provider: site.provider,
+    };
+  } catch (e: any) {
+    req.log.warn({ err: e?.message }, "studio/page error");
+    return reply.code(502).send({ error: e?.message || "page_failed" });
+  }
+});
+
 app.post("/studio/component", async (req, reply) => {
   const body = z
     .object({

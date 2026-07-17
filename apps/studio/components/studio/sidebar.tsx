@@ -355,7 +355,7 @@ export default function Sidebar({
                       return (
                         <button
                           key={it.slug}
-                          onClick={() => router.push(`/cms/admin/${it.slug}`)}
+                          onClick={() => router.push(it.slug.startsWith("collections/") ? `/cms/data?collection=${it.slug.slice(12)}` : "/cms/data")}
                           onMouseEnter={() => setHover(k)}
                           onMouseLeave={() => setHover(null)}
                           title={it.label}

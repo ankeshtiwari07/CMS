@@ -5,7 +5,7 @@ type Stage = { stage: string; label: string; status: string; comment?: string; s
 type Item = {
   collection: string; id: number | string; title: string; riskTier: string;
   aiGenerated: boolean; updatedAt?: string; stages: Stage[]; actionable: string[];
-  overdue?: boolean; escalatedToYou?: boolean; viaDelegation?: boolean;
+  overdue?: boolean; escalatedToYou?: boolean; viaDelegation?: boolean; kind?: string;
 };
 
 const SLA_COLOR: Record<string, [string, string]> = {
@@ -137,10 +137,16 @@ export default function ReviewQueue() {
                 <span style={{ fontWeight: 700, fontSize: 15.5, color: "var(--ink)" }}>{it.title}</span>
                 {pill(`risk: ${it.riskTier}`, TIER_COLOR[it.riskTier]?.[0] || "#eef2f4", TIER_COLOR[it.riskTier]?.[1] || "#5A6B72")}
                 {it.aiGenerated && pill("AI-generated", "#ede9fe", "#6d28d9")}
+                {(it.kind === "component" || it.kind === "website") && it.aiGenerated && pill("⇄ Flow B · dual-approval", "#e0f2fe", "#0369a1")}
                 {it.overdue && pill("⏰ overdue", "#fdecec", "#b42318")}
                 {it.escalatedToYou && pill("escalated to you", "#fff4e0", "#9a6a12")}
                 <span style={{ color: "var(--muted)", fontSize: 12.5 }}>{it.collection}#{it.id}</span>
               </div>
+              {(it.kind === "component" || it.kind === "website") && it.aiGenerated && (
+                <div style={{ fontSize: 12.5, color: "#0369a1", background: "#f0f9ff", border: "1px solid #cde8f6", borderRadius: 8, padding: "6px 11px", marginTop: 8 }}>
+                  ⇄ <b>Flow B (dual approval):</b> {it.kind === "component" ? "an AI-delegated component — it and the page consuming it each require approval before either publishes." : "an AI-generated page — it and any components it delegated each require approval before publishing."}
+                </div>
+              )}
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap", margin: "12px 0" }}>
                 {it.stages.map((s) => {
                   const showSla = s.status !== "approve" && s.sla && s.sla !== "approved";

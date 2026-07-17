@@ -524,7 +524,7 @@ export default function PromptBox({ onActive }: { onActive?: (active: boolean) =
     fontSize: 13.5, fontWeight: 600, cursor: "pointer", position: "relative", ...extra,
   });
   const menuWrap: React.CSSProperties = {
-    position: "absolute", zIndex: 40, background: "#fff", border: "1px solid var(--hairline)",
+    position: "absolute", zIndex: 40, background: "var(--card-bg)", border: "1px solid var(--hairline)",
     borderRadius: 12, boxShadow: "var(--shadow-card)", padding: 6, minWidth: 220,
   };
   const item: React.CSSProperties = {
@@ -539,7 +539,7 @@ export default function PromptBox({ onActive }: { onActive?: (active: boolean) =
     <div ref={rootRef} style={{ width: "100%", maxWidth: 840, margin: "0 auto", position: "relative", display: "flex", flexDirection: "column" }}>
       <input ref={fileRef} type="file" multiple hidden onChange={(e) => onFiles(e.target.files)} />
 
-      <div style={{ border: "1.5px solid var(--studio-primary)", borderRadius: 16, background: "#fff", padding: "14px 16px 12px" }}>
+      <div style={{ border: "1.5px solid var(--studio-primary)", borderRadius: 16, background: "var(--card-bg)", padding: "14px 16px 12px" }}>
         {/* upload chips */}
         {files.length > 0 && (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(240px,1fr))", gap: 10, marginBottom: 12 }}>
@@ -738,7 +738,7 @@ export default function PromptBox({ onActive }: { onActive?: (active: boolean) =
 
       {/* type-ahead suggestions */}
       {open === "suggest" && suggestions.length > 0 && !turns.length && (
-        <div style={{ marginTop: 10, background: "#fff", border: "1px solid var(--hairline)", borderRadius: 14, boxShadow: "var(--shadow-card)", padding: 10 }}>
+        <div style={{ marginTop: 10, background: "var(--card-bg)", border: "1px solid var(--hairline)", borderRadius: 14, boxShadow: "var(--shadow-card)", padding: 10 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--muted)", fontSize: 13, padding: "4px 8px" }}><SparkIcon size={15} /> Suggestions</div>
           {suggestions.map((s, i) => (
             <button key={i} onClick={() => {
@@ -1017,7 +1017,7 @@ function ImageRender({ prompt, ratio }: { prompt: string; ratio?: string }) {
           <a href={state.url} target="_blank" rel="noreferrer" style={{ ...btnSm, textDecoration: "none", display: "inline-block", marginTop: 8 }}>Open full size</a>
         </>
       ) : state.status === "failed" || state.status === "unconfigured" ? (
-        <div style={{ fontSize: 13, color: "var(--muted)", background: "#f8f9fa", border: "1px solid var(--hairline)", borderRadius: 10, padding: "10px 12px" }}>{state.message || "Image unavailable."}</div>
+        <div style={{ fontSize: 13, color: "var(--muted)", background: "var(--soft-bg)", border: "1px solid var(--hairline)", borderRadius: 10, padding: "10px 12px" }}>{state.message || "Image unavailable."}</div>
       ) : (
         <div style={{ display: "flex", alignItems: "center", gap: 10, color: "var(--studio-teal-dark)", fontSize: 13.5 }}>
           <span className="humain-spin" style={{ width: 16, height: 16, border: "2.5px solid var(--mint-pill)", borderTopColor: "var(--studio-primary)", borderRadius: "50%", display: "inline-block" }} />
@@ -1097,6 +1097,7 @@ function ThemeArtifactCard({ theme }: { theme: any }) {
         const r = document.documentElement.style;
         r.setProperty("--studio-primary", theme.primary); r.setProperty("--studio-teal-dark", theme.primaryDark); r.setProperty("--mint-pill", theme.accent);
         r.setProperty("--ink", theme.ink); r.setProperty("--canvas", theme.canvas); r.setProperty("--muted", theme.muted); r.setProperty("--r-card", (theme.radius || 18) + "px");
+        try { localStorage.setItem("humain-theme-colors", JSON.stringify({ primary: theme.primary, primaryDark: theme.primaryDark, accent: theme.accent, ink: theme.ink, canvas: theme.canvas, muted: theme.muted, radius: theme.radius })); } catch {}
         setS({ st: "ok", m: "Applied live" });
       }
       else { const d = await res.json().catch(() => ({})); setS({ st: "err", m: d.error || "Needs publisher/admin" }); }
@@ -1182,7 +1183,7 @@ function VideoRender({ prompt }: { prompt: string }) {
             <video src={state.url} controls style={{ width: "100%", borderRadius: 12, background: "#000" }} />
           )}
           {(state.status === "unconfigured" || state.status === "failed") && (
-            <div style={{ fontSize: 13, color: "var(--muted)", background: "#f8f9fa", border: "1px solid var(--hairline)", borderRadius: 10, padding: "10px 12px" }}>
+            <div style={{ fontSize: 13, color: "var(--muted)", background: "var(--soft-bg)", border: "1px solid var(--hairline)", borderRadius: 10, padding: "10px 12px" }}>
               {state.message || "Render unavailable."}
             </div>
           )}

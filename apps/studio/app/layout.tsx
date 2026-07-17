@@ -24,7 +24,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const locale = (LOCALES.find((l) => l.code === raw)?.code || "en") as Locale;
   const dir = isRtl(locale) ? "rtl" : "ltr";
   // No-flash theme init: set data-theme from the persisted choice BEFORE paint.
-  const themeScript = `(function(){try{var t=localStorage.getItem('humain-theme')||'system';document.documentElement.setAttribute('data-theme',t);}catch(e){document.documentElement.setAttribute('data-theme','system');}})();`;
+  const themeScript = `(function(){try{var t=localStorage.getItem('humain-theme')||'system';document.documentElement.setAttribute('data-theme',t);var c=localStorage.getItem('humain-theme-colors');if(c){var o=JSON.parse(c),r=document.documentElement.style,m={'--studio-primary':o.primary,'--studio-teal-dark':o.primaryDark,'--mint-pill':o.accent,'--ink':o.ink,'--canvas':o.canvas,'--muted':o.muted,'--r-card':(o.radius||18)+'px'};for(var k in m){if(m[k])r.setProperty(k,m[k]);}}}catch(e){document.documentElement.setAttribute('data-theme','system');}})();`;
   return (
     <html lang={locale} dir={dir} data-theme="system" className={`${inter.variable} ${plexAr.variable}`} suppressHydrationWarning>
       <head><script dangerouslySetInnerHTML={{ __html: themeScript }} /></head>

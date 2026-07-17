@@ -8,6 +8,7 @@ import { startRender, pollRender, videoConfigured } from "./providers/video.js";
 import { startImageRender, pollImageRender, imageConfigured } from "./providers/image.js";
 import { runSlaSweep, getBreaches, startSlaScheduler } from "./sla.js";
 import { runOrchestrator } from "./agents/orchestrator.js";
+import { WebsiteBuilder } from "./agents/website-builder.js";
 import { THEMES, generateDeckQuestions, generateOutline, generateDeck, regenerateSlide, translateDeck } from "./deck.js";
 import { planWebsite, generateWebsite, generateSection, assemble, generateComponent } from "./website.js";
 import { getBrandProfile, reviewArtifact, remediate, getBrandPalette, quickBrandScore, indexBrandCorpus } from "./governance.js";
@@ -704,6 +705,41 @@ app.post("/studio/website/section", async (req, reply) => {
 app.post("/studio/website/assemble", async (req) => {
   const body = z.object({ title: z.string().default("Website"), brand: z.record(z.unknown()), sections: z.array(z.object({ html: z.string() })) }).parse(req.body);
   return { ok: true, html: assemble(body.title, body.brand as any, body.sections) };
+});
+
+// D2 — EDIT an existing website with a natural-language instruction. The Website
+// Builder agent plans a minimal set of edit ops and regenerates only the
+// affected sections, then reassembles. The studio proxy persists the result.
+app.patch("/studio/website/:id", async (req, reply) => {
+  const body = z
+    .object({
+      instruction: z.string().min(1).max(4000),
+      title: z.string().default("Website"),
+      brand: z.record(z.unknown()),
+      sections: z.array(
+        z.object({
+          id: z.string(),
+          kind: z.string(),
+          brief: z.string().optional().default(""),
+          html: z.string().optional().default(""),
+          componentKey: z.any().optional(),
+          componentSource: z.any().optional(),
+        }),
+      ),
+      model: z.string().optional(),
+    })
+    .parse(req.body);
+  const { entry } = resolveModel(body.model);
+  try {
+    const wb = new WebsiteBuilder(entry.provider);
+    const out = await wb.updateWebsite({ title: body.title, brand: body.brand as any, sections: body.sections as any }, body.instruction);
+    const bp = await getBrandPalette().catch(() => ({ palette: [], name: "" }));
+    const brandCheck = { ...quickBrandScore(out.html, bp.palette), brandName: bp.name };
+    return { ok: true, id: (req.params as any).id, title: out.title, brand: out.brand, sections: out.sections, html: out.html, changed: out.changed, ops: out.ops, provider: out.provider, brandCheck };
+  } catch (e: any) {
+    req.log.warn({ err: e?.message }, "website/update error");
+    return reply.code(502).send({ error: e?.message || "update_failed" });
+  }
 });
 
 // Defense-in-depth: never let a raw provider/upstream error propagate to the

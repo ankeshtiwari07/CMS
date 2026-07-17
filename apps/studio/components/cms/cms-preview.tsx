@@ -407,13 +407,99 @@ function PublishView({ artifact, canPublish }: { artifact: Artifact | null; canP
   );
 }
 
-function VersionsView({ artifact }: { artifact: Artifact | null }) {
-  const rows = artifact ? [{ label: "Current draft", when: "just now", tag: "live edit" }, { label: "Auto-saved", when: "moments ago", tag: "autosave" }] : [];
+// ---- Version history (LEAP D4): real DB-backed snapshots ----
+// A stable identity for the current artifact so snapshots group together.
+function slugify(s: string): string { return String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60) || "untitled"; }
+function titleOf(a: Artifact | null): string {
+  if (!a) return "";
+  if ("title" in a && a.title) return a.title as string;
+  if (a.kind === "doc") return a.doc?.title || "document";
+  if (a.kind === "html") { const m = (a.html || "").match(/<title[^>]*>([^<]*)<\/title>/i) || (a.html || "").match(/<h1[^>]*>([^<]*)<\/h1>/i); return (m?.[1] || "page").trim(); }
+  return a.kind;
+}
+function artifactKeyOf(a: Artifact | null): string | null { if (!a) return null; return `${a.kind}:${slugify(titleOf(a))}`; }
+function htmlOf(a: Artifact | null): string {
+  if (!a) return "";
+  if (a.kind === "html") return a.html || "";
+  if (a.kind === "doc") return `<!doctype html><meta charset="utf-8"><title>${(a.doc?.title || "Document")}</title><body><article style="max-width:720px;margin:40px auto;font-family:system-ui"><h1>${a.doc?.title || ""}</h1><div>${(a.doc?.bodyMarkdown || a.doc?.summary || "").replace(/\n/g, "<br>")}</div></article>`;
+  return "";
+}
+function relTime(iso: string): string {
+  const t = new Date(iso).getTime(); if (!t) return "";
+  const s = Math.max(0, Math.round((Date.now() - t) / 1000));
+  if (s < 60) return `${s}s ago`; const m = Math.round(s / 60);
+  if (m < 60) return `${m}m ago`; const h = Math.round(m / 60);
+  if (h < 24) return `${h}h ago`; return new Date(iso).toLocaleString();
+}
+function downloadHtml(html: string, filename: string) {
+  const blob = new Blob([html || ""], { type: "text/html" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a"); a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+}
+function openHtml(html: string) {
+  const blob = new Blob([html || ""], { type: "text/html" });
+  const url = URL.createObjectURL(blob);
+  window.open(url, "_blank", "noopener");
+  setTimeout(() => URL.revokeObjectURL(url), 30000);
+}
+
+function VersionsView({ artifact, onRestore }: { artifact: Artifact | null; onRestore: (html: string) => void }) {
+  const key = useMemo(() => artifactKeyOf(artifact), [artifact]);
+  const [rows, setRows] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [busy, setBusy] = useState<string | null>(null);
+  const [msg, setMsg] = useState("");
+
+  const load = async () => {
+    if (!key) { setRows([]); return; }
+    setLoading(true);
+    try { const r = await fetch(`/api/versions?key=${encodeURIComponent(key)}`); const j = await r.json(); setRows(j.versions || []); } catch {}
+    setLoading(false);
+  };
+  useEffect(() => { load(); /* eslint-disable-next-line */ }, [key]);
+
+  const saveNow = async () => {
+    if (!key || !artifact) return; setBusy("save"); setMsg("");
+    try {
+      await fetch("/api/versions", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ key, kind: artifact.kind, title: titleOf(artifact), label: "checkpoint", html: htmlOf(artifact), doc: artifact.kind === "doc" ? artifact.doc : undefined }) });
+      setMsg("Checkpoint saved."); await load();
+    } catch { setMsg("Could not save checkpoint."); }
+    setBusy(null);
+  };
+  const restore = async (id: string) => {
+    setBusy(`r${id}`); setMsg("");
+    try { const r = await fetch(`/api/versions/${id}`); const j = await r.json(); if (j.html) { onRestore(j.html); setMsg("Restored this version into the editor."); } else setMsg("This version has no HTML to restore."); } catch { setMsg("Restore failed."); }
+    setBusy(null);
+  };
+  const download = async (id: string, title: string) => {
+    setBusy(`d${id}`);
+    try { const r = await fetch(`/api/versions/${id}`); const j = await r.json(); downloadHtml(j.html || "", `${slugify(title || "version")}.html`); } catch {}
+    setBusy(null);
+  };
+
   return (
     <div style={{ padding: 28, overflow: "auto" }}>
-      <div style={{ fontWeight: 800, color: fg, ...TYPE.base, marginBottom: 4 }}>Version history</div>
-      <div style={{ color: muted, ...TYPE.sm, marginBottom: 18 }}>Every change is versioned. Ask the agent to “compare with the last published version”.</div>
-      {rows.length === 0 ? <div style={{ color: muted, ...TYPE.sm }}>No versions yet — create something first.</div> : rows.map((r, i) => (<div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 14px", borderRadius: R.xl, border: `1px solid ${border}`, marginBottom: 8 }}><div><div style={{ fontWeight: 700, color: fg }}>{r.label}</div><div style={{ fontSize: 12.5, color: muted }}>{r.when} · {r.tag}</div></div><button style={{ padding: "6px 12px", borderRadius: R.lg, border: `1px solid ${border}`, background: card, color: fg, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>Restore</button></div>))}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4, gap: 12 }}>
+        <div style={{ fontWeight: 800, color: fg, ...TYPE.base }}>Version history</div>
+        <button onClick={saveNow} disabled={!artifact || busy === "save"} style={{ padding: "6px 12px", borderRadius: R.lg, border: "none", background: primary, color: "#fff", fontWeight: 700, fontSize: 13, cursor: artifact ? "pointer" : "not-allowed", opacity: artifact ? 1 : 0.5 }}>{busy === "save" ? "Saving…" : "Save version"}</button>
+      </div>
+      <div style={{ color: muted, ...TYPE.sm, marginBottom: 16 }}>Snapshots are captured automatically as you edit (and whenever you save a checkpoint). Restore any version into the editor, or download it as a standalone file.</div>
+      {msg && <div style={{ marginBottom: 12, padding: "8px 12px", borderRadius: R.lg, background: pill, color: primary, ...TYPE.sm }}>{msg}</div>}
+      {loading ? <div style={{ color: muted, ...TYPE.sm }}>Loading versions…</div>
+        : rows.length === 0 ? <div style={{ color: muted, ...TYPE.sm }}>No versions yet — edit or save a checkpoint to start the history.</div>
+          : rows.map((r, i) => (
+            <div key={r.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 14px", borderRadius: R.xl, border: `1px solid ${border}`, marginBottom: 8, gap: 10 }}>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontWeight: 700, color: fg }}>{i === 0 ? "Latest" : `Version ${rows.length - i}`} · {r.label || "autosave"}</div>
+                <div style={{ fontSize: 12.5, color: muted }}>{relTime(r.createdAt)}{r.by ? ` · ${r.by}` : ""}</div>
+              </div>
+              <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+                <button onClick={() => download(r.id, r.title)} disabled={busy === `d${r.id}`} title="Download this version" style={{ padding: "6px 10px", borderRadius: R.lg, border: `1px solid ${border}`, background: card, color: fg, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>{busy === `d${r.id}` ? "…" : "Download"}</button>
+                <button onClick={() => restore(r.id)} disabled={busy === `r${r.id}`} style={{ padding: "6px 12px", borderRadius: R.lg, border: `1px solid ${primary}`, background: pill, color: primary, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>{busy === `r${r.id}` ? "Restoring…" : "Restore"}</button>
+              </div>
+            </div>
+          ))}
     </div>
   );
 }
@@ -443,6 +529,24 @@ export default function CmsPreview({
   const [sel, setSel] = useState<{ tag: string; text: string } | null>(null);
   const [srcOpen, setSrcOpen] = useState(false);
   const isHtml = artifact?.kind === "html";
+  const canDownload = !!htmlOf(artifact);
+
+  // D4 — auto-capture a version snapshot 2.5s after edits settle (debounced),
+  // de-duplicated so identical content isn't re-saved.
+  const lastSnap = useRef<string>("");
+  useEffect(() => {
+    if (!artifact || (artifact.kind !== "html" && artifact.kind !== "doc")) return;
+    const key = artifactKeyOf(artifact);
+    const content = htmlOf(artifact);
+    if (!key || !content || content.length < 40) return;
+    const sig = `${key}|${content.length}|${content.slice(0, 64)}|${content.slice(-64)}`;
+    if (sig === lastSnap.current) return;
+    const t = setTimeout(() => {
+      lastSnap.current = sig;
+      fetch("/api/versions", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ key, kind: artifact.kind, title: titleOf(artifact), label: "autosave", html: content, doc: artifact.kind === "doc" ? artifact.doc : undefined }) }).catch(() => {});
+    }, 2500);
+    return () => clearTimeout(t);
+  }, [artifact]);
   const tabs = TABS.filter((t) => TIER_RANK[tier] >= TIER_RANK[t.minTier]);
   useEffect(() => { if (!tabs.some((t) => t.key === tab)) setTab("preview"); }, [tier]); // eslint-disable-line
   const editable = tab === "preview" && artifact?.kind === "html";
@@ -464,8 +568,8 @@ export default function CmsPreview({
           <span style={{ width: 7, height: 7, borderRadius: "50%", background: statusBg }} /> {status}
         </span>
         {isHtml && <button onClick={() => setSrcOpen((v) => !v)} title="HTML source" style={{ width: 30, height: 30, borderRadius: R.lg, border: "none", background: srcOpen ? pill : "transparent", color: srcOpen ? primary : muted, display: "grid", placeItems: "center", cursor: "pointer" }}><CodeIcon size={16} color={srcOpen ? primary : muted} /></button>}
-        {showCanvas && <button title="Download" style={{ width: 30, height: 30, borderRadius: R.lg, border: "none", background: "transparent", color: muted, display: "grid", placeItems: "center", cursor: "pointer" }}><DownloadIcon s={16} /></button>}
-        {showCanvas && <button title="Expand" style={{ width: 30, height: 30, borderRadius: R.lg, border: "none", background: "transparent", color: muted, display: "grid", placeItems: "center", cursor: "pointer" }}><ExpandIcon s={15} /></button>}
+        {showCanvas && <button title="Download HTML" onClick={() => downloadHtml(htmlOf(artifact), `${slugify(titleOf(artifact))}.html`)} disabled={!canDownload} style={{ width: 30, height: 30, borderRadius: R.lg, border: "none", background: "transparent", color: muted, display: "grid", placeItems: "center", cursor: canDownload ? "pointer" : "not-allowed", opacity: canDownload ? 1 : 0.4 }}><DownloadIcon s={16} /></button>}
+        {showCanvas && <button title="Open full page in a new tab" onClick={() => openHtml(htmlOf(artifact))} disabled={!canDownload} style={{ width: 30, height: 30, borderRadius: R.lg, border: "none", background: "transparent", color: muted, display: "grid", placeItems: "center", cursor: canDownload ? "pointer" : "not-allowed", opacity: canDownload ? 1 : 0.4 }}><ExpandIcon s={15} /></button>}
         <button onClick={onClose} title="Close" style={{ width: 30, height: 30, borderRadius: R.lg, border: "none", background: "transparent", color: muted, display: "grid", placeItems: "center", cursor: "pointer" }}><XIcon size={16} /></button>
       </div>
 
@@ -509,7 +613,7 @@ export default function CmsPreview({
                 {tab === "editor" && <div style={{ flex: 1, overflow: "auto" }}><ContentManager initialType="blog" canEdit={canEdit} canPublish={canPublish} /></div>}
                 {tab === "seo" && <SeoView artifact={artifact} />}
                 {tab === "publish" && <PublishView artifact={artifact} canPublish={canPublish} />}
-                {tab === "versions" && <VersionsView artifact={artifact} />}
+                {tab === "versions" && <VersionsView artifact={artifact} onRestore={onEditHtml} />}
                 {tab === "assets" && <AssetsView />}
               </div>
               {srcOpen && artifact?.kind === "html" && (

@@ -14,7 +14,7 @@ export async function POST(req: Request) {
     title: String(body?.title || "Untitled Site").slice(0, 140),
     slug,
     prompt: body?.prompt ? String(body.prompt).slice(0, 6000) : undefined,
-    status: body?.status === "published" ? "published" : "draft",
+    status: body?.status === "published" ? "published" : body?.status === "in-review" ? "in-review" : "draft",
     brand: body?.brand ?? undefined,
     sections: Array.isArray(body?.sections) ? body.sections : [],
     html: typeof body?.html === "string" ? body.html : "",

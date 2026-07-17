@@ -109,6 +109,17 @@ export default function WebsiteStudio({ siteId }: { siteId: string | null }) {
     const w = window.open("", "_blank");
     if (w) { w.document.open(); w.document.write(site.html); w.document.close(); }
   };
+  // Submit the site into the governed review flow (In Review → appears in /review).
+  const review = async () => {
+    if (!site) return;
+    setBusy("Submitting for review…");
+    try {
+      const r = await fetch("/api/website/publish", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: savedId, title: site.title, slug: slug || slugify(site.title), prompt, brand: site.brand, sections: site.sections, html: site.html, status: "in-review" }) });
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error || "Failed");
+      setSavedId(j.id); flash("Sent for review");
+    } catch (e: any) { flash(e.message); } finally { setBusy(""); }
+  };
 
   // D2 — edit the EXISTING saved site with a natural-language instruction. The
   // Website Builder agent plans edit ops and regenerates only affected sections.
@@ -196,6 +207,7 @@ export default function WebsiteStudio({ siteId }: { siteId: string | null }) {
         <button style={btn()} disabled={!site} onClick={preview}>Preview</button>
         <button style={btn()} onClick={exportHtml}>Export HTML</button>
         <button style={btn()} disabled={!!busy} onClick={() => save(false)}>{savedId ? "Save" : "Save draft"}</button>
+        <button style={btn()} disabled={!!busy} onClick={review}>Submit for review</button>
         <button style={primaryBtn} disabled={!!busy} onClick={() => save(true)}>Publish</button>
       </div>
       {notice && <div style={{ position: "fixed", top: 16, right: 16, background: "#0f6b5c", color: "#fff", padding: "8px 14px", borderRadius: 8, zIndex: 50 }}>{notice}</div>}

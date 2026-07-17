@@ -77,7 +77,8 @@ export default function ComponentStudio({ user, canPublish }: { user: { name?: s
   const [showNew, setShowNew] = useState(false);
   const [form, setForm] = useState({ name: "", type: "section", status: "live", html: "", description: "" });
   const [editingId, setEditingId] = useState<string | number | null>(null);
-  function startEdit(c: any) { setEditingId(c.id); setForm({ name: c.name || "", type: c.type || "section", status: c.status || "live", html: c.html || "", description: c.description || "" }); setShowNew(true); }
+  const [formErr, setFormErr] = useState<string | null>(null);
+  function startEdit(c: any) { setFormErr(null); setEditingId(c.id); setForm({ name: c.name || "", type: c.type || "section", status: c.status || "live", html: c.html || "", description: c.description || "" }); setShowNew(true); }
   const [aiPrompt, setAiPrompt] = useState("");
   const uidRef = useRef(0);
 
@@ -112,14 +113,15 @@ export default function ComponentStudio({ user, canPublish }: { user: { name?: s
   }
 
   async function saveComponent() {
-    if (!form.name.trim()) { flash("Name is required"); return; }
-    if (!form.html.trim()) { flash("HTML is required"); return; }
+    setFormErr(null);
+    if (!form.name.trim()) { setFormErr("Name is required."); return; }
+    if (!form.html.trim()) { setFormErr("HTML is required."); return; }
     setBusy(true);
     try {
       const r = await fetch(editingId ? `/api/components/${editingId}` : "/api/components", { method: editingId ? "PATCH" : "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(form) });
-      if (r.ok) { flash(editingId ? "Component updated" : "Component saved to the library"); setShowNew(false); setEditingId(null); setForm({ name: "", type: "section", status: "live", html: "", description: "" }); await loadLib(); }
-      else { const e = await r.json().catch(() => ({})); flash(e.error || "Save failed"); }
-    } catch { flash("Save failed"); }
+      if (r.ok) { flash(editingId ? "Component updated" : "Component saved to the library"); setFormErr(null); setShowNew(false); setEditingId(null); setForm({ name: "", type: "section", status: "live", html: "", description: "" }); await loadLib(); }
+      else { const e = await r.json().catch(() => ({})); setFormErr(e.error || "Could not save — please try again."); }
+    } catch { setFormErr("Could not save — please try again."); }
     setBusy(false);
   }
 
@@ -151,7 +153,7 @@ export default function ComponentStudio({ user, canPublish }: { user: { name?: s
         <aside style={{ width: 300, flexShrink: 0, borderRight: "1px solid var(--hc-border)", display: "flex", flexDirection: "column", padding: 14, gap: 10, minHeight: 0 }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <span style={{ fontWeight: 800, ...TYPE.sm }}>Component Library</span>
-            {isAdmin && <button onClick={() => { setEditingId(null); setForm({ name: "", type: "section", status: "live", html: "", description: "" }); setShowNew(true); }} style={{ ...btn(true, false), padding: "5px 10px" }}><PlusIcon size={13} color="#fff" /> New</button>}
+            {isAdmin && <button onClick={() => { setFormErr(null); setEditingId(null); setForm({ name: "", type: "section", status: "live", html: "", description: "" }); setShowNew(true); }} style={{ ...btn(true, false), padding: "5px 10px" }}><PlusIcon size={13} color="#fff" /> New</button>}
           </div>
           <input value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="Search components…" style={{ padding: "8px 11px", borderRadius: R.lg, border: "1px solid var(--hc-input)", background: "var(--hc-card)", color: "var(--hc-fg)", ...TYPE.sm, outline: "none" }} />
           {isAdmin && (
@@ -237,6 +239,7 @@ export default function ComponentStudio({ user, canPublish }: { user: { name?: s
               <label style={lbl()}>HTML<textarea value={form.html} onChange={(e) => setForm((f) => ({ ...f, html: e.target.value }))} rows={8} style={{ ...inp(), fontFamily: "ui-monospace,monospace", fontSize: 12.5, resize: "vertical" }} /></label>
               {form.html && <iframe title="preview" srcDoc={pageDoc(renderTemplate(form.html))} style={{ width: "100%", height: 180, border: "1px solid var(--hc-border)", borderRadius: R.lg, background: "#fff" }} />}
             </div>
+            {formErr && <div style={{ margin: "10px 0 0", padding: "9px 12px", borderRadius: R.lg, background: "rgba(220,38,38,0.10)", color: "#b42318", fontWeight: 600, ...TYPE.sm, flexShrink: 0 }}>{formErr}{/approval|review|publish/i.test(formErr) ? <> · <a href="/review" style={{ color: "#b42318", textDecoration: "underline" }}>Open Review</a></> : null}</div>}
             <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 14, flexShrink: 0 }}>
               <button onClick={() => setShowNew(false)} style={btn(false, false)}>Cancel</button>
               <button onClick={saveComponent} disabled={busy} style={btn(true, busy)}><CheckIcon size={14} color="#fff" /> Save to library</button>

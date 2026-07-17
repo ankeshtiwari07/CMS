@@ -297,7 +297,7 @@ export default function PromptBox({ onActive }: { onActive?: (active: boolean) =
           { label: "Write a long-form article about this", kind: "writing" },
           { label: "Draft a marketing email about this", kind: "email" },
           { label: "Generate an image from this", kind: "image" },
-        ]
+        ].filter((s) => s.kind !== mode) // don't restate the intent the user already picked
       : [];
 
   async function onFiles(list: FileList | null) {
@@ -1093,7 +1093,12 @@ function ThemeArtifactCard({ theme }: { theme: any }) {
     setS({ st: "busy" });
     try {
       const res = await fetch("/api/settings", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ theme }) });
-      if (res.ok) setS({ st: "ok", m: "Applied to site settings" });
+      if (res.ok) {
+        const r = document.documentElement.style;
+        r.setProperty("--studio-primary", theme.primary); r.setProperty("--studio-teal-dark", theme.primaryDark); r.setProperty("--mint-pill", theme.accent);
+        r.setProperty("--ink", theme.ink); r.setProperty("--canvas", theme.canvas); r.setProperty("--muted", theme.muted); r.setProperty("--r-card", (theme.radius || 18) + "px");
+        setS({ st: "ok", m: "Applied live" });
+      }
       else { const d = await res.json().catch(() => ({})); setS({ st: "err", m: d.error || "Needs publisher/admin" }); }
     } catch { setS({ st: "err", m: "Could not reach server" }); }
   }

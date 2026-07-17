@@ -68,7 +68,7 @@ export default function NotificationsBell({
     width: 340,
     maxHeight: 420,
     overflow: "auto",
-    background: "#fff",
+    background: "var(--card-bg)",
     border: "1px solid var(--hairline)",
     borderRadius: 14,
     boxShadow: "var(--shadow-card)",
@@ -101,7 +101,7 @@ export default function NotificationsBell({
 
       {open && (
         <div style={panel}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 14px", borderBottom: "1px solid var(--hairline)", position: "sticky", top: 0, background: "#fff" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 14px", borderBottom: "1px solid var(--hairline)", position: "sticky", top: 0, background: "var(--card-bg)" }}>
             <span style={{ fontWeight: 700, fontSize: 14, color: "var(--ink)" }}>Notifications</span>
             {unread > 0 && (
               <button onClick={markRead} style={{ display: "inline-flex", alignItems: "center", gap: 5, border: "none", background: "transparent", color: "var(--studio-primary)", fontSize: 12.5, fontWeight: 600, cursor: "pointer" }}>
@@ -120,7 +120,7 @@ export default function NotificationsBell({
                   <button
                     key={i.id}
                     onClick={() => { setOpen(false); if (i.href) router.push(i.href); }}
-                    style={{ display: "flex", gap: 11, width: "100%", textAlign: "left", padding: "11px 14px", border: "none", borderBottom: "1px solid var(--hairline)", background: i.unread ? "var(--mint-tint)" : "#fff", cursor: "pointer" }}
+                    style={{ display: "flex", gap: 11, width: "100%", textAlign: "left", padding: "11px 14px", border: "none", borderBottom: "1px solid var(--hairline)", background: i.unread ? "var(--mint-tint)" : "var(--card-bg)", cursor: "pointer" }}
                   >
                     <span style={{ flexShrink: 0, width: 30, height: 30, borderRadius: 8, background: "var(--mint-pill)", color: "var(--studio-teal-dark)", display: "grid", placeItems: "center" }}>
                       <Icon size={16} />

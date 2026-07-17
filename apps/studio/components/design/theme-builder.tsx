@@ -86,7 +86,13 @@ export default function ThemeBuilder({ initial, canSave }: { initial: Theme; can
         method: "POST", headers: { "content-type": "application/json" },
         body: JSON.stringify({ theme: t }),
       });
-      if (res.ok) setToast({ kind: "ok", msg: "Theme saved to your site settings." });
+      if (res.ok) {
+        // Apply live to the running app so the change is visible immediately.
+        const r = document.documentElement.style;
+        r.setProperty("--studio-primary", t.primary); r.setProperty("--studio-teal-dark", t.primaryDark); r.setProperty("--mint-pill", t.accent);
+        r.setProperty("--ink", t.ink); r.setProperty("--canvas", t.canvas); r.setProperty("--muted", t.muted); r.setProperty("--r-card", (t.radius || 18) + "px");
+        setToast({ kind: "ok", msg: "Theme applied and saved to your site settings." });
+      }
       else { const d = await res.json().catch(() => ({})); setToast({ kind: "err", msg: d.error || "Save failed (need publisher/admin)." }); }
     } catch {
       setToast({ kind: "err", msg: "Could not reach the server." });

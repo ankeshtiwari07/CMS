@@ -23,9 +23,13 @@ export const setCreatedBy: CollectionBeforeChangeHook = async ({ data, req, oper
 // a PUBLISH_ROLE, AND (2) every approval stage required for the content's risk tier
 // must be freshly approved (an edit after an approval invalidates it). This is the
 // human-in-the-loop gate — automated/AI content can never publish without sign-off.
-export const enforcePublishPermission: CollectionBeforeChangeHook = async ({ data, req, originalDoc, collection }) => {
+export const enforcePublishPermission: CollectionBeforeChangeHook = async ({ data, req, originalDoc, collection, context }) => {
   const becomingPublished = data?._status === "published" && originalDoc?._status !== "published";
   if (!becomingPublished) return data;
+  // Governed auto-publish: the approval hook already verified every required
+  // stage is cleared, so it bypasses the interactive publish-role check (the
+  // final approver need not personally hold a publish role).
+  if ((context as any)?.autoPublish) return data;
 
   const roles: string[] = req.user?.roles ?? [];
   if (!roles.some((r) => (PUBLISH_ROLES as string[]).includes(r))) {
@@ -77,9 +81,11 @@ export const enforcePublishPermission: CollectionBeforeChangeHook = async ({ dat
 // flag must be freshly cleared. This powers Flow B (a delegated component and the
 // page consuming it are EACH gated) and Flow A on AI-generated websites.
 export function enforcePublishOnField(statusField: string, publishedValue: string): CollectionBeforeChangeHook {
-  return async ({ data, req, originalDoc, collection }) => {
+  return async ({ data, req, originalDoc, collection, context }) => {
     const becoming = (data as any)?.[statusField] === publishedValue && (originalDoc as any)?.[statusField] !== publishedValue;
     if (!becoming) return data;
+    // Governed auto-publish bypasses the interactive publish-role check.
+    if ((context as any)?.autoPublish) return data;
 
     const roles: string[] = req.user?.roles ?? [];
     if (!roles.some((r) => (PUBLISH_ROLES as string[]).includes(r))) {

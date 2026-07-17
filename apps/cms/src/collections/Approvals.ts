@@ -1,7 +1,7 @@
 import type { CollectionConfig, CollectionBeforeChangeHook, CollectionAfterChangeHook } from "payload";
 import { APIError } from "payload";
 import { isAdmin } from "../access/roles";
-import { canDecideStage, STAGE_LABEL, type Stage } from "../access/approval-policy";
+import { canDecideStage, requiredStagesFor, STAGE_LABEL, type Stage } from "../access/approval-policy";
 import { effectiveApproverRoles } from "../access/delegation";
 
 // Enforce HITL decision rules on every approval record:
@@ -73,6 +73,44 @@ const auditApproval: CollectionAfterChangeHook = async ({ doc, req, operation })
   }
 };
 
+// Governed completion: once every required approval stage is freshly cleared,
+// take the content LIVE. This is the honest fix for "the Publish button doesn't
+// publish" (AI content is gated behind review) AND it feeds the RAG pipeline,
+// which only indexes on the published transition.
+const autoPublishOnFinalApproval: CollectionAfterChangeHook = async ({ doc, req, operation }) => {
+  if (operation !== "create" || doc.decision !== "approve") return;
+  const slug = String(doc.collectionSlug);
+  try {
+    const target: any = await req.payload.findByID({ collection: slug as any, id: doc.documentId as any, depth: 0, overrideAccess: true });
+    if (!target) { req.payload.logger.info(`[autopub] no target ${slug}#${doc.documentId}`); return; }
+    if (target._status === "published" || target.status === "published") return;
+    const required = requiredStagesFor(String(target.riskTier ?? "low"), Boolean(target.aiGenerated));
+    if (!required.length) { req.payload.logger.info(`[autopub] no required stages tier=${target.riskTier} ai=${target.aiGenerated}`); return; }
+    const { docs: committed } = await req.payload.find({
+      collection: "approvals" as any,
+      where: { and: [{ collectionSlug: { equals: slug } }, { documentId: { equals: String(doc.documentId) } }] },
+      sort: "-createdAt", limit: 500, depth: 0, overrideAccess: true,
+    });
+    // The triggering decision is not yet committed, so it won't appear in the
+    // query above — include it explicitly.
+    const decisions: any[] = [{ stage: doc.stage, decision: doc.decision, createdAt: doc.createdAt || new Date().toISOString() }, ...committed];
+    const lastEdit = target.updatedAt ? new Date(target.updatedAt).getTime() : 0;
+    const cleared = (s: Stage) => {
+      const latest = decisions.find((d: any) => d.stage === s);
+      return Boolean(latest && latest.decision === "approve" && new Date(latest.createdAt).getTime() >= lastEdit);
+    };
+    if (!required.every(cleared)) return;
+    const data: any = {};
+    if ("_status" in target) data._status = "published";
+    else if ("status" in target) data.status = "published";
+    if (!Object.keys(data).length) return;
+    await req.payload.update({ collection: slug as any, id: doc.documentId as any, data, overrideAccess: true, context: { autoPublish: true } });
+    req.payload.logger.info(`[autopub] published ${slug}#${doc.documentId} after ${required.join("+")}`);
+  } catch (e: any) {
+    req.payload.logger.error(`[autopub] ${e?.message}`);
+  }
+};
+
 // Immutable HITL decision trail. One row per decision (approve/reject/request_changes)
 // per stage per content document. Never updatable; deletable by admins only.
 export const Approvals: CollectionConfig = {
@@ -104,5 +142,5 @@ export const Approvals: CollectionConfig = {
     { name: "decidedBy", type: "relationship", relationTo: "users" },
   ],
   timestamps: true,
-  hooks: { beforeChange: [enforceApprovalRules], afterChange: [auditApproval] },
+  hooks: { beforeChange: [enforceApprovalRules], afterChange: [auditApproval, autoPublishOnFinalApproval] },
 };

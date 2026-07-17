@@ -23,6 +23,7 @@ export const Conversations: CollectionConfig = {
     { name: "title", type: "text", required: true, admin: { description: "Topic name — auto-derived from the first message, renamable." } },
     { name: "messages", type: "json", admin: { description: "Ordered turns: [{ role, text, mode, model, ...artifacts }]." } },
     { name: "mode", type: "text", admin: { description: "Primary mode of the conversation (auto/writing/website/…)." } },
+    { name: "projectId", type: "text", admin: { description: "Project this discussion persists into — one project per discussion; lets a saved chat re-open in context." } },
     { name: "model", type: "text" },
     { name: "summary", type: "textarea", admin: { description: "Rolling summary of older turns for context compaction (optional)." } },
     { name: "pinned", type: "checkbox", defaultValue: false },

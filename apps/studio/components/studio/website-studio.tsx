@@ -3,13 +3,13 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 
 type Brand = { bg: string; ink: string; muted: string; accent: string; accent2: string; line: string; soft: string; font?: string; radius?: number };
 type Section = { id: string; kind: string; brief: string; html?: string };
-type Plan = { title: string; description?: string; brand: Brand; sections: Section[] };
+type Plan = { title: string; description?: string; brand: Brand; sections: Section[]; lang?: string; dir?: string; bilingual?: boolean };
 
 const uid = () => `w${Math.random().toString(36).slice(2, 9)}`;
 const DEFAULT_FONT = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
 
 function assemble(title: string, brand: Brand, sections: Section[]): string {
-  const body = sections.map((s) => s.html || "").filter(Boolean).join("\n");
+  const body = sections.map((s) => s.html || "").filter(Boolean).map((h, i) => `<div id="sec-${i}">${h}</div>`).join("\n");
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${(title || "").replace(/[<>]/g, "")}</title><style>*{box-sizing:border-box;margin:0;padding:0}html{scroll-behavior:smooth}body{background:${brand.bg};color:${brand.ink};font-family:${brand.font || DEFAULT_FONT};line-height:1.55;-webkit-font-smoothing:antialiased}a{color:inherit;text-decoration:none}img{max-width:100%;display:block}details>summary{cursor:pointer;list-style:none}details>summary::-webkit-details-marker{display:none}</style></head><body>${body}</body></html>`;
 }
 const slugify = (s: string) => s.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60);
@@ -45,7 +45,7 @@ export default function WebsiteStudio({ siteId }: { siteId: string | null }) {
       const r = await fetch("/api/website/plan", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ prompt }) });
       const j = await r.json();
       if (!r.ok || !j.sections) throw new Error(j.error || "Failed to plan");
-      setPlan({ title: j.title, description: j.description, brand: j.brand, sections: j.sections.map((s: any) => ({ ...s, id: s.id || uid() })) });
+      setPlan({ title: j.title, description: j.description, brand: j.brand, lang: j.lang, dir: j.dir, bilingual: j.bilingual, sections: j.sections.map((s: any) => ({ ...s, id: s.id || uid() })) });
       setSlug(slugify(j.title));
       setPhase("plan");
     } catch (e: any) { setErr(e.message); } finally { setBusy(""); }
@@ -61,7 +61,7 @@ export default function WebsiteStudio({ siteId }: { siteId: string | null }) {
     setErr(""); setBusy("Designing sections in parallel… ~15s");
     try {
       const body: any = { prompt };
-      if (usePlan && plan) body.plan = { title: plan.title, description: plan.description, brand: plan.brand, sections: plan.sections };
+      if (usePlan && plan) body.plan = { title: plan.title, description: plan.description, brand: plan.brand, sections: plan.sections, lang: plan.lang, dir: plan.dir, bilingual: plan.bilingual };
       const r = await fetch("/api/website", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
       const j = await r.json();
       if (!r.ok || !j.html) throw new Error(j.error || "Generation failed");

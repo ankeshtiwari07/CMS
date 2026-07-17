@@ -80,6 +80,8 @@ export class WebsiteBuilder {
     if (!ops.length && site.sections.length) ops = [{ op: "edit", id: site.sections[0].id, brief: instruction.slice(0, 200) }];
 
     let sections: ExistingSection[] = site.sections.map((s) => ({ ...s }));
+    // Keep the edited site interlinked: give regenerated sections the page outline.
+    const outline = sections.map((s, i) => ({ anchor: `#sec-${i}`, kind: s.kind, brief: s.brief || "" }));
     const changed: string[] = [];
     const sitePrompt = `${site.title} — ${instruction}`.slice(0, 400);
 
@@ -97,14 +99,14 @@ export class WebsiteBuilder {
         if (idx === -1) continue;
         const cur = sections[idx];
         const ps: PlannedSection = { id: cur.id, kind: cur.kind as SectionKind, brief: op.brief || cur.brief || "" };
-        const sec = await generateSection({ section: ps, brand, siteTitle: site.title, sitePrompt, primary: this.primary }).catch(() => null);
+        const sec = await generateSection({ section: ps, brand, siteTitle: site.title, sitePrompt, primary: this.primary, outline }).catch(() => null);
         if (sec) {
           sections[idx] = { ...cur, brief: ps.brief, html: sec.html, componentSource: sec.componentSource ?? cur.componentSource, componentKey: sec.componentKey ?? cur.componentKey };
           changed.push(cur.id);
         }
       } else if (op.op === "add" && op.kind && KINDS.includes(op.kind)) {
         const ps: PlannedSection = { id: nid(), kind: op.kind as SectionKind, brief: op.brief || "" };
-        const sec = await generateSection({ section: ps, brand, siteTitle: site.title, sitePrompt, primary: this.primary }).catch(() => null);
+        const sec = await generateSection({ section: ps, brand, siteTitle: site.title, sitePrompt, primary: this.primary, outline }).catch(() => null);
         if (sec) {
           const block: ExistingSection = { id: ps.id, kind: ps.kind, brief: ps.brief, html: sec.html, componentKey: sec.componentKey, componentSource: sec.componentSource };
           const at = op.afterId ? sections.findIndex((s) => s.id === op.afterId) : -1;

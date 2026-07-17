@@ -18,7 +18,8 @@ export type SectionKind =
   | "nav" | "hero" | "cardGrid" | "domains" | "buildYourOwn" | "platform"
   | "useCase" | "logos" | "features" | "testimonial" | "faq" | "cta" | "footer";
 export type PlannedSection = { id: string; kind: SectionKind; brief: string };
-export type WebsitePlan = { title: string; description?: string; brand: Brand; sections: PlannedSection[] };
+export type WebsitePlan = { title: string; description?: string; brand: Brand; sections: PlannedSection[]; lang?: string; dir?: string; bilingual?: boolean };
+export type Outline = { anchor: string; kind: string; brief: string }[];
 export type Section = PlannedSection & { html: string; componentKey?: string; componentSource?: "library" | "delegated" };
 
 // A reusable building-block the Component Agent produced for a gap in the library.
@@ -95,10 +96,11 @@ export async function planWebsite(prompt: string, primary?: string): Promise<Web
     "Choose a coherent brand system and an ordered list of sections. Use these section kinds only: " +
     "nav, hero, cardGrid, domains, buildYourOwn, platform, useCase, logos, features, testimonial, faq, cta, footer. " +
     "Always start with nav and hero and end with footer. Pick 7-11 sections total. " +
+    'Detect the requested language(s) from the brief: return "lang" (BCP-47, e.g. en or ar), "dir" (ltr|rtl), and "bilingual":true if the user asks for two languages. ' +
     "Respond with ONLY minified JSON, no markdown, no fences.";
   const user =
     `Plan the website for:\n"""${prompt}"""\n\n` +
-    `Return JSON: {"title": string, "description": string, ` +
+    `Return JSON: {"title": string, "description": string, "lang": "en"|"ar"|…, "dir": "ltr"|"rtl", "bilingual": boolean, ` +
     `"brand": {"bg": hex, "ink": hex, "muted": hex, "accent": hex, "accent2": hex, "line": hex, "soft": hex}, ` +
     `"sections": [{"kind": one-of-the-kinds, "brief": "one line: exactly what this section shows for THIS site"}]}`;
   const fb = await completeWithFallback({ system: sys, messages: [{ role: "user", content: user }], maxTokens: 1500 }, { primary });
@@ -115,7 +117,9 @@ export async function planWebsite(prompt: string, primary?: string): Promise<Web
     .filter((s: any) => kinds.includes(s?.kind))
     .slice(0, 12)
     .map((s: any) => ({ id: sid(), kind: s.kind, brief: String(s.brief || "").slice(0, 300) }));
-  return { title: String(data.title || prompt).slice(0, 140), description: data.description ? String(data.description).slice(0, 300) : undefined, brand, sections, _provider: fb.provider };
+  const lang = typeof data.lang === "string" && data.lang.trim() ? data.lang.trim().slice(0, 8) : "en";
+  const dir = data.dir === "rtl" || data.dir === "ltr" ? data.dir : lang.toLowerCase().startsWith("ar") ? "rtl" : "ltr";
+  return { title: String(data.title || prompt).slice(0, 140), description: data.description ? String(data.description).slice(0, 300) : undefined, brand, sections, lang, dir, bilingual: Boolean(data.bilingual), _provider: fb.provider };
 }
 
 function brandVars(b: Brand): string {
@@ -185,11 +189,19 @@ export async function generateComponent(args: { kind: SectionKind; brief: string
   };
 }
 
-export async function generateSection(args: { section: PlannedSection; brand: Brand; siteTitle: string; sitePrompt: string; primary?: string; component?: { html: string; source: "library" | "delegated"; key: string } }): Promise<Section & { _provider: string }> {
+export async function generateSection(args: { section: PlannedSection; brand: Brand; siteTitle: string; sitePrompt: string; primary?: string; component?: { html: string; source: "library" | "delegated"; key: string }; outline?: Outline; lang?: string; dir?: string; bilingual?: boolean }): Promise<Section & { _provider: string }> {
   // When a component (reused from the library or freshly delegated) fulfils this
   // section, the section is built FROM that component's template — the component
   // is the source of truth (component-based CMS), not ad-hoc markup.
   const usingComponent = Boolean(args.component?.html);
+  const langNote = args.bilingual
+    ? "Write ALL copy BILINGUALLY: English first, then the Arabic translation immediately after within the same elements. "
+    : args.lang && args.lang.toLowerCase().startsWith("ar")
+      ? "Write ALL copy in Arabic. "
+      : args.lang && args.lang !== "en"
+        ? `Write ALL copy in ${args.lang}. `
+        : "";
+  const dirNote = args.dir === "rtl" ? 'The page is right-to-left — align text/layout for dir="rtl". ' : "";
   const sys =
     "You are HUMAIN Create Studio, an elite front-end engineer. Output the HTML for ONE website section only. " +
     (usingComponent
@@ -199,10 +211,13 @@ export async function generateSection(args: { section: PlannedSection; brand: Br
     "NO <html>, <head>, or <body> tags. NO markdown, NO code fences, NO commentary. " +
     "Premium Apple.com aesthetic: generous whitespace, refined type scale, rounded cards, subtle shadows and hover transitions, fully responsive (mobile-friendly with @media). " +
     "Return WELL-FORMED HTML: every tag you open must be closed, correctly nested. All content must be visible WITHOUT JavaScript (no opacity:0 reveal states, no scroll-triggered animations). " +
+    'Links & buttons MUST be functional: every nav item and in-page CTA is an <a href="#sec-N"> pointing to the correct section from the page outline below; NEVER output href="#", an empty href, or a <button> without an enclosing <a>. If an action has no in-page target, link it to the CTA or footer anchor. ' +
+    langNote + dirNote +
     "Use realistic, specific copy for THIS site — never lorem ipsum. Do not reference external images, scripts, or fonts.";
   const user =
     `Website: "${args.siteTitle}". Overall brief: ${args.sitePrompt.slice(0, 400)}\n` +
     `${brandVars(args.brand)}\n` +
+    (args.outline?.length ? `Page outline (anchor · kind · purpose) — link nav/CTAs to the correct anchor:\n${args.outline.map((o) => `${o.anchor} · ${o.kind} · ${o.brief.slice(0, 60)}`).join("\n")}\n` : "") +
     (usingComponent
       ? `Component template to instantiate (kind="${args.section.kind}", key="${args.component!.key}"):\n"""${args.component!.html.slice(0, 4000)}"""\n`
       : `Build this section — kind="${args.section.kind}". ${KIND_GUIDE[args.section.kind]}\n`) +
@@ -211,10 +226,11 @@ export async function generateSection(args: { section: PlannedSection; brand: Br
   return { ...args.section, html: balanceTags(cleanHtml(fb.text)), componentKey: args.component?.key, componentSource: args.component?.source, _provider: fb.provider };
 }
 
-export function assemble(title: string, brand: Brand, sections: { html: string }[]): string {
-  const body = sections.map((s) => s.html).filter(Boolean).join("\n");
+export function assemble(title: string, brand: Brand, sections: { html: string }[], lang = "en", dir = "ltr"): string {
+  // Wrap each section in a stable anchor so nav/CTA `href="#sec-N"` links resolve.
+  const body = sections.map((s) => s.html).filter(Boolean).map((h, i) => `<div id="sec-${i}">${h}</div>`).join("\n");
   return `<!doctype html>
-<html lang="en">
+<html lang="${lang}" dir="${dir}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -235,69 +251,58 @@ ${body}
 </html>`;
 }
 
-// Component-gap DELEGATION pass. For the set of section kinds this site needs,
-// decide which are already covered by a LIVE library component (reuse) and which
-// are MISSING. For each missing kind, delegate to the Component Agent to build a
-// reusable component. Returns the resolution map + the newly delegated components.
-async function resolveComponents(plan: WebsitePlan, primary?: string): Promise<{
-  library: LibraryComponent[];
-  byKind: Record<string, { html: string; source: "library" | "delegated"; key: string }>;
-  used: Array<{ kind: SectionKind; key: string; name: string; type: string }>;
-  delegated: DelegatedComponent[];
-}> {
-  const library = await getLiveLibrary();
-  const byType = new Map<string, LibraryComponent>();
-  for (const c of library) if (!byType.has(c.type)) byType.set(c.type, c);
-
-  const neededKinds = Array.from(new Set(plan.sections.map((s) => s.kind))) as SectionKind[];
-  const gapKinds = neededKinds.filter((k) => !byType.has(KIND_TO_TYPE[k]));
-
-  // Delegate every gap in parallel — automatic, so the user never dead-ends.
-  const delegatedList = (
-    await Promise.all(
-      gapKinds.map((k) => {
-        const sec = plan.sections.find((s) => s.kind === k)!;
-        return generateComponent({ kind: k, brief: sec.brief, brand: plan.brand, siteTitle: plan.title, primary }).catch(() => null);
-      }),
-    )
-  ).filter(Boolean) as DelegatedComponent[];
-  const delegatedByKind = new Map(delegatedList.map((d) => [d.forKind, d]));
-
-  const byKind: Record<string, { html: string; source: "library" | "delegated"; key: string }> = {};
-  const used: Array<{ kind: SectionKind; key: string; name: string; type: string }> = [];
-  for (const k of neededKinds) {
-    const lib = byType.get(KIND_TO_TYPE[k]);
-    if (lib) {
-      byKind[k] = { html: lib.html || "", source: "library", key: lib.key };
-      used.push({ kind: k, key: lib.key, name: lib.name, type: lib.type });
-    } else {
-      const del = delegatedByKind.get(k);
-      if (del) byKind[k] = { html: del.html, source: "delegated", key: del.key };
-    }
-  }
-  return { library, byKind, used, delegated: delegatedList };
-}
-
-// Full pipeline: plan -> resolve components (reuse or delegate) -> generate every
-// section IN PARALLEL from its component -> assemble in order. Parallel keeps a
-// full 7-11 section page under ~15s (vs ~90s sequential).
+// Full pipeline: plan -> generate every section IN PARALLEL -> assemble.
+// LEAP D2 delegation is preserved but no longer gates the page: reusable
+// components for gap kinds are synthesised for the LIBRARY in parallel, while
+// gap sections generate DIRECTLY from the kind guide. This removes the serial
+// component->instantiate round-trip (Lever 2) so a full 7-11 section page lands
+// in ~15-25s instead of ~80s.
 export async function generateWebsite(args: { prompt: string; plan?: WebsitePlan; primary?: string }): Promise<{
   title: string; brand: Brand; sections: Section[]; html: string; provider: string;
   usedComponents: Array<{ kind: string; key: string; name: string; type: string }>;
   delegatedComponents: DelegatedComponent[];
+  lang: string; dir: string;
 }> {
   const plan = args.plan ?? (await planWebsite(args.prompt, args.primary));
-  const { byKind, used, delegated } = await resolveComponents(plan, args.primary);
+  const lang = plan.lang || "en", dir = plan.dir || "ltr", bilingual = Boolean(plan.bilingual);
+  const outline: Outline = plan.sections.map((s, i) => ({ anchor: `#sec-${i}`, kind: s.kind, brief: s.brief }));
+
+  const library = await getLiveLibrary();
+  const byType = new Map<string, LibraryComponent>();
+  for (const c of library) if (!byType.has(c.type)) byType.set(c.type, c);
+
+  // Delegate reusable components for gap kinds INTO THE LIBRARY, in parallel —
+  // does NOT gate section generation (the caller persists these for reuse / D2).
+  const gapKinds = Array.from(new Set(plan.sections.map((s) => s.kind))).filter((k) => !byType.has(KIND_TO_TYPE[k])) as SectionKind[];
+  const delegatedPromise = Promise.all(
+    gapKinds.map((k) => {
+      const sec = plan.sections.find((s) => s.kind === k)!;
+      return generateComponent({ kind: k, brief: sec.brief, brand: plan.brand, siteTitle: plan.title, primary: args.primary }).catch(() => null);
+    }),
+  ).then((list) => list.filter(Boolean) as DelegatedComponent[]);
+
+  // All sections in ONE parallel pass: library-backed kinds instantiate from
+  // their component; gap kinds generate directly.
   const sections = await Promise.all(
-    plan.sections.map((ps) =>
-      generateSection({ section: ps, brand: plan.brand, siteTitle: plan.title, sitePrompt: args.prompt, primary: args.primary, component: byKind[ps.kind] })
-        .catch((): Section & { _provider: string } => ({ ...ps, html: "", _provider: "error" })),
-    ),
+    plan.sections.map((ps) => {
+      const lib = byType.get(KIND_TO_TYPE[ps.kind]);
+      const component = lib ? { html: lib.html || "", source: "library" as const, key: lib.key } : undefined;
+      return generateSection({ section: ps, brand: plan.brand, siteTitle: plan.title, sitePrompt: args.prompt, primary: args.primary, component, outline, lang, dir, bilingual })
+        .catch((): Section & { _provider: string } => ({ ...ps, html: "", _provider: "error" }));
+    }),
   );
   const ok = sections.filter((s) => s.html);
+
+  const used: Array<{ kind: string; key: string; name: string; type: string }> = [];
+  const seen = new Set<string>();
+  for (const ps of plan.sections) {
+    const lib = byType.get(KIND_TO_TYPE[ps.kind]);
+    if (lib && !seen.has(lib.key)) { seen.add(lib.key); used.push({ kind: ps.kind, key: lib.key, name: lib.name, type: lib.type }); }
+  }
+  const delegated = await delegatedPromise;
   return {
-    title: plan.title, brand: plan.brand, sections: ok, html: assemble(plan.title, plan.brand, ok),
+    title: plan.title, brand: plan.brand, sections: ok, html: assemble(plan.title, plan.brand, ok, lang, dir),
     provider: (plan as any)._provider || args.primary || "anthropic",
-    usedComponents: used, delegatedComponents: delegated,
+    usedComponents: used, delegatedComponents: delegated, lang, dir,
   };
 }

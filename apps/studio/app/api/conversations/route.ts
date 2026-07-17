@@ -37,6 +37,7 @@ export async function POST(req: Request) {
       messages: body.messages ?? [],
       mode: body.mode ?? "auto",
       model: body.model ?? null,
+      projectId: body.projectId ?? null,
     }),
   });
   if (!res.ok) {

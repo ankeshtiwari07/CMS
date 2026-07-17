@@ -73,7 +73,7 @@ export async function POST(req: Request) {
             prompt,
             model: modelLabel || body.model,
             options,
-            asset: { text: assetText, ...(builtHtml ? { html: true } : {}) },
+            asset: builtHtml ? { html: builtHtml, text: assetText, isHtml: true } : builtDoc ? { doc: builtDoc, text: assetText } : { text: assetText },
             status: "ready",
             owner: user.id,
           };

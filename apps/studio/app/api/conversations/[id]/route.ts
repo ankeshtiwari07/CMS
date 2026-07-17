@@ -20,6 +20,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     model: d.model,
     messages: d.messages ?? [],
     pinned: !!d.pinned,
+    projectId: d.projectId ?? null,
   });
 }
 
@@ -33,6 +34,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if (body.messages !== undefined) patch.messages = body.messages;
   if (body.mode !== undefined) patch.mode = body.mode;
   if (body.model !== undefined) patch.model = body.model;
+  if (body.projectId !== undefined) patch.projectId = body.projectId;
   if (body.pinned !== undefined) patch.pinned = !!body.pinned;
   if (body.archived !== undefined) patch.archived = !!body.archived;
   const res = await payloadFetch(`/api/conversations/${id}`, {

@@ -9,7 +9,7 @@ import {
 import { useT, useLocale } from "@/lib/i18n-client";
 import { relativeTime } from "@/lib/i18n";
 
-export type Project = { id: string | number; title: string; type: string; updatedAt?: string; text?: string; preview?: boolean; status?: string; deckId?: string | number; siteId?: string | number; sitePath?: string };
+export type Project = { id: string | number; title: string; type: string; updatedAt?: string; text?: string; preview?: boolean; status?: string; deckId?: string | number; siteId?: string | number; sitePath?: string; html?: string; doc?: any; conversationId?: string | number };
 
 // Status pill colors for project cards.
 const STATUS_STYLE: Record<string, { bg: string; fg: string }> = {
@@ -84,6 +84,12 @@ export default function ProjectsGrid({ projects }: { projects: Project[] }) {
   function openProject(p: Project) {
     if (p.type === "deck" && p.deckId != null) return router.push(`/cms/deck?id=${p.deckId}`);
     if ((p.type === "website" || p.type === "websiteBuild") && p.siteId != null) return router.push(`/cms/website?id=${p.siteId}`);
+    // Re-open the discussion in the chat studio if this project has one.
+    if (p.conversationId != null) {
+      router.push("/studio");
+      setTimeout(() => globalThis.dispatchEvent(new CustomEvent("humain:loadchat", { detail: { id: p.conversationId } })), 120);
+      return;
+    }
     setOpenId(p.id);
   }
 
@@ -213,7 +219,11 @@ export default function ProjectsGrid({ projects }: { projects: Project[] }) {
             </div>
             {pEdit
               ? <textarea value={eText} onChange={(e) => setEText(e.target.value)} style={{ marginTop: 18, width: "100%", minHeight: 300, border: "1px solid var(--hairline)", borderRadius: 10, padding: 14, color: "var(--ink)", lineHeight: 1.7, fontSize: 14.5, resize: "vertical", fontFamily: "inherit", outline: "none" }} />
-              : <div style={{ marginTop: 18, whiteSpace: "pre-wrap", color: "var(--ink)", lineHeight: 1.7, fontSize: 14.5 }}>{open.text || t("pg.noContent")}</div>}
+              : open.html
+                ? <iframe title="Website" srcDoc={open.html} style={{ marginTop: 18, width: "100%", height: 520, border: "1px solid var(--hairline)", borderRadius: 12, background: "#fff" }} />
+                : open.doc
+                  ? <div style={{ marginTop: 18, color: "var(--ink)", lineHeight: 1.7, fontSize: 14.5 }}>{open.doc.summary ? <p style={{ color: "var(--muted)", marginBottom: 12 }}>{open.doc.summary}</p> : null}<div style={{ whiteSpace: "pre-wrap" }}>{open.doc.bodyMarkdown || open.text || t("pg.noContent")}</div></div>
+                  : <div style={{ marginTop: 18, whiteSpace: "pre-wrap", color: "var(--ink)", lineHeight: 1.7, fontSize: 14.5 }}>{open.text || t("pg.noContent")}</div>}
           </div>
         </div>
       )}

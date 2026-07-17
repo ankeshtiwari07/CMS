@@ -269,12 +269,12 @@ export default function PromptBox({ onActive }: { onActive?: (active: boolean) =
         if (convIdRef.current) {
           await fetch(`/api/conversations/${convIdRef.current}`, {
             method: "PATCH", headers: { "content-type": "application/json" },
-            body: JSON.stringify({ title, messages, model: modelLabel }),
+            body: JSON.stringify({ title, messages, model: modelLabel, projectId: projectIdRef.current }),
           });
         } else {
           const res = await fetch("/api/conversations", {
             method: "POST", headers: { "content-type": "application/json" },
-            body: JSON.stringify({ title, messages, mode, model: modelLabel }),
+            body: JSON.stringify({ title, messages, mode, model: modelLabel, projectId: projectIdRef.current }),
           });
           const d = await res.json().catch(() => ({}));
           if (!cancelled && d.id) convIdRef.current = String(d.id);

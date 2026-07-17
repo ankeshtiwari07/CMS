@@ -14,12 +14,21 @@ export default async function ProjectsPage() {
   try {
     const res = await payloadFetch("/api/projects?sort=-createdAt&limit=60&depth=0");
     if (res.ok) {
+      // Map project -> its conversation so a project can re-open in chat.
+      const convByProject = new Map<string, string | number>();
+      try {
+        const cr = await payloadFetch("/api/conversations?depth=0&limit=200");
+        if (cr.ok) for (const c of ((await cr.json()).docs ?? [])) if (c.projectId) convByProject.set(String(c.projectId), c.id);
+      } catch { /* ignore */ }
       projects = ((await res.json()).docs ?? []).map((d: any) => ({
         id: d.id, title: d.title, type: d.type, updatedAt: d.updatedAt,
         status: d.status ?? "draft",
         text: typeof d.asset?.text === "string" ? d.asset.text : "",
         preview: Boolean(d.asset?.preview),
         deckId: d.asset?.deckId, siteId: d.asset?.siteId, sitePath: d.asset?.path,
+        html: typeof d.asset?.html === "string" ? d.asset.html : undefined,
+        doc: d.asset?.doc ?? undefined,
+        conversationId: convByProject.get(String(d.id)),
       }));
     }
   } catch {

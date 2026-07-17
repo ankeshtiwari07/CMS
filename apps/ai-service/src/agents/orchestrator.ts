@@ -4,7 +4,7 @@
 // request is ambiguous) before producing. Supports live streaming and a plain
 // (non-streamed) mode for the rich artifact endpoints.
 import Anthropic from "@anthropic-ai/sdk";
-import { getProvider, providerByName } from "../providers/index.js";
+import { providerByName, completeWithFallback } from "../providers/index.js";
 import { generateWebsite } from "../website.js";
 import { retrieveContext, getBrandGuidelines, getComponents, auditAgentRun } from "./tools.js";
 import { SPECIALISTS, type SpecialistId } from "./specialists.js";
@@ -12,9 +12,31 @@ import { prompts } from "../prompts/library.js";
 
 const stripJson = (s: string) => s.replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "").trim();
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY || "missing" });
-const provider = getProvider();
+const client = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY || "missing",
+  maxRetries: Number(process.env.ANTHROPIC_MAX_RETRIES ?? 0),
+  timeout: Number(process.env.ANTHROPIC_TIMEOUT_MS ?? 30000),
+});
 const MAX_STEPS = Number(process.env.AGENT_MAX_STEPS || 6);
+
+// Brace-matched JSON object extractor — robust to fences, leading prose and a
+// truncated tail (returns the first balanced {...}). Used by the build_* tools
+// so a partial/degraded model reply can't leak raw JSON as user-facing content.
+function extractJsonObj(text: string): any {
+  let t = stripJson(String(text || ""));
+  const s = t.indexOf("{");
+  if (s === -1) throw new Error("no_json");
+  let d = 0, inStr = false, esc = false, e = -1;
+  for (let i = s; i < t.length; i++) {
+    const c = t[i];
+    if (esc) { esc = false; continue; }
+    if (c === "\\") { esc = true; continue; }
+    if (c === '"') inStr = !inStr;
+    else if (!inStr) { if (c === "{") d++; else if (c === "}") { d--; if (!d) { e = i; break; } } }
+  }
+  return JSON.parse(e === -1 ? t.slice(s) : t.slice(s, e + 1));
+}
+const looksLikeJson = (s: string) => /^\s*[\[{]/.test(String(s || ""));
 
 export type TraceStep = { kind: "tool" | "agent"; name: string; detail?: string };
 export type DocArtifact = {
@@ -206,7 +228,13 @@ async function execTool(
   input: any,
   trace: TraceStep[],
   onEvent?: (e: SseEvent) => void,
+  activeProvider = "anthropic",
 ): Promise<string> {
+  // Run a sub-generation on the SAME live provider the loop is running on (with
+  // the configured fallback chain), never the module-level default which may be
+  // a dead sovereign box.
+  const gen = (system: string, content: string, maxTokens: number) =>
+    completeWithFallback({ system, messages: [{ role: "user", content }], maxTokens }, { primary: activeProvider }).then((r) => r.text);
   if (name === "retrieve_context") {
     onEvent?.({ type: "status", label: "Research Agent" });
     const r = await retrieveContext(String(input.query || ""), input.locale || "en");
@@ -228,12 +256,7 @@ async function execTool(
     const sp = SPECIALISTS[input.agent as SpecialistId];
     if (!sp) return `Unknown specialist: ${input.agent}`;
     onEvent?.({ type: "status", label: sp.label });
-    const out = await provider.complete({
-      system: sp.system,
-      messages: [{ role: "user", content: `${input.instruction}${input.context ? `\n\n---\nContext:\n${input.context}` : ""}` }],
-      maxTokens: 2048,
-      fast: true, // specialists run on the fast model to keep cost low
-    });
+    const out = await gen(sp.system, `${input.instruction}${input.context ? `\n\n---\nContext:\n${input.context}` : ""}`, 2048);
     trace.push({ kind: "agent", name: sp.label, detail: String(input.instruction || "").slice(0, 80) });
     return out;
   }
@@ -254,7 +277,7 @@ async function execTool(
     // Claude, section by section (no token-limit issue), and assembles a full,
     // component-based page — the same engine as the Website Studio.
     void libNote; // library consultation is handled inside generateWebsite
-    const site = await generateWebsite({ prompt: `${input.brief}\n\n${lang}`, primary: "anthropic" });
+    const site = await generateWebsite({ prompt: `${input.brief}\n\n${lang}`, primary: activeProvider });
     let html = site.html;
     trace.push({ kind: "agent", name: "Build Agent", detail: String(input.title || input.brief || "site").slice(0, 80) });
     // Show the built site to the user immediately; do NOT feed the HTML back to
@@ -265,15 +288,10 @@ async function execTool(
   if (name === "build_content") {
     onEvent?.({ type: "status", label: "Content Agent" });
     const lang = input.language === "ar" ? "Write in Arabic." : input.language === "both" ? "Provide bilingual EN + AR." : "Write in English.";
-    const raw = await provider.complete({
-      system: CONTENT_BUILDER_SYSTEM,
-      messages: [{ role: "user", content: `Content type: ${input.contentType}\n${input.brief}\n\n${lang}` }],
-      maxTokens: 4096,
-      fast: true,
-    });
+    const raw = await gen(CONTENT_BUILDER_SYSTEM, `Content type: ${input.contentType}\n${input.brief}\n\n${lang}`, 4096);
     let doc: DocArtifact;
     try {
-      const j = JSON.parse(raw.replace(/^```json\s*/i, "").replace(/^```\s*/i, "").replace(/```\s*$/i, "").trim());
+      const j = extractJsonObj(raw);
       doc = {
         type: input.contentType || "generic",
         title: String(j.title || input.title || "Untitled"),
@@ -282,9 +300,16 @@ async function execTool(
         seo: j.seo, tags: Array.isArray(j.tags) ? j.tags : undefined, category: j.category,
         language: input.language || "en",
       };
+      if (!doc.bodyMarkdown.trim()) throw new Error("empty_body");
     } catch {
-      // Model didn't return clean JSON — treat the whole output as the body.
-      doc = { type: input.contentType || "generic", title: String(input.title || "Untitled"), bodyMarkdown: raw, language: input.language || "en" };
+      // Parse failed — NEVER dump raw JSON into the card. If the reply is
+      // JSON-shaped, retry once asking for plain Markdown; else use the prose.
+      let body = looksLikeJson(raw) ? "" : raw;
+      if (!body.trim()) {
+        try { body = await gen(CONTENT_BUILDER_SYSTEM + "\n\nReturn ONLY the article body as clean Markdown — NO JSON, no code fences.", `Content type: ${input.contentType}\n${input.brief}\n\n${lang}`, 4096); } catch {}
+      }
+      if (looksLikeJson(body)) { try { const p = extractJsonObj(body); body = String(p.bodyMarkdown || p.body || ""); } catch { body = ""; } }
+      doc = { type: input.contentType || "generic", title: String(input.title || "Untitled"), bodyMarkdown: body || "(The content could not be formatted — please try again.)", language: input.language || "en" };
     }
     trace.push({ kind: "agent", name: "Content Agent", detail: String(input.contentType || "content") });
     onEvent?.({ type: "artifact", kind: "doc", doc, title: doc.title });
@@ -292,7 +317,7 @@ async function execTool(
   }
   if (name === "build_video") {
     onEvent?.({ type: "status", label: "Video Agent" });
-    const out = await provider.complete({ system: VIDEO_SYSTEM, messages: [{ role: "user", content: String(input.brief || "") }], maxTokens: 4096, fast: true });
+    const out = await gen(VIDEO_SYSTEM, String(input.brief || ""), 4096);
     const m = out.match(/VIDEO_PROMPT:\s*([\s\S]+?)(?:\n\n|$)/i);
     const videoPrompt = (m?.[1] || input.brief || "").trim().slice(0, 500);
     trace.push({ kind: "agent", name: "Video Agent", detail: String(input.title || input.brief || "video").slice(0, 80) });
@@ -308,10 +333,10 @@ async function execTool(
   }
   if (name === "build_brand") {
     onEvent?.({ type: "status", label: "Brand Agent" });
-    const raw = await provider.complete({ system: BRAND_SYSTEM, messages: [{ role: "user", content: String(input.brief || "") }], maxTokens: 4096, fast: true });
+    const raw = await gen(BRAND_SYSTEM, String(input.brief || ""), 4096);
     let brand: any;
     try {
-      const j = JSON.parse(stripJson(raw));
+      const j = extractJsonObj(raw);
       brand = { name: j.name || input.title || "Brand Guideline", summary: j.summary || "", palette: Array.isArray(j.palette) ? j.palette : [], sections: Array.isArray(j.sections) ? j.sections : [] };
     } catch {
       brand = { name: input.title || "Brand Guideline", summary: "", palette: [], sections: [{ title: "Guideline", content: raw }] };
@@ -322,9 +347,9 @@ async function execTool(
   }
   if (name === "build_theme") {
     onEvent?.({ type: "status", label: "Design Agent" });
-    const raw = await provider.complete({ system: prompts["theme@v1"].system, messages: [{ role: "user", content: String(input.brief || "") }], maxTokens: 1024, fast: true });
+    const raw = await gen(prompts["theme@v1"].system, String(input.brief || ""), 1024);
     let theme: any = null;
-    try { theme = JSON.parse(stripJson(raw)); } catch { theme = null; }
+    try { theme = extractJsonObj(raw); } catch { theme = null; }
     if (!theme) return "Could not generate a valid theme. Ask the user to rephrase the look & feel.";
     trace.push({ kind: "agent", name: "Design Agent", detail: String(input.brief || "theme").slice(0, 80) });
     onEvent?.({ type: "artifact", kind: "theme", theme, title: input.title });
@@ -416,7 +441,7 @@ export async function runOrchestrator(
     const results: Anthropic.ToolResultBlockParam[] = [];
     for (const tu of toolUses) {
       let out: string;
-      try { out = await execTool(tu.name, tu.input, trace, opts.onEvent); }
+      try { out = await execTool(tu.name, tu.input, trace, opts.onEvent, "anthropic"); }
       catch (e: any) { out = `tool error: ${e?.message || e}`; }
       results.push({ type: "tool_result", tool_use_id: tu.id, content: String(out).slice(0, 6000) });
     }
@@ -482,7 +507,7 @@ async function runCompatLoop(
     messages.push(assistant && assistant.tool_calls ? assistant : { role: "assistant", content: content || "", tool_calls: toolCalls.map((t) => ({ id: t.id, type: "function", function: { name: t.name, arguments: JSON.stringify(t.args) } })) });
     for (const tc of toolCalls) {
       let out: string;
-      try { out = await execTool(tc.name, tc.args, trace, opts.onEvent); }
+      try { out = await execTool(tc.name, tc.args, trace, opts.onEvent, opts.providerName); }
       catch (e: any) { out = `tool error: ${e?.message || e}`; }
       messages.push({ role: "tool", tool_call_id: tc.id, content: String(out).slice(0, 6000) });
     }

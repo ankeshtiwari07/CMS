@@ -50,7 +50,7 @@ function initials(name?: string, email?: string) {
 
 const NAV = [
   { key: "create", Icon: PlusIcon, label: "Create new", href: "/studio" },
-  { key: "cms", Icon: LayersIcon, label: "CMS", href: "/cms/studio" },
+  { key: "cms", Icon: LayersIcon, label: "CMS", href: "/studio" },
   { key: "search", Icon: SearchIcon, label: "Search", href: "/search" },
   { key: "projects", Icon: FolderIcon, label: "Projects", href: "/projects" },
   { key: "templates", Icon: GridIcon, label: "Templates", href: "/cms" },
@@ -132,7 +132,7 @@ export default function Sidebar({
       ["/cms/pages", "pages"], ["/cms/data", "data"], ["/cms/governance", "governance"], ["/cms/dam", "dam"],
       ["/cms/deck", "cms"], ["/cms/website", "cms"], ["/cms/studio", "cms"], ["/cms", "cms"],
       ["/design", "design"], ["/search", "search"], ["/projects", "projects"], ["/brand", "brand"],
-      ["/review", "review"], ["/settings", "settings"], ["/studio", "create"],
+      ["/review", "review"], ["/settings", "settings"], ["/studio", "cms"],
     ];
     for (const [pre, key] of map) if (p.startsWith(pre)) return key;
     return active;

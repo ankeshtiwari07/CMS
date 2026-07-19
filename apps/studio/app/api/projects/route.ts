@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { payloadFetch, getCurrentUser } from "@/lib/payload";
+import { scrub } from "@/lib/sanitize";
 
 const TYPES = ["deck", "image", "website", "email", "brand", "designSystem", "writing", "translation"];
 
@@ -37,5 +38,7 @@ export async function POST(req: Request) {
   if (!res.ok) {
     return NextResponse.json({ error: out?.errors?.[0]?.message || "Create failed" }, { status: res.status });
   }
-  return NextResponse.json({ ok: true, project: out?.doc ?? out });
+  // scrub the depth-expanded owner so no session ids / credentials leak (same
+  // class as AP-ISS-01; PROJ-SESSLEAK-01 — self-scoped but still stripped).
+  return NextResponse.json({ ok: true, project: scrub(out?.doc ?? out) });
 }

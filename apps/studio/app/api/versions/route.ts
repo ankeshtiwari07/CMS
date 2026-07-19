@@ -39,9 +39,13 @@ export async function POST(req: Request) {
   if (b.doc !== undefined) doc.doc = b.doc;
   try {
     const res = await payloadFetch(`/api/contentversions`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(doc) });
-    const j = await res.json();
-    return NextResponse.json({ ok: res.ok, id: j?.doc?.id }, { status: res.ok ? 200 : 502 });
+    const j = await res.json().catch(() => ({}));
+    if (res.ok) return NextResponse.json({ ok: true, id: j?.doc?.id });
+    // Propagate the real Payload status (e.g. 403 when a viewer lacks create
+    // access) instead of masking every failure as a 502 (VERSIONS-VIEWER-502-01).
+    const status = res.status >= 400 && res.status < 500 ? res.status : 502;
+    return NextResponse.json({ ok: false, error: j?.errors?.[0]?.message || "snapshot_failed" }, { status });
   } catch (e: any) {
-    return NextResponse.json({ error: e?.message || "snapshot_failed" }, { status: 502 });
+    return NextResponse.json({ ok: false, error: e?.message || "snapshot_failed" }, { status: 502 });
   }
 }

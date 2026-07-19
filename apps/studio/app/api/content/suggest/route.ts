@@ -25,11 +25,20 @@ export async function POST(req: Request) {
   // instruction actually reaches the drafting agent (MC-ISS-03) — the ai-service
   // keys off `brief`, and an unrecognised `instruction` was being dropped.
   const brief = body.brief || body.instruction || "";
+  // Normalise the request to the ai-service contract so a valid call never 500s
+  // on a shape mismatch (MC-BUG-01): fields may arrive as strings; coerce to
+  // {name,label} objects and ensure a typeLabel is always present.
+  const fields = body.fields.map((f: any) =>
+    typeof f === "string"
+      ? { name: f, label: f.charAt(0).toUpperCase() + f.slice(1) }
+      : { name: String(f?.name || ""), label: String(f?.label || f?.name || ""), type: f?.type },
+  );
+  const typeLabel = String(body.typeLabel || body.slug || "Content").slice(0, 120);
   try {
     const res = await fetch(`${AI_URL}/content/suggest`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ ...body, brief, brand }),
+      body: JSON.stringify({ ...body, typeLabel, fields, brief, brand }),
     });
     const d = await res.json();
     if (!res.ok || d.ok === false) {

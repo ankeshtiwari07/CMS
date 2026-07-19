@@ -21,11 +21,15 @@ export async function POST(req: Request) {
     if (b) brand = `${b.name}${b.summary ? ` — ${b.summary}` : ""}${b.industry ? ` (industry: ${b.industry})` : ""}`;
   } catch {}
 
+  // Accept `instruction` as an alias for `brief` so a caller's explicit topic
+  // instruction actually reaches the drafting agent (MC-ISS-03) — the ai-service
+  // keys off `brief`, and an unrecognised `instruction` was being dropped.
+  const brief = body.brief || body.instruction || "";
   try {
     const res = await fetch(`${AI_URL}/content/suggest`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ ...body, brand }),
+      body: JSON.stringify({ ...body, brief, brand }),
     });
     const d = await res.json();
     if (!res.ok || d.ok === false) {

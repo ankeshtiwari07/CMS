@@ -3,6 +3,7 @@
 // the mandatory-comment-on-rejection rule.
 import { NextResponse } from "next/server";
 import { getCurrentUser, payloadFetch } from "@/lib/payload";
+import { scrub } from "@/lib/sanitize";
 
 export async function POST(req: Request) {
   const user = await getCurrentUser();
@@ -22,7 +23,7 @@ export async function POST(req: Request) {
   if (!res.ok) {
     return NextResponse.json({ error: data?.errors?.[0]?.message || data?.message || "Decision failed" }, { status: res.status });
   }
-  return NextResponse.json({ ok: true, doc: data.doc ?? data });
+  return NextResponse.json({ ok: true, doc: scrub(data.doc ?? data) });
 }
 
 export async function GET(req: Request) {
@@ -35,5 +36,5 @@ export async function GET(req: Request) {
   if (!collection || !id) return NextResponse.json({ history: [] });
   const r = await payloadFetch(`/api/approvals?where[collectionSlug][equals]=${collection}&where[documentId][equals]=${id}&sort=-createdAt&limit=100&depth=1`);
   const j = await r.json();
-  return NextResponse.json({ history: j.docs ?? [] });
+  return NextResponse.json({ history: scrub(j.docs ?? []) });
 }

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { payloadFetch, getCurrentUser } from "@/lib/payload";
 import { ALL_TABS } from "@/lib/content-types";
+import { scrub } from "@/lib/sanitize";
 
 // Minimal valid Lexical editor state from plain text (paragraph per blank line).
 function toLexical(text: string, dir: "ltr" | "rtl" = "ltr") {
@@ -47,5 +48,5 @@ export async function POST(req: Request) {
     const msg = out?.errors?.[0]?.message || out?.message || "Save failed";
     return NextResponse.json({ error: msg, details: out?.errors }, { status: res.status });
   }
-  return NextResponse.json({ ok: true, doc: out.doc ?? out });
+  return NextResponse.json({ ok: true, doc: scrub(out.doc ?? out) });
 }

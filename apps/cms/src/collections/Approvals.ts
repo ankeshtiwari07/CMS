@@ -34,8 +34,13 @@ const enforceApprovalRules: CollectionBeforeChangeHook = async ({ data, req, ope
       depth: 0,
       overrideAccess: true,
     });
+    // Separation of duties applies to EVERYONE, admins included: the creator of a
+    // document can never approve their own content, no matter their role. (Admins
+    // remain universal approvers for content created by OTHERS.) Previously an
+    // `&& !roles.includes("admin")` exemption let an admin self-approve their own
+    // content, contradicting the advertised SoD contract (AP-ISS-02).
     const creator = doc?.createdBy && typeof doc.createdBy === "object" ? doc.createdBy.id : doc?.createdBy;
-    if (creator != null && String(creator) === String(user.id) && !roles.includes("admin")) {
+    if (creator != null && String(creator) === String(user.id)) {
       throw new APIError("Separation of duties: you cannot approve content you created. Another reviewer must decide.", 403);
     }
     data.riskTier = data.riskTier ?? doc?.riskTier ?? "low";

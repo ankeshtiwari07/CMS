@@ -21,6 +21,38 @@ function typeFor(title: string): string {
 
 // Parse markdown into { sections, palette } — split on # / ## / ### headings and
 // bold "**Heading**" lines; pull hex codes out of the color section into a palette.
+// Detect a section heading. Accepts real markdown headings (`## Title`) AND a
+// WHOLE-LINE bold/underline heading (`**Color palette**`, `__Voice & tone__`,
+// optional trailing colon) — models frequently structure guidelines with bold
+// headings instead of `#`. Inline bold inside a paragraph is NOT treated as a
+// heading (the whole line must be the bold run), and long/sentence-like bold
+// lines are rejected so body emphasis doesn't create spurious sections.
+function headingOf(line: string): string | null {
+  const md = line.match(/^#{1,4}\s+(.*)$/);
+  if (md) return md[1];
+  const bold = line.match(/^\s*(?:\*\*|__)\s*(.{1,60}?)\s*(?:\*\*|__)\s*:?\s*$/);
+  if (bold && !/[.!?]$/.test(bold[1].trim())) return bold[1];
+  return null;
+}
+
+// Extract "Label #RRGGBB" (or #RGB) pairs from a block of text into a palette.
+function extractHex(content: string, into: { name: string; hex: string }[]) {
+  const re = /#([0-9a-fA-F]{6}|[0-9a-fA-F]{3})\b/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(content))) {
+    const idx = content.lastIndexOf("\n", m.index);
+    const label =
+      content
+        .slice(idx + 1, m.index)
+        .replace(/[-*:•\s]+$/, "")
+        .replace(/^[-*•\s]+/, "")
+        .slice(0, 40) || "Color";
+    let hex = m[1].toUpperCase();
+    if (hex.length === 3) hex = hex.split("").map((c) => c + c).join(""); // #abc -> #AABBCC
+    into.push({ name: label, hex: `#${hex}` });
+  }
+}
+
 function parse(md: string) {
   const lines = md.split("\n");
   const sections: { id: string; type: string; title: string; content: string }[] = [];
@@ -35,29 +67,23 @@ function parse(md: string) {
   };
   for (const raw of lines) {
     const line = raw.replace(/\r$/, "");
-    // Only real markdown headings (## ...) start a new section — NOT inline **bold**,
-    // which models use liberally inside content.
-    const h = line.match(/^#{1,4}\s+(.*)$/);
-    if (h) { flush(); cur = { title: h[1].replace(/\*\*/g, "").replace(/[:#]+$/, "").trim(), buf: [] }; }
+    const title = headingOf(line);
+    if (title !== null) { flush(); cur = { title: title.replace(/\*\*/g, "").replace(/[:#]+$/, "").trim(), buf: [] }; }
     else { if (!cur) cur = { title: "Overview", buf: [] }; cur.buf.push(line); }
   }
   flush();
   // Drop the leading title-only section (doc title with no body) and any empties.
   while (sections.length && !sections[0].content.trim()) sections.shift();
-  // Pull hex colors out of any palette section.
+  // Pull hex colors out of the palette section(s); if none surfaced (e.g. the
+  // model kept colours in prose), fall back to scanning ALL sections so the
+  // palette is never silently empty when hex codes exist (BR-ISS-01).
   const palette: { name: string; hex: string }[] = [];
-  for (const s of sections) {
-    if (s.type === "palette") {
-      const re = /([#][0-9a-fA-F]{6})/g;
-      let m;
-      while ((m = re.exec(s.content))) {
-        const idx = s.content.lastIndexOf("\n", m.index);
-        const label = s.content.slice(idx + 1, m.index).replace(/[-*:•\s]+$/, "").replace(/^[-*•\s]+/, "").slice(0, 40) || "Color";
-        palette.push({ name: label, hex: m[1].toUpperCase() });
-      }
-    }
-  }
-  return { sections, palette };
+  for (const s of sections) if (s.type === "palette") extractHex(s.content, palette);
+  if (!palette.length) for (const s of sections) extractHex(s.content, palette);
+  // Dedupe by hex (keep first label) and cap.
+  const seen = new Set<string>();
+  const deduped = palette.filter((p) => (seen.has(p.hex) ? false : (seen.add(p.hex), true))).slice(0, 12);
+  return { sections, palette: deduped };
 }
 
 export async function POST(req: Request) {

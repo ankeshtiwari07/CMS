@@ -1,7 +1,7 @@
 import Fastify from "fastify";
 import rateLimit from "@fastify/rate-limit";
 import { z } from "zod";
-import { getProvider, resolveModel, listModels, providerByName, completeWithFallback, completeStreamWithFallback, MODELS } from "./providers/index.js";
+import { getProvider, resolveModel, listModels, providerByName, completeWithFallback, completeStreamWithFallback, MODELS, catalogHealth, probeProviders } from "./providers/index.js";
 import { parseStructured } from "./providers/types.js";
 import { prompts, type PromptId } from "./prompts/library.js";
 import { startRender, pollRender, videoConfigured } from "./providers/video.js";
@@ -37,8 +37,20 @@ await app.register(rateLimit, {
 
 app.get("/health", async () => ({ ok: true, provider: provider.name, configured: provider.configured ?? false }));
 
-// Catalog of selectable models + whether each is configured (has its API key).
-app.get("/models", async () => ({ models: listModels(), videoConfigured, imageConfigured }));
+// Catalog of selectable models + whether each is configured (key present) AND
+// actually healthy (reachable). `?probe=1` forces a fresh active probe; otherwise
+// a cached probe (<=60s) plus passive usage health is used. Also reports the
+// provider that will really answer (`effectiveProvider`) and whether the default
+// model is degraded (its provider down → requests silently fall back).
+app.get("/models", async (req) => {
+  const force = (req.query as any)?.probe === "1" || (req.query as any)?.probe === "true";
+  try {
+    await probeProviders(force);
+  } catch {
+    /* probe best-effort — passive health still applies */
+  }
+  return { ...catalogHealth(), videoConfigured, imageConfigured };
+});
 
 // HITL proactive SLA reminders — current breach list (refreshed by the scheduler).
 app.get("/sla/reminders", async () => getBreaches());
@@ -137,12 +149,16 @@ app.post("/content/suggest", async (req, reply) => {
   const system =
     `You are HUMAIN Create Studio's content drafting agent. Propose a publish-ready FIRST DRAFT for a ` +
     `"${body.typeLabel}"${body.template ? ` using the "${body.template}" template` : ""}. ` +
+    (body.brief
+      ? `The draft MUST be ABOUT this specific topic/instruction: "${body.brief}". This defines the SUBJECT — do not substitute generic brand boilerplate for it. `
+      : "") +
     `Return ONLY a JSON object mapping each field's name to a suggested value. ` +
     `Short fields (title/headline/name/slug) = concise; textarea/richtext = 2–4 real, specific sentences of on-brand content; ` +
     `tags/keywords = comma-separated. ` +
     langInstruction +
     "No commentary, no code fences — JSON object only." +
-    (body.brand ? ` Brand context to stay on-brand with:\n${body.brand}` : "");
+    // Brand governs VOICE/TONE only — it must never override the requested topic.
+    (body.brand ? ` Use this brand context for voice/tone ONLY (not to change the subject):\n${body.brand}` : "");
   const user = `${body.brief ? `Brief: ${body.brief}\n\n` : ""}Fields to draft:\n${spec}\n\nReturn a JSON object keyed by field name.`;
   try {
     const fb = await completeWithFallback(

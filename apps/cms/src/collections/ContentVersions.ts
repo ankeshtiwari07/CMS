@@ -1,5 +1,5 @@
-import type { CollectionConfig } from "payload";
-import { hasRole } from "../access/roles";
+import type { CollectionConfig, Where } from "payload";
+import { hasRole, isEditor } from "../access/roles";
 
 // LEAP D4 — immutable content version snapshots for Studio artifacts (pages,
 // websites, docs). Every meaningful change captures a snapshot here; the Studio
@@ -14,8 +14,19 @@ export const ContentVersions: CollectionConfig = {
     description: "Immutable content snapshots (version history) captured from the Studio.",
   },
   access: {
-    read: ({ req: { user } }) => Boolean(user),
-    create: ({ req: { user } }) => Boolean(user),
+    // Owner-scoped read: a snapshot is a private draft artifact. Admins see all;
+    // everyone else may only read their OWN snapshots (matched by createdByEmail,
+    // the owner stamped in beforeChange). Closes the cross-user IDOR (ST-ISS-01)
+    // where any authenticated user — including a read-only viewer — could read or
+    // list any other user's saved artifact HTML by id or artifactKey.
+    read: ({ req: { user } }) => {
+      if (!user) return false;
+      if (hasRole(user, ["admin"])) return true;
+      return { createdByEmail: { equals: user.email } } as Where;
+    },
+    // Only editors may capture snapshots — a read-only viewer must not be able to
+    // persist arbitrary content (ST-ISS-02). Mirrors the Conversations create gate.
+    create: isEditor,
     update: () => false, // immutable — a snapshot is a point-in-time record
     delete: ({ req: { user } }) => hasRole(user, ["admin"]),
   },

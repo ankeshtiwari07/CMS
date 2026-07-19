@@ -9,6 +9,7 @@
 // consumes it. Delegated components are returned so the caller can persist them
 // to the library and route them (with the page) through the approval flow (D3).
 import { completeWithFallback } from "./providers/index.js";
+import { getBrandPalette } from "./governance.js";
 
 export type Brand = {
   bg: string; ink: string; muted: string; accent: string; accent2: string; line: string;
@@ -34,6 +35,42 @@ const DEFAULT_BRAND: Brand = {
   bg: "#ffffff", ink: "#0b1416", muted: "#5a6a6c", accent: "#00b3a4", accent2: "#c2e54b",
   line: "#e6ebeb", soft: "#f5f8f7", font: "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif", radius: 20,
 };
+
+// Build an on-brand Brand token set from the tenant's authoritative palette (the
+// same one the Governance brand-check scores against). Generated sites must use
+// the real brand colours instead of a palette the model invents — otherwise every
+// default generation auto-fails the brand check (WS-ISS-02). Neutrals map to
+// bg/ink; the remaining saturated colours become the accents. Falls back to the
+// (already on-brand) DEFAULT_BRAND when no palette is configured.
+function relLum(hex: string): number {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
+  if (!m) return -1;
+  const n = parseInt(m[1], 16);
+  const r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+function isNeutralHex(hex: string): boolean {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
+  if (!m) return true;
+  const n = parseInt(m[1], 16);
+  const r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+  return Math.max(r, g, b) - Math.min(r, g, b) < 24; // low chroma = grey/white/black
+}
+function brandFromPalette(palette: string[]): Brand {
+  const norm = palette.map((p) => (p.startsWith("#") ? p : `#${p}`)).filter((p) => /^#[0-9a-f]{6}$/i.test(p));
+  if (!norm.length) return { ...DEFAULT_BRAND };
+  const neutrals = norm.filter(isNeutralHex);
+  const accents = norm.filter((h) => !isNeutralHex(h));
+  const lightest = neutrals.slice().sort((a, b) => relLum(b) - relLum(a))[0];
+  const darkest = neutrals.slice().sort((a, b) => relLum(a) - relLum(b))[0];
+  return {
+    ...DEFAULT_BRAND,
+    bg: lightest && relLum(lightest) > 200 ? lightest : DEFAULT_BRAND.bg,
+    ink: darkest && relLum(darkest) < 80 ? darkest : DEFAULT_BRAND.ink,
+    accent: accents[0] || DEFAULT_BRAND.accent,
+    accent2: accents[1] || accents[0] || DEFAULT_BRAND.accent2,
+  };
+}
 
 // Maps a planned website section to the component-library `type` that fulfils it.
 // The library is keyed by component TYPE (hero, card, feature, cta, …); this is
@@ -91,27 +128,26 @@ function balanceTags(html: string): string {
 let _n = 0; const sid = () => `w${Date.now().toString(36)}${(_n = (_n + 1) % 1e6).toString(36)}`;
 
 export async function planWebsite(prompt: string, primary?: string): Promise<WebsitePlan & { _provider: string }> {
+  // The brand palette is AUTHORITATIVE (the tenant's real colours that the
+  // Governance brand-check scores against) — the model plans layout/copy, NOT
+  // colours. This keeps every generated site on-brand instead of auto-failing the
+  // brand check with an invented palette (WS-ISS-02).
+  const { palette } = await getBrandPalette().catch(() => ({ palette: [] as string[] }));
+  const brand = brandFromPalette(palette);
   const sys =
     "You are HUMAIN Create Studio's web art director. Plan a premium, Apple.com-style marketing website. " +
-    "Choose a coherent brand system and an ordered list of sections. Use these section kinds only: " +
+    "Plan an ordered list of sections (the brand colour system is FIXED and supplied to you — do NOT invent colours). Use these section kinds only: " +
     "nav, hero, cardGrid, domains, buildYourOwn, platform, useCase, logos, features, testimonial, faq, cta, leadForm, footer. " +
     "Always start with nav and hero and end with footer. Pick 7-11 sections total. For a landing / marketing page, INCLUDE a leadForm (contact) section near the end so the page can actually convert. " +
+    `Fixed brand palette (use ONLY these): background ${brand.bg}, text ${brand.ink}, primary accent ${brand.accent}, secondary accent ${brand.accent2}. ` +
     'Detect the requested language(s) from the brief: return "lang" (BCP-47, e.g. en or ar), "dir" (ltr|rtl), and "bilingual":true if the user asks for two languages. ' +
     "Respond with ONLY minified JSON, no markdown, no fences.";
   const user =
     `Plan the website for:\n"""${prompt}"""\n\n` +
     `Return JSON: {"title": string, "description": string, "lang": "en"|"ar"|…, "dir": "ltr"|"rtl", "bilingual": boolean, ` +
-    `"brand": {"bg": hex, "ink": hex, "muted": hex, "accent": hex, "accent2": hex, "line": hex, "soft": hex}, ` +
     `"sections": [{"kind": one-of-the-kinds, "brief": "one line: exactly what this section shows for THIS site"}]}`;
   const fb = await completeWithFallback({ system: sys, messages: [{ role: "user", content: user }], maxTokens: 1500 }, { primary });
   const data = extractJson(fb.text);
-  const b = data.brand || {};
-  const brand: Brand = {
-    bg: b.bg || DEFAULT_BRAND.bg, ink: b.ink || DEFAULT_BRAND.ink, muted: b.muted || DEFAULT_BRAND.muted,
-    accent: b.accent || DEFAULT_BRAND.accent, accent2: b.accent2 || DEFAULT_BRAND.accent2,
-    line: b.line || DEFAULT_BRAND.line, soft: b.soft || DEFAULT_BRAND.soft,
-    font: DEFAULT_BRAND.font, radius: DEFAULT_BRAND.radius,
-  };
   const kinds = ["nav", "hero", "cardGrid", "domains", "buildYourOwn", "platform", "useCase", "logos", "features", "testimonial", "faq", "cta", "leadForm", "footer"];
   const sections: PlannedSection[] = (Array.isArray(data.sections) ? data.sections : [])
     .filter((s: any) => kinds.includes(s?.kind))

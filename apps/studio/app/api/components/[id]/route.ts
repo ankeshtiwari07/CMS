@@ -1,6 +1,18 @@
-// Update / delete a single library component (admin-only), proxying to Payload.
+// Read / update / delete a single library component, proxying to Payload.
 import { NextResponse } from "next/server";
 import { payloadFetch, getCurrentUser, hasRole } from "@/lib/payload";
+
+// GET /api/components/[id] — single-component detail for any authenticated user
+// (Payload read access still applies via the caller's JWT). Previously missing,
+// so single-item reads 405'd and callers had to scan the list endpoint (CMP-ISS-01).
+export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  if (!(await getCurrentUser())) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const { id } = await params;
+  const res = await payloadFetch(`/api/components/${id}?depth=0`);
+  if (!res.ok) return NextResponse.json({ error: "not_found" }, { status: 404 });
+  const data = await res.json().catch(() => ({}));
+  return NextResponse.json(data);
+}
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const user = await getCurrentUser();

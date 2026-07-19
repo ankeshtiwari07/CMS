@@ -13,7 +13,7 @@ export const COLLECTIONS: Record<string, { title: string; group: string }> = {
   products: { title: "name", group: "Content" }, caseStudies: { title: "title", group: "Content" },
   faqs: { title: "question", group: "Content" }, careers: { title: "title", group: "Content" },
   leadership: { title: "name", group: "Content" }, mediaGalleries: { title: "title", group: "Content" },
-  campaignMicrosites: { title: "title", group: "Content" }, pages: { title: "title", group: "Content" }, tags: { title: "title", group: "Content" },
+  campaignMicrosites: { title: "title", group: "Content" }, pages: { title: "title", group: "Content" }, tags: { title: "name", group: "Content" },
   components: { title: "name", group: "Building blocks" }, media: { title: "filename", group: "Building blocks" },
   aiwebsites: { title: "title", group: "Create" }, decks: { title: "title", group: "Create" }, projects: { title: "title", group: "Create" }, conversations: { title: "title", group: "Create" },
   brandGuidelines: { title: "name", group: "Studio" }, sites: { title: "name", group: "Studio" },

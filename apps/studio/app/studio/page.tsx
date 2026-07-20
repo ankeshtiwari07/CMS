@@ -48,7 +48,7 @@ export default async function StudioHome() {
             padding: "72px 40px 56px",
           }}
         >
-          <StudioWorkspace greeting={`${greeting(user.name, locale)} ${tr(locale, "home.q")}`} projects={projects} />
+          <StudioWorkspace greeting={`${greeting(user.name, locale)} ${tr(locale, "home.q")}`} projects={projects} user={{ name: user.name, email: user.email, roles: user.roles }} />
         </div>
       </main>
     </div>

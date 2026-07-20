@@ -117,7 +117,13 @@ function trimTurns(turns: Turn[]): Turn[] {
   }));
 }
 
-export default function PromptBox({ onActive }: { onActive?: (active: boolean) => void } = {}) {
+export default function PromptBox({ onActive, onArtifact, seedPrompt }: {
+  onActive?: (active: boolean) => void;
+  // When provided, website (html) artifacts are LIFTED into a right-side canvas
+  // panel (edit/publish/versions) instead of rendering inline in the chat.
+  onArtifact?: (a: { kind: "html"; html: string; title?: string } | null) => void;
+  seedPrompt?: string; // prefill the composer (e.g. "Ask AI to change this" from the canvas)
+} = {}) {
   const t = useT();
   const [prompt, setPrompt] = useState("");
   const [mode, setMode] = useState<Mode>("auto");
@@ -137,6 +143,8 @@ export default function PromptBox({ onActive }: { onActive?: (active: boolean) =
   // chat view and the composer drops below the thread (Claude-style).
   const active = turns.length > 0;
   useEffect(() => { onActive?.(active); }, [active, onActive]);
+  // Prefill the composer when the canvas asks to edit a selection.
+  useEffect(() => { if (seedPrompt) { setPrompt(seedPrompt); setTimeout(() => rootRef.current?.querySelector("textarea")?.focus(), 30); } }, [seedPrompt]);
 
   const recRef = useRef<any>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -393,7 +401,7 @@ export default function PromptBox({ onActive }: { onActive?: (active: boolean) =
             try { ev = JSON.parse(line); } catch { continue; }
             if (ev.type === "delta") patchLastAssistant((t) => ({ ...t, text: (t.text || "") + ev.text }));
             else if (ev.type === "reset") patchLastAssistant((t) => ({ ...t, text: "" }));
-            else if (ev.type === "artifact" && ev.kind === "html") patchLastAssistant((t) => ({ ...t, artifactHtml: ev.html }));
+            else if (ev.type === "artifact" && ev.kind === "html") { patchLastAssistant((t) => ({ ...t, artifactHtml: ev.html })); onArtifact?.({ kind: "html", html: ev.html, title: ev.title }); }
             else if (ev.type === "artifact" && ev.kind === "doc") patchLastAssistant((t) => ({ ...t, doc: ev.doc }));
             else if (ev.type === "artifact" && ev.kind === "video") patchLastAssistant((t) => ({ ...t, video: true, videoPrompt: ev.videoPrompt, videoScript: ev.script }));
             else if (ev.type === "artifact" && ev.kind === "image") patchLastAssistant((t) => ({ ...t, imagePrompt: ev.imagePrompt, ratio: ev.ratio }));
@@ -764,7 +772,7 @@ export default function PromptBox({ onActive }: { onActive?: (active: boolean) =
                 <button onClick={() => editTurn(i)} disabled={busy} title="Edit this prompt" style={{ border: "none", background: "transparent", color: "var(--muted)", fontSize: 12, cursor: "pointer", padding: "0 4px" }}>✎ Edit</button>
               </div>
             ) : (
-              <AssistantTurn key={i} t={t} onRegen={i === turns.length - 1 ? regenerate : undefined} />
+              <AssistantTurn key={i} t={t} paneled={!!onArtifact} onRegen={i === turns.length - 1 ? regenerate : undefined} />
             ),
           )}
           {busy && turns[turns.length - 1]?.role !== "assistant" && (
@@ -785,7 +793,7 @@ export default function PromptBox({ onActive }: { onActive?: (active: boolean) =
 // One assistant message — rendered as a natural, flowing chat reply (no framed
 // card), Claude-style. Only true artifacts (website/image/video/brand/theme) get
 // their own inline frame; a subtle action row sits underneath.
-function AssistantTurn({ t, onRegen }: { t: Turn; onRegen?: () => void }) {
+function AssistantTurn({ t, onRegen, paneled }: { t: Turn; onRegen?: () => void; paneled?: boolean }) {
   const tr = useT();
   const hasArtifact = t.preview || t.html || t.artifactHtml || t.doc || t.video || t.imagePrompt || t.brandArt || t.themeArt;
   return (
@@ -823,7 +831,11 @@ function AssistantTurn({ t, onRegen }: { t: Turn; onRegen?: () => void }) {
         </div>
       )}
 
-      {t.artifactHtml && <SiteViewer html={t.artifactHtml} />}
+      {t.artifactHtml && (paneled ? (
+        <div style={{ display: "inline-flex", alignItems: "center", gap: 8, marginTop: 6, padding: "8px 13px", borderRadius: 999, background: "var(--studio-primary-10, rgba(0,150,136,.1))", color: "var(--studio-primary, #009688)", fontSize: 12.5, fontWeight: 700 }}>
+          <GlobeIcon size={14} /> Website opened in the canvas — edit &amp; publish on the right →
+        </div>
+      ) : <SiteViewer html={t.artifactHtml} />)}
       {t.doc && <DocCard doc={t.doc} />}
       {t.videoScript && <VideoCard script={t.videoScript} prompt={t.videoPrompt || ""} />}
       {t.video && !t.videoScript && <VideoRender prompt={t.videoPrompt || t.text} />}

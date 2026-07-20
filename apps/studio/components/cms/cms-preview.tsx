@@ -88,7 +88,7 @@ const EDIT_SCRIPT = `<style id="__cmsedit">*{cursor:default}[data-cmsh]{outline:
 <script id="__cmsjs">(function(){var sel=null;function post(t,x){parent.postMessage(Object.assign({__cms:t},x),'*')}
 document.addEventListener('mouseover',function(e){if(e.target.setAttribute)e.target.setAttribute('data-cmsh','')},true);
 document.addEventListener('mouseout',function(e){if(e.target.removeAttribute)e.target.removeAttribute('data-cmsh')},true);
-document.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();if(sel){sel.removeAttribute('data-cmss');sel.removeAttribute('contenteditable')}sel=e.target;sel.setAttribute('data-cmss','');sel.setAttribute('contenteditable','true');sel.focus();post('select',{tag:(sel.tagName||'').toLowerCase(),text:(sel.innerText||'').slice(0,500)})},true);
+document.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();if(sel){sel.removeAttribute('data-cmss');sel.removeAttribute('contenteditable')}sel=e.target;sel.setAttribute('data-cmss','');sel.setAttribute('contenteditable','true');sel.focus();post('select',{tag:(sel.tagName||'').toLowerCase(),text:(sel.innerText||'').slice(0,500),src:(sel.tagName=='IMG'&&sel.getAttribute?(sel.getAttribute('src')||''):'')})},true);
 document.addEventListener('input',function(){post('edit',{html:'<!doctype html>'+document.documentElement.outerHTML})},true);
 window.addEventListener('message',function(e){var d=e.data||{};if(d.__cmscmd){try{document.execCommand(d.__cmscmd,false,d.val||null)}catch(x){}post('edit',{html:'<!doctype html>'+document.documentElement.outerHTML})}else if(d.__cmsscroll!=null){var b=document.body.children[d.__cmsscroll];if(b&&b.scrollIntoView)b.scrollIntoView({behavior:'smooth',block:'start'})}},false);})();</script>`;
 function stripEdit(html: string): string {
@@ -216,12 +216,12 @@ function DeviceFrame({ device, children }: { device: "desktop" | "mobile"; child
 }
 
 function HtmlPreview({ html, device, editMode, onEditHtml, onSelect }: {
-  html: string; device: "desktop" | "mobile"; editMode: boolean; onEditHtml: (html: string) => void; onSelect: (s: { tag: string; text: string }) => void;
+  html: string; device: "desktop" | "mobile"; editMode: boolean; onEditHtml: (html: string) => void; onSelect: (s: { tag: string; text: string; src?: string }) => void;
 }) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   useEffect(() => {
     if (!editMode) return;
-    const onMsg = (e: MessageEvent) => { const d = e.data || {}; if (d.__cms === "edit" && typeof d.html === "string") onEditHtml(stripEdit(d.html)); else if (d.__cms === "select") onSelect({ tag: d.tag, text: d.text }); };
+    const onMsg = (e: MessageEvent) => { const d = e.data || {}; if (d.__cms === "edit" && typeof d.html === "string") onEditHtml(stripEdit(d.html)); else if (d.__cms === "select") onSelect({ tag: d.tag, text: d.text, src: d.src }); };
     window.addEventListener("message", onMsg); return () => window.removeEventListener("message", onMsg);
   }, [editMode, onEditHtml, onSelect]);
   const page = useMemo(() => parsePage(html), [html]);
@@ -264,7 +264,7 @@ function ImageArt({ a }: { a: Extract<Artifact, { kind: "image" }> }) {
 }
 
 function PreviewBody({ artifact, device, editMode, onEditHtml, onSelect }: {
-  artifact: Artifact | null; device: "desktop" | "mobile"; editMode: boolean; onEditHtml: (html: string) => void; onSelect: (s: { tag: string; text: string }) => void;
+  artifact: Artifact | null; device: "desktop" | "mobile"; editMode: boolean; onEditHtml: (html: string) => void; onSelect: (s: { tag: string; text: string; src?: string }) => void;
 }) {
   if (!artifact) return <EmptyState />;
   if (artifact.kind === "html") return <HtmlPreview html={artifact.html} device={device} editMode={editMode} onEditHtml={onEditHtml} onSelect={onSelect} />;
@@ -526,10 +526,40 @@ export default function CmsPreview({
   onClose: () => void; onEditHtml: (html: string) => void; onAskAboutSelection: (text: string) => void;
 }) {
   const [editMode, setEditMode] = useState(false);
-  const [sel, setSel] = useState<{ tag: string; text: string } | null>(null);
+  const [sel, setSel] = useState<{ tag: string; text: string; src?: string } | null>(null);
   const [srcOpen, setSrcOpen] = useState(false);
+  const [imgBusy, setImgBusy] = useState(false);
   const isHtml = artifact?.kind === "html";
   const canDownload = !!htmlOf(artifact);
+
+  // Per-image AI generation (gamma-style): select an <img> in the canvas, then
+  // "Regenerate image" — renders a new image via the image pipeline and swaps it
+  // into the page HTML in place. No page rebuild; the edit persists via onEditHtml.
+  async function regenImage() {
+    if (!sel || sel.tag !== "img" || !sel.src || artifact?.kind !== "html" || imgBusy) return;
+    const desc = window.prompt("Describe the image to generate for this spot:", sel.text || "");
+    if (!desc || !desc.trim()) return;
+    setImgBusy(true);
+    try {
+      const r = await fetch("/api/image/render", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ prompt: desc.trim() }) });
+      const j = await r.json();
+      if (!j.id) { window.alert(j.message || "Image service is not configured."); setImgBusy(false); return; }
+      let url = "";
+      for (let i = 0; i < 40; i++) {
+        await new Promise((res) => setTimeout(res, 2500));
+        const st = await (await fetch(`/api/image/status/${j.id}`)).json();
+        if (st.status === "succeeded") { url = st.url; break; }
+        if (st.status === "failed") { window.alert(st.message || "Image render failed."); break; }
+      }
+      if (url && artifact?.kind === "html") {
+        const cur = artifact.html;
+        const attr = `src="${sel.src}"`;
+        onEditHtml(cur.includes(attr) ? cur.replace(attr, `src="${url}"`) : cur.split(sel.src).join(url));
+        setSel((s) => (s ? { ...s, src: url } : s));
+      }
+    } catch (e: any) { window.alert(e?.message || "Image render error."); }
+    setImgBusy(false);
+  }
 
   // D4 — auto-capture a version snapshot 2.5s after edits settle (debounced),
   // de-duplicated so identical content isn't re-saved.
@@ -600,7 +630,10 @@ export default function CmsPreview({
             {editMode && sel && tab === "preview" && (
               <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 14px", background: pill, borderBottom: `1px solid ${border}`, fontSize: 13 }}>
                 <span style={{ fontWeight: 700, color: primary }}>&lt;{sel.tag}&gt;</span>
-                <span style={{ color: muted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", flex: 1 }}>{sel.text.slice(0, 70) || "(selected — type to edit inline)"}</span>
+                <span style={{ color: muted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", flex: 1 }}>{sel.tag === "img" ? "(image selected — regenerate it with AI)" : sel.text.slice(0, 70) || "(selected — type to edit inline)"}</span>
+                {sel.tag === "img" && (
+                  <button onClick={regenImage} disabled={imgBusy} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 11px", borderRadius: R.lg, border: "none", background: imgBusy ? soft : primary, color: "#fff", fontWeight: 700, fontSize: 12.5, cursor: imgBusy ? "default" : "pointer" }}><ImageIcon size={13} color="#fff" /> {imgBusy ? "Generating…" : "Regenerate image"}</button>
+                )}
                 <button onClick={() => onAskAboutSelection(sel.text)} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 11px", borderRadius: R.lg, border: "none", background: primary, color: "#fff", fontWeight: 700, fontSize: 12.5, cursor: "pointer" }}><SparkIcon size={13} color="#fff" /> Ask AI to change this</button>
               </div>
             )}

@@ -36,6 +36,9 @@ export const AiWebsites: CollectionConfig = {
     afterDelete: [onDelete],
   },
   fields: [
+    // Agent-driven creation (option b): describe the site, the agent builds it and
+    // fills every field below. See src/components/AiSiteAssist.tsx.
+    { name: "siteAssist", type: "ui", admin: { components: { Field: "/components/AiSiteAssist#default" } } },
     { name: "title", type: "text", required: true },
     { name: "slug", type: "text", required: true, index: true, admin: { description: "Public path: /site/<slug>" } },
     { name: "prompt", type: "textarea" },

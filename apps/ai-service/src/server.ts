@@ -320,6 +320,8 @@ app.post("/studio/chat", async (req, reply) => {
         .array(z.object({ role: z.enum(["user", "assistant"]), content: z.string().max(8000) }))
         .max(16)
         .optional(),
+      // The website currently open in the canvas — enables edit_site (edit in place).
+      currentSite: z.any().optional(),
     })
     .parse(req.body);
 
@@ -365,6 +367,7 @@ app.post("/studio/chat", async (req, reply) => {
       messages: [...history, { role: "user", content: body.prompt }],
       model,
       providerName: entry.provider,
+      currentSite: body.currentSite ?? null,
       maxTokens: LONG_MODES.includes(body.mode) ? 4096 : 2048,
       onText: (d) => { collected += d; streamed = true; send({ type: "delta", text: d }); },
       onEvent: (e) => { if (e.type === "reset") collected = ""; if (e.type === "artifact") streamed = true; send(e); },
@@ -403,6 +406,7 @@ app.post("/studio/chat", async (req, reply) => {
             messages: [...history, { role: "user", content: body.prompt }],
             model: fbModel || "",
             providerName: fbProv,
+            currentSite: body.currentSite ?? null,
             maxTokens: LONG_MODES.includes(body.mode) ? 4096 : 2048,
             onText: (d) => { collected += d; send({ type: "delta", text: d }); },
             onEvent: (e) => { if (e.type === "reset") collected = ""; send(e); },

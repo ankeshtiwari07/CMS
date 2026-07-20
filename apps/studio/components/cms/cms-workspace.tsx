@@ -60,6 +60,7 @@ export default function CmsWorkspace({
   const [setup, setSetup] = useState<{ base: string; answers: Record<string, string> } | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const endRef = useRef<HTMLDivElement | null>(null);
+  const siteRef = useRef<{ title?: string; brand?: any; sections?: any[] } | null>(null); // current built site → edit_site edits in place
   const started = turns.length > 0 || !!setup;
 
   useEffect(() => { setTheme((localStorage.getItem("humain-cms-theme") as Theme) || "light"); }, []);
@@ -83,7 +84,7 @@ export default function CmsWorkspace({
     setTurns((p) => [...p, { role: "user", text, time: clock() }, { role: "assistant", text: "", streaming: true, time: clock() }]);
     const ctrl = new AbortController(); abortRef.current = ctrl;
     try {
-      const res = await fetch("/api/chat", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ mode: "auto", prompt: text, model: modelId || undefined, history }), signal: ctrl.signal });
+      const res = await fetch("/api/chat", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ mode: "auto", prompt: text, model: modelId || undefined, history, currentSite: siteRef.current }), signal: ctrl.signal });
       if (!res.ok || !res.body) { const d = await res.json().catch(() => ({})); patchLast((t) => ({ ...t, text: d.error || "The CMS agent is unavailable.", streaming: false })); setBusy(false); return; }
       const reader = res.body.getReader(); const dec = new TextDecoder(); let buf = "";
       for (;;) {
@@ -98,7 +99,7 @@ export default function CmsWorkspace({
           if (ev.type === "delta") patchLast((t) => ({ ...t, text: (t.text || "") + ev.text }));
           else if (ev.type === "reset") patchLast((t) => ({ ...t, text: "" }));
           else if (ev.type === "artifact") {
-            if (ev.kind === "html") { setArtifact({ kind: "html", html: ev.html, title: ev.title }); patchLast((t) => ({ ...t, made: "page" })); }
+            if (ev.kind === "html") { setArtifact({ kind: "html", html: ev.html, title: ev.title }); patchLast((t) => ({ ...t, made: "page" })); if (ev.sections) siteRef.current = { title: ev.title, brand: ev.brand, sections: ev.sections }; }
             else if (ev.kind === "doc") { setArtifact({ kind: "doc", doc: ev.doc, title: ev.title }); patchLast((t) => ({ ...t, made: "content" })); }
             else if (ev.kind === "image") { setArtifact({ kind: "image", imagePrompt: ev.imagePrompt, ratio: ev.ratio, title: ev.title }); patchLast((t) => ({ ...t, made: "image" })); }
             else if (ev.kind === "brand") { setArtifact({ kind: "brand", brand: ev.brand, title: ev.title }); patchLast((t) => ({ ...t, made: "brand" })); }

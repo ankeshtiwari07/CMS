@@ -160,6 +160,7 @@ export default function PromptBox({ onActive, onArtifact, seedPrompt }: {
   const taRef = useRef<HTMLTextAreaElement>(null); // composer textarea (auto-grow)
   const listeningRef = useRef(false); // intended dictation state (survives onend restarts)
   const projectIdRef = useRef<string | null>(null); // one Project per conversation (reused across turns)
+  const siteRef = useRef<{ title?: string; brand?: any; sections?: any[] } | null>(null); // current built site → edit_site edits in place
 
   // Auto-grow the composer textarea with content, capped so it can't overrun the UI.
   function autoGrow() {
@@ -375,7 +376,7 @@ export default function PromptBox({ onActive, onArtifact, seedPrompt }: {
         const res = await fetch("/api/chat", {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ mode: aiMode, prompt: userText, model: modelId, history, options, projectId: projectIdRef.current }),
+          body: JSON.stringify({ mode: aiMode, prompt: userText, model: modelId, history, options, projectId: projectIdRef.current, currentSite: siteRef.current }),
           signal: ctrl.signal,
         });
         if (!res.ok || !res.body) {
@@ -401,7 +402,7 @@ export default function PromptBox({ onActive, onArtifact, seedPrompt }: {
             try { ev = JSON.parse(line); } catch { continue; }
             if (ev.type === "delta") patchLastAssistant((t) => ({ ...t, text: (t.text || "") + ev.text }));
             else if (ev.type === "reset") patchLastAssistant((t) => ({ ...t, text: "" }));
-            else if (ev.type === "artifact" && ev.kind === "html") { patchLastAssistant((t) => ({ ...t, artifactHtml: ev.html })); onArtifact?.({ kind: "html", html: ev.html, title: ev.title }); }
+            else if (ev.type === "artifact" && ev.kind === "html") { patchLastAssistant((t) => ({ ...t, artifactHtml: ev.html })); onArtifact?.({ kind: "html", html: ev.html, title: ev.title }); if (ev.sections) siteRef.current = { title: ev.title, brand: ev.brand, sections: ev.sections }; }
             else if (ev.type === "artifact" && ev.kind === "doc") patchLastAssistant((t) => ({ ...t, doc: ev.doc }));
             else if (ev.type === "artifact" && ev.kind === "video") patchLastAssistant((t) => ({ ...t, video: true, videoPrompt: ev.videoPrompt, videoScript: ev.script }));
             else if (ev.type === "artifact" && ev.kind === "image") patchLastAssistant((t) => ({ ...t, imagePrompt: ev.imagePrompt, ratio: ev.ratio }));

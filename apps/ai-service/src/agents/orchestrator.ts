@@ -60,6 +60,7 @@ export type SseEvent =
       script?: string; videoPrompt?: string;
       imagePrompt?: string; ratio?: string;
       brand?: any; theme?: any;
+      sections?: any; // structured sections carried with an html artifact (enables edit_site)
       title?: string;
     }
   | { type: "agents"; trace: TraceStep[] };
@@ -158,6 +159,18 @@ const TOOLS: Anthropic.Tool[] = [
     },
   },
   {
+    name: "edit_site",
+    description:
+      "EDIT the website already built and shown to the user, in place — do NOT rebuild from scratch. Use this for any follow-up change to the current site: change/restyle the hero, edit copy, add or remove a section, reorder sections, translate it, change colours. Give a clear instruction; only the affected sections are regenerated and the updated preview is shown.",
+    input_schema: {
+      type: "object",
+      properties: {
+        instruction: { type: "string", description: "What to change about the current site, in plain language." },
+      },
+      required: ["instruction"],
+    },
+  },
+  {
     name: "build_content",
     description:
       "Produce a complete, structured CONTENT piece and display it as an interactive, editable, publishable card (the user can edit it, download it, or publish it to a CMS module). Use this for any substantive text deliverable: article, blog post, page, press release, event write-up, product copy, case study, FAQ, marketing email, campaign, or social post. Do NOT dump the content as a plain chat reply — build it as a card.",
@@ -229,6 +242,7 @@ async function execTool(
   trace: TraceStep[],
   onEvent?: (e: SseEvent) => void,
   activeProvider = "anthropic",
+  currentSite?: { title: string; brand: any; sections: any[] } | null,
 ): Promise<string> {
   // Run a sub-generation on the SAME live provider the loop is running on (with
   // the configured fallback chain), never the module-level default which may be
@@ -282,8 +296,22 @@ async function execTool(
     trace.push({ kind: "agent", name: "Build Agent", detail: String(input.title || input.brief || "site").slice(0, 80) });
     // Show the built site to the user immediately; do NOT feed the HTML back to
     // the model — just tell it the site is rendered so it can introduce it.
-    onEvent?.({ type: "artifact", kind: "html", html, title: input.title });
-    return "The website has been BUILT and is now displayed to the user in a live preview. Do NOT output any HTML. In 1–2 short sentences, introduce it warmly and then suggest 2–3 concrete improvements the user could ask for next (e.g. change the hero, add a pricing section, translate to Arabic).";
+    onEvent?.({ type: "artifact", kind: "html", html, title: input.title, sections: site.sections, brand: site.brand });
+    return "The website has been BUILT and is now displayed to the user in a live preview. Do NOT output any HTML. In 1–2 short sentences, introduce it warmly and then suggest 2–3 concrete improvements the user could ask for next (e.g. change the hero, add a pricing section, translate to Arabic). If they ask for any of those, use edit_site (not build_site) so their site is edited in place.";
+  }
+  if (name === "edit_site") {
+    onEvent?.({ type: "status", label: "Edit Agent" });
+    if (!currentSite || !Array.isArray(currentSite.sections) || !currentSite.sections.length) {
+      return "There is no current website to edit yet. Build one first with build_site, then I can edit it in place.";
+    }
+    const { WebsiteBuilder } = await import("./website-builder.js");
+    const res = await new WebsiteBuilder(activeProvider).updateWebsite(
+      { title: currentSite.title, brand: currentSite.brand, sections: currentSite.sections as any },
+      String(input.instruction || ""),
+    );
+    trace.push({ kind: "agent", name: "Edit Agent", detail: String(input.instruction || "").slice(0, 80) });
+    onEvent?.({ type: "artifact", kind: "html", html: res.html, title: currentSite.title, sections: res.sections, brand: res.brand });
+    return `The website has been EDITED IN PLACE (${res.changed.length} section${res.changed.length === 1 ? "" : "s"} updated) and the refreshed preview is now shown. Do NOT output any HTML. In ONE short sentence, confirm what changed and invite the next tweak.`;
   }
   if (name === "build_content") {
     onEvent?.({ type: "status", label: "Content Agent" });
@@ -366,6 +394,7 @@ function buildSystem(deliverableSpec: string, conversational: boolean): string {
     "- FIRST decide if the user actually wants something made. Greetings, small talk, questions, advice and brainstorming → just reply naturally and warmly in chat (do NOT build anything, do NOT call tools). Only build when the user clearly asks to create/make/build/write/design something, or has given enough detail to.\n" +
     "- When they do want something made, INTELLIGENTLY pick the right tool and BUILD it as an interactive outcome — never just describe it:\n" +
     "    • website / landing page / web app → first list_components, then build_site (assembles the page from the CMS component library; live preview)\n" +
+    "    • EDIT/CHANGE/REFINE the website already shown (change the hero, edit copy, add/remove/reorder a section, restyle, translate it) → edit_site (edits the CURRENT site IN PLACE — never rebuild it with build_site)\n" +
     "    • content piece (article, blog, page, press release, event, product, case study, FAQ, email, campaign, social) → build_content (editable, publishable card)\n" +
     "    • video / ad / teaser / reel → build_video (script + one-click render)\n" +
     "    • image / picture / illustration / poster / graphic → build_image (renders inline)\n" +
@@ -396,6 +425,7 @@ export type OrchestratorOpts = {
   providerName?: string; // "anthropic" (default) ⇒ Claude loop; else OpenAI-compat tool-use loop
   onText?: (delta: string) => void; // present ⇒ stream live
   onEvent?: (e: SseEvent) => void;
+  currentSite?: { title: string; brand: any; sections: any[] } | null; // the site in the canvas, for edit_site
 };
 
 export async function runOrchestrator(
@@ -441,7 +471,7 @@ export async function runOrchestrator(
     const results: Anthropic.ToolResultBlockParam[] = [];
     for (const tu of toolUses) {
       let out: string;
-      try { out = await execTool(tu.name, tu.input, trace, opts.onEvent, "anthropic"); }
+      try { out = await execTool(tu.name, tu.input, trace, opts.onEvent, "anthropic", opts.currentSite); }
       catch (e: any) { out = `tool error: ${e?.message || e}`; }
       results.push({ type: "tool_result", tool_use_id: tu.id, content: String(out).slice(0, 6000) });
     }
@@ -507,7 +537,7 @@ async function runCompatLoop(
     messages.push(assistant && assistant.tool_calls ? assistant : { role: "assistant", content: content || "", tool_calls: toolCalls.map((t) => ({ id: t.id, type: "function", function: { name: t.name, arguments: JSON.stringify(t.args) } })) });
     for (const tc of toolCalls) {
       let out: string;
-      try { out = await execTool(tc.name, tc.args, trace, opts.onEvent, opts.providerName); }
+      try { out = await execTool(tc.name, tc.args, trace, opts.onEvent, opts.providerName, opts.currentSite); }
       catch (e: any) { out = `tool error: ${e?.message || e}`; }
       messages.push({ role: "tool", tool_call_id: tc.id, content: String(out).slice(0, 6000) });
     }

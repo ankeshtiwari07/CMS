@@ -33,7 +33,7 @@ import {
 const CREATE_OPTIONS: { tkey: string; Icon: any; mode?: string; href?: string; action?: string }[] = [
   { tkey: "create.addfiles", Icon: PaperclipIcon, action: "addfiles" },
   { tkey: "create.recent", Icon: ClockIcon, href: "/projects" },
-  { tkey: "create.deck", Icon: MonitorIcon, mode: "deck" },
+  { tkey: "create.deck", Icon: MonitorIcon, href: "/cms/deck" },
   { tkey: "create.image", Icon: ImageIcon, mode: "image" },
   { tkey: "create.website", Icon: GlobeIcon, mode: "website" },
   { tkey: "create.email", Icon: MailIcon, mode: "email" },

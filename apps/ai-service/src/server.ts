@@ -606,14 +606,19 @@ app.post("/studio/website", async (req, reply) => {
 // aware and returned as STRUCTURED BLOCKS (each tied to a library component) so
 // the studio can do full block-level CRUD, not just serve one HTML blob.
 app.post("/studio/page", async (req, reply) => {
-  const body = z.object({ prompt: z.string().min(1).max(8000), contentType: z.enum(["page", "blog", "post"]).default("page"), model: z.string().optional() }).parse(req.body);
+  const body = z.object({ prompt: z.string().min(1).max(8000), contentType: z.enum(["page", "blog", "post", "article", "pressRelease", "webinar", "event"]).default("page"), model: z.string().optional() }).parse(req.body);
   const { entry } = resolveModel(body.model);
-  const hint =
-    body.contentType === "blog"
-      ? "Build a BLOG index page: sticky nav, a blog hero/eyebrow, a responsive grid of 6 post-preview cards (image, category tag, title, excerpt, 'Read more'), a newsletter CTA, and a footer."
-      : body.contentType === "post"
-        ? "Build a single BLOG POST / ARTICLE page: sticky nav, an article hero (category, big title, author + date meta), 3-4 rich body sections (headings + paragraphs), a pull-quote/testimonial, a related-posts card row, and a footer."
-        : "Build a complete marketing PAGE.";
+  // Content-type-aware shaping — each is composed from the live component library
+  // (with automatic component-gap delegation), not template-stamped.
+  const HINTS: Record<string, string> = {
+    blog: "Build a BLOG index page: sticky nav, a blog hero/eyebrow, a responsive grid of 6 post-preview cards (image, category tag, title, excerpt, 'Read more'), a newsletter CTA, and a footer.",
+    post: "Build a single BLOG POST / ARTICLE page: sticky nav, an article hero (category, big title, author + date meta), 3-4 rich body sections (headings + paragraphs), a pull-quote/testimonial, a related-posts card row, and a footer.",
+    article: "Build a long-form ARTICLE page: sticky nav, an article hero (category eyebrow, big title, byline + publish date), 5-6 rich body sections with subheadings and paragraphs, a pull-quote, a 'key takeaways' box, a related-articles row, and a footer.",
+    pressRelease: "Build a PRESS RELEASE page: sticky nav, a 'FOR IMMEDIATE RELEASE' eyebrow with a dateline, headline + subhead, the release body (a strong lead paragraph, 2-3 body paragraphs, one or two executive quote blocks), an 'About the company' boilerplate section, a media-contact block, and a footer.",
+    webinar: "Build a WEBINAR landing page: sticky nav, a hero with the webinar title + date/time + a Register CTA, a 'what you'll learn' bullet section, speaker cards (photo, name, role), an agenda, a registration form section, and a footer.",
+    event: "Build an EVENT page: sticky nav, a hero with the event name + date/venue + a Register CTA, an about section, an agenda/schedule, speaker cards, a sponsors/logos row, a venue/location section, a final registration CTA, and a footer.",
+  };
+  const hint = HINTS[body.contentType] || "Build a complete marketing PAGE.";
   try {
     const site = await generateWebsite({ prompt: `${hint}\n\nTopic/brief: ${body.prompt}`, primary: entry.provider });
     const blocks = site.sections.map((s: any, i: number) => ({ i, id: s.id, kind: s.kind, brief: s.brief, html: s.html, componentKey: s.componentKey ?? null, componentSource: s.componentSource ?? "generated" }));

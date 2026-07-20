@@ -6,7 +6,7 @@ type LibComp = { id: string; name: string; key: string; type: string; status: st
 type Item = { id: string; title: string; contentType: string; status: string; blocks: number; updatedAt: string };
 
 const TEAL = "#00a18b", INK = "#0b1416", LINE = "#e3ebe9", MUT = "#5a6a6c";
-const TYPES = [{ v: "page", l: "Page" }, { v: "blog", l: "Blog" }, { v: "post", l: "Post" }];
+const TYPES = [{ v: "page", l: "Page" }, { v: "blog", l: "Blog" }, { v: "post", l: "Post" }, { v: "article", l: "Article" }, { v: "pressRelease", l: "Press Release" }, { v: "webinar", l: "Webinar" }, { v: "event", l: "Event" }];
 const sourceBadge = (b: Block) =>
   b.componentSource === "library" ? { t: `◆ Reused · ${b.componentKey}`, c: "#159a5b", bg: "#e7f6ee" }
   : b.componentSource === "delegated" ? { t: `✦ AI-delegated · ${b.componentKey || ""}`, c: "#8a5a00", bg: "#fbf1e0" }

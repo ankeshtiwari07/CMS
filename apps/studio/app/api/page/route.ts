@@ -27,7 +27,7 @@ export async function POST(req: Request) {
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const body = await req.json();
   if (!body?.prompt) return NextResponse.json({ error: "Prompt is required" }, { status: 400 });
-  const contentType = ["page", "blog", "post"].includes(body.contentType) ? body.contentType : "page";
+  const contentType = ["page", "blog", "post", "article", "pressRelease", "webinar", "event"].includes(body.contentType) ? body.contentType : "page";
   try {
     const gen = await fetch(`${AI_URL}/studio/page`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ prompt: body.prompt, contentType }) }).then((r) => r.json());
     if (!gen?.ok) return NextResponse.json(gen, { status: 502 });

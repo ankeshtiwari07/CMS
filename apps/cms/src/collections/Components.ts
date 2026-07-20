@@ -51,6 +51,8 @@ export const Components: CollectionConfig = {
     afterDelete: [onDelete],
   },
   fields: [
+    // Create / refine this component with AI, or edit the fields manually below.
+    { name: "componentAssist", type: "ui", admin: { components: { Field: "/components/AiComponentAssist#default" } } },
     { name: "name", type: "text", required: true, admin: { description: "Human name shown in the component library." } },
     {
       name: "key",

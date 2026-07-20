@@ -24,8 +24,12 @@ export const setCreatedBy: CollectionBeforeChangeHook = async ({ data, req, oper
 // must be freshly approved (an edit after an approval invalidates it). This is the
 // human-in-the-loop gate — automated/AI content can never publish without sign-off.
 export const enforcePublishPermission: CollectionBeforeChangeHook = async ({ data, req, originalDoc, collection, context }) => {
-  const becomingPublished = data?._status === "published" && originalDoc?._status !== "published";
-  if (!becomingPublished) return data;
+  // Fire whenever the save RESULTS in a published doc — not only on the first
+  // draft→publish transition. This re-gates an EDIT to an already-published doc:
+  // an edit after approval invalidates it and must be re-approved before it stays
+  // live (D3 — edit-after-approval re-blocks publish).
+  const willPublish = data?._status === "published";
+  if (!willPublish) return data;
   // Governed auto-publish: the approval hook already verified every required
   // stage is cleared, so it bypasses the interactive publish-role check (the
   // final approver need not personally hold a publish role).
@@ -82,7 +86,8 @@ export const enforcePublishPermission: CollectionBeforeChangeHook = async ({ dat
 // page consuming it are EACH gated) and Flow A on AI-generated websites.
 export function enforcePublishOnField(statusField: string, publishedValue: string): CollectionBeforeChangeHook {
   return async ({ data, req, originalDoc, collection, context }) => {
-    const becoming = (data as any)?.[statusField] === publishedValue && (originalDoc as any)?.[statusField] !== publishedValue;
+    // Re-gate edits to an already-published doc too (edit-after-approval → re-approve).
+    const becoming = (data as any)?.[statusField] === publishedValue;
     if (!becoming) return data;
     // Governed auto-publish bypasses the interactive publish-role check.
     if ((context as any)?.autoPublish) return data;

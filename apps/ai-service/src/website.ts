@@ -140,7 +140,7 @@ export async function planWebsite(prompt: string, primary?: string): Promise<Web
     "nav, hero, cardGrid, domains, buildYourOwn, platform, useCase, logos, features, testimonial, faq, cta, leadForm, footer. " +
     "Always start with nav and hero and end with footer. Pick 7-11 sections total. For a landing / marketing page, INCLUDE a leadForm (contact) section near the end so the page can actually convert. " +
     `Fixed brand palette (use ONLY these): background ${brand.bg}, text ${brand.ink}, primary accent ${brand.accent}, secondary accent ${brand.accent2}. ` +
-    'Detect the requested language(s) from the brief: return "lang" (BCP-47, e.g. en or ar), "dir" (ltr|rtl), and "bilingual":true if the user asks for two languages. ' +
+    'Language: set "lang" to the SINGLE language the whole site should be in — "en" by default, or "ar" only if the brief is written in Arabic or clearly asks for an Arabic site; set "dir" accordingly (rtl for Arabic, else ltr). Set "bilingual":true ONLY if the user EXPLICITLY asks for the SAME page in BOTH English and Arabic (e.g. "bilingual", "in English and Arabic", "EN/AR"). If in any doubt, "bilingual":false — NEVER mix two languages on one page unless explicitly requested; English and Arabic are separate. ' +
     "Respond with ONLY minified JSON, no markdown, no fences.";
   const user =
     `Plan the website for:\n"""${prompt}"""\n\n` +
@@ -155,7 +155,10 @@ export async function planWebsite(prompt: string, primary?: string): Promise<Web
     .map((s: any) => ({ id: sid(), kind: s.kind, brief: String(s.brief || "").slice(0, 300) }));
   const lang = typeof data.lang === "string" && data.lang.trim() ? data.lang.trim().slice(0, 8) : "en";
   const dir = data.dir === "rtl" || data.dir === "ltr" ? data.dir : lang.toLowerCase().startsWith("ar") ? "rtl" : "ltr";
-  return { title: String(data.title || prompt).slice(0, 140), description: data.description ? String(data.description).slice(0, 300) : undefined, brand, sections, lang, dir, bilingual: Boolean(data.bilingual), _provider: fb.provider };
+  // Guard: honour bilingual ONLY when the prompt EXPLICITLY asks for both
+  // languages. Mixing EN+AR in one page is never a default — they are separate.
+  const wantsBilingual = /\bbilingual\b|english and arabic|arabic and english|en\s*[\/&+]\s*ar|ar\s*[\/&+]\s*en|both\s+(languages|english|arabic)|two languages/i.test(prompt);
+  return { title: String(data.title || prompt).slice(0, 140), description: data.description ? String(data.description).slice(0, 300) : undefined, brand, sections, lang, dir, bilingual: Boolean(data.bilingual) && wantsBilingual, _provider: fb.provider };
 }
 
 function brandVars(b: Brand): string {

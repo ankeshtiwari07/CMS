@@ -17,6 +17,10 @@ export const Pages: CollectionConfig = {
     readVersions: isEditor,
   },
   fields: [
+    // Agent-driven drafting inside the admin form (title/slug/SEO); rich block
+    // composition happens in the Page Builder (/cms/pages). Same AiAssist agent
+    // the content collections use.
+    { name: "aiAssist", type: "ui", admin: { components: { Field: "/components/AiAssist#default" } } },
     { name: "title", type: "text", localized: true, required: true },
     { name: "slug", type: "text", required: true, unique: true, index: true },
     { name: "site", type: "relationship", relationTo: "sites" },

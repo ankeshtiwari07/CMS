@@ -36,6 +36,9 @@ export const Decks: CollectionConfig = {
     ],
   },
   fields: [
+    // Agent-driven creation: describe the deck, the agent builds it and fills
+    // every field below. See src/components/AiDeckAssist.tsx.
+    { name: "deckAssist", type: "ui", admin: { components: { Field: "/components/AiDeckAssist#default" } } },
     { name: "title", type: "text", required: true },
     { name: "subtitle", type: "text" },
     { name: "prompt", type: "textarea", admin: { description: "The original request the deck was generated from." } },

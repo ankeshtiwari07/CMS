@@ -627,7 +627,7 @@ export default function CmsPreview({
             </div>
 
             {/* Selection toolbar (visual editing) */}
-            {editMode && sel && tab === "preview" && (
+            {sel && ((tab === "preview" && editMode) || tab === "editor") && (
               <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 14px", background: pill, borderBottom: `1px solid ${border}`, fontSize: 13 }}>
                 <span style={{ fontWeight: 700, color: primary }}>&lt;{sel.tag}&gt;</span>
                 <span style={{ color: muted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", flex: 1 }}>{sel.tag === "img" ? "(image selected — regenerate it with AI)" : sel.text.slice(0, 70) || "(selected — type to edit inline)"}</span>
@@ -643,7 +643,9 @@ export default function CmsPreview({
               <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
                 {tab === "preview" && <PreviewBody artifact={artifact} device={device} editMode={editMode} onEditHtml={onEditHtml} onSelect={setSel} />}
                 {tab === "outline" && <OutlineView artifact={artifact} onEditHtml={onEditHtml} />}
-                {tab === "editor" && <div style={{ flex: 1, overflow: "auto" }}><ContentManager initialType="blog" canEdit={canEdit} canPublish={canPublish} /></div>}
+                {tab === "editor" && (isHtml
+                  ? <PreviewBody artifact={artifact} device={device} editMode={true} onEditHtml={onEditHtml} onSelect={setSel} />
+                  : <div style={{ flex: 1, overflow: "auto" }}><ContentManager initialType={artifact?.kind === "doc" ? (artifact.doc?.type || "blog") : "blog"} canEdit={canEdit} canPublish={canPublish} /></div>)}
                 {tab === "seo" && <SeoView artifact={artifact} />}
                 {tab === "publish" && <PublishView artifact={artifact} canPublish={canPublish} />}
                 {tab === "versions" && <VersionsView artifact={artifact} onRestore={onEditHtml} />}

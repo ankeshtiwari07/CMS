@@ -152,19 +152,37 @@ input[type="checkbox"], input[type="radio"] { accent-color: #{$teal}; }
 .hc-jsonld__err { color: var(--theme-error-500, #dc2626); font-size: 12.5px; margin-top: 6px; }
 .hc-jsonld__hint { color: var(--theme-elevation-500, rgba(0,0,0,0.5)); font-size: 12px; margin-top: 6px; }
 
+// The AI agent is the PRIMARY way to create/manage here — style it as a bold
+// hero card at the top of the form, not a subtle field. The manual fields below
+// stay an equal path (spec D4), made explicit by the footer line.
 .hc-ai {
-  margin: 4px 0 22px;
-  padding: 16px 18px;
-  border: 1px solid rgba(0,150,136,0.28);
-  border-radius: 12px;
-  background: linear-gradient(180deg, rgba(0,150,136,0.06), rgba(187,230,54,0.05));
+  margin: 2px 0 26px;
+  padding: 22px 24px;
+  border: 1.5px solid rgba(0,150,136,0.45);
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(0,150,136,0.11), rgba(187,230,54,0.08));
+  box-shadow: 0 10px 30px -18px rgba(0,150,136,0.65);
+  position: relative;
+}
+.hc-ai::before {
+  content: "AI AGENT · START HERE";
+  position: absolute; top: -10px; left: 20px;
+  font-size: 10px; font-weight: 800; letter-spacing: .08em;
+  padding: 3px 9px; border-radius: 999px;
+  background: #{$teal}; color: #fff;
+}
+.hc-ai::after {
+  content: "The agent fills every field below. You can also edit the fields yourself — both are equal paths.";
+  display: block; margin-top: 16px; padding-top: 13px;
+  border-top: 1px dashed rgba(0,150,136,0.35);
+  font-size: 12px; color: var(--theme-elevation-500, rgba(0,0,0,0.5));
 }
 html[data-theme="dark"] .hc-ai {
-  background: linear-gradient(180deg, rgba(18,182,164,0.10), rgba(187,230,54,0.06));
-  border-color: rgba(18,182,164,0.30);
+  background: linear-gradient(135deg, rgba(18,182,164,0.14), rgba(187,230,54,0.07));
+  border-color: rgba(18,182,164,0.42);
 }
-.hc-ai__title { display:flex; align-items:center; gap:8px; font-weight:700; font-size:14px; color:var(--theme-text); margin-bottom:4px; }
-.hc-ai__sub { font-size:12.5px; color:var(--theme-elevation-500, rgba(0,0,0,0.5)); margin-bottom:12px; }
+.hc-ai__title { display:flex; align-items:center; gap:8px; font-weight:800; font-size:17px; color:var(--theme-text); margin:4px 0 5px; }
+.hc-ai__sub { font-size:13px; color:var(--theme-elevation-500, rgba(0,0,0,0.5)); margin-bottom:14px; max-width:70ch; }
 .hc-ai__row { display:flex; gap:10px; align-items:flex-start; }
 .hc-ai__input {
   flex:1; min-height:44px; resize:vertical;

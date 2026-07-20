@@ -19,15 +19,32 @@ export const setCreatedBy: CollectionBeforeChangeHook = async ({ data, req, oper
   return data;
 };
 
+// Track when the CONTENT (not status/workflow) last changed. Publishing only
+// flips _status/status, so it must NOT bump this — that's what lets a legitimate
+// publish-after-approval succeed while an EDIT after approval invalidates it.
+// The approval-freshness check compares approval time against contentEditedAt.
+const NON_CONTENT = new Set([
+  "_status", "status", "workflowState", "updatedAt", "createdAt", "contentEditedAt", "id",
+  "aiAssist", "siteAssist", "deckAssist", "componentAssist", "createdBy",
+]);
+export const setContentEditedAt: CollectionBeforeChangeHook = async ({ data, originalDoc, operation }) => {
+  if (operation === "create") { (data as any).contentEditedAt = new Date().toISOString(); return data; }
+  const changed = Object.keys(data || {}).some(
+    (k) => !NON_CONTENT.has(k) && JSON.stringify((data as any)[k]) !== JSON.stringify((originalDoc as any)?.[k]),
+  );
+  if (changed) (data as any).contentEditedAt = new Date().toISOString();
+  return data;
+};
+
 // RBAC + HITL: to transition content to _status="published" the actor must (1) hold
 // a PUBLISH_ROLE, AND (2) every approval stage required for the content's risk tier
 // must be freshly approved (an edit after an approval invalidates it). This is the
 // human-in-the-loop gate — automated/AI content can never publish without sign-off.
 export const enforcePublishPermission: CollectionBeforeChangeHook = async ({ data, req, originalDoc, collection, context }) => {
-  // Fire whenever the save RESULTS in a published doc — not only on the first
-  // draft→publish transition. This re-gates an EDIT to an already-published doc:
-  // an edit after approval invalidates it and must be re-approved before it stays
-  // live (D3 — edit-after-approval re-blocks publish).
+  // Fire whenever a save RESULTS in a published doc — first publish OR a re-save
+  // of an already-live doc. Safe because the freshness check below keys off
+  // contentEditedAt (which publishing does NOT bump), so legitimate publishes
+  // pass and only genuine edits-after-approval are re-gated.
   const willPublish = data?._status === "published";
   if (!willPublish) return data;
   // Governed auto-publish: the approval hook already verified every required
@@ -46,7 +63,9 @@ export const enforcePublishPermission: CollectionBeforeChangeHook = async ({ dat
   const required = requiredStagesFor(riskTier, aiGenerated);
   const slug = (collection as any)?.slug;
   if (required.length && slug && originalDoc?.id != null) {
-    const lastEdit = originalDoc?.updatedAt ? new Date(originalDoc.updatedAt).getTime() : 0;
+    const lastEdit = (originalDoc as any)?.contentEditedAt
+      ? new Date((originalDoc as any).contentEditedAt).getTime()
+      : originalDoc?.updatedAt ? new Date(originalDoc.updatedAt).getTime() : 0;
     let decisions: any[] = [];
     try {
       const res = await req.payload.find({
@@ -86,7 +105,7 @@ export const enforcePublishPermission: CollectionBeforeChangeHook = async ({ dat
 // page consuming it are EACH gated) and Flow A on AI-generated websites.
 export function enforcePublishOnField(statusField: string, publishedValue: string): CollectionBeforeChangeHook {
   return async ({ data, req, originalDoc, collection, context }) => {
-    // Re-gate edits to an already-published doc too (edit-after-approval → re-approve).
+    // Fire on any save that results in published (freshness keys off contentEditedAt).
     const becoming = (data as any)?.[statusField] === publishedValue;
     if (!becoming) return data;
     // Governed auto-publish bypasses the interactive publish-role check.
@@ -102,7 +121,9 @@ export function enforcePublishOnField(statusField: string, publishedValue: strin
     const required = requiredStagesFor(riskTier, aiGenerated);
     const slug = (collection as any)?.slug;
     if (required.length && slug && originalDoc?.id != null) {
-      const lastEdit = originalDoc?.updatedAt ? new Date(originalDoc.updatedAt).getTime() : 0;
+      const lastEdit = (originalDoc as any)?.contentEditedAt
+      ? new Date((originalDoc as any).contentEditedAt).getTime()
+      : originalDoc?.updatedAt ? new Date(originalDoc.updatedAt).getTime() : 0;
       let decisions: any[] = [];
       try {
         const res = await req.payload.find({

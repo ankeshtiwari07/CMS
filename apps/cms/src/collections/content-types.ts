@@ -1,6 +1,6 @@
 import type { CollectionConfig, Field } from "payload";
 import { isEditor, readPublishedOrEditor, canReview, editorSiteScoped, editorCreate, departmentOnly } from "../access/roles";
-import { emitContentEvent, onDelete, enforcePublishPermission, setCreatedBy } from "../hooks/events";
+import { emitContentEvent, onDelete, enforcePublishPermission, setCreatedBy, setContentEditedAt } from "../hooks/events";
 import { seoField } from "../fields/seo";
 
 // ---- HITL (human-in-the-loop) governance fields ----
@@ -8,6 +8,9 @@ import { seoField } from "../fields/seo";
 // `aiGenerated` forces an editorial human review; `createdBy` anchors
 // separation-of-duties (a creator can't approve their own content).
 export const hitlFields: Field[] = [
+  // When the CONTENT last changed (not status/workflow). Powers the "edit after
+  // approval invalidates it" check — see setContentEditedAt / enforcePublishPermission.
+  { name: "contentEditedAt", type: "date", admin: { hidden: true, readOnly: true } },
   {
     name: "riskTier",
     type: "text",
@@ -74,7 +77,7 @@ const base = (slug: string, title: string, extra: Field[]): CollectionConfig => 
   },
   fields: [aiAssistField, ...extra, siteField, ...hitlFields, workflowField, seoField()],
   hooks: {
-    beforeChange: [setCreatedBy, enforcePublishPermission],
+    beforeChange: [setCreatedBy, setContentEditedAt, enforcePublishPermission],
     afterChange: [emitContentEvent],
     afterDelete: [onDelete],
   },

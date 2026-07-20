@@ -1,6 +1,6 @@
 import type { Access, CollectionConfig, Where } from "payload";
 import { hasRole, isAdmin } from "../access/roles";
-import { enforcePublishOnField, emitContentEvent, onDelete } from "../hooks/events";
+import { enforcePublishOnField, emitContentEvent, onDelete, setContentEditedAt } from "../hooks/events";
 
 // AI-generated marketing websites (see apps/ai-service/src/website.ts). Built in
 // the Website Studio, stored here, and served at /site/<slug> by the web app.
@@ -30,6 +30,7 @@ export const AiWebsites: CollectionConfig = {
       },
       // Publishing an AI website (status → published) requires a publish role AND
       // cleared HITL approval — agents propose, authorised humans dispose (Flow A).
+      setContentEditedAt,
       enforcePublishOnField("status", "published"),
     ],
     afterChange: [emitContentEvent],
@@ -51,5 +52,6 @@ export const AiWebsites: CollectionConfig = {
     // ---- Governance / approval (Flow A) ----
     { name: "aiGenerated", type: "checkbox", defaultValue: true, admin: { position: "sidebar", description: "AI-built — forces editorial review before publish." } },
     { name: "riskTier", type: "text", defaultValue: "low", admin: { position: "sidebar", description: "Approval depth: trivial | low | medium | high." } },
+    { name: "contentEditedAt", type: "date", admin: { hidden: true, readOnly: true } },
   ],
 };

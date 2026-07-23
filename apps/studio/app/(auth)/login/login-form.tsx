@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { Alert, Button, Field, Input } from "@humain/ui";
 
 export default function LoginForm() {
   const router = useRouter();
@@ -35,83 +36,44 @@ export default function LoginForm() {
     }
   }
 
-  const field: React.CSSProperties = {
-    width: "100%",
-    height: 46,
-    padding: "0 14px",
-    borderRadius: "var(--r-input)",
-    border: "1px solid var(--hairline)",
-    fontSize: 15,
-    outline: "none",
-    color: "var(--ink)",
-    background: "var(--card)",
-  };
-
+  // NOTE: the docs show `<Input label="Email" />`, and InputProps really does
+  // extend FieldProps — but @humain/ui@2.1.58 ships that d.ts importing
+  // FieldProps through its own internal `@/` path alias, which cannot resolve
+  // from a consumer, so the field props vanish from the public type. We already
+  // map `@/*` to our own app root, so we can't remap it. Use the documented
+  // compound Field escape hatch instead; it is unaffected.
+  // The system owns the focus ring, so no manual border juggling here, and
+  // Button `loading` handles the busy state and disabling.
   return (
     <form onSubmit={onSubmit} style={{ display: "grid", gap: 16, marginTop: 28 }}>
-      <label style={{ display: "grid", gap: 7 }}>
-        <span style={{ fontSize: 13, fontWeight: 600, color: "var(--label)" }}>Email</span>
-        <input
+      <Field>
+        <Field.Label>Email</Field.Label>
+        <Input
           type="email"
           autoComplete="username"
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="you@humain.sa"
-          style={field}
-          onFocus={(e) => (e.currentTarget.style.borderColor = "var(--studio-primary)")}
-          onBlur={(e) => (e.currentTarget.style.borderColor = "var(--hairline)")}
         />
-      </label>
-      <label style={{ display: "grid", gap: 7 }}>
-        <span style={{ fontSize: 13, fontWeight: 600, color: "var(--label)" }}>Password</span>
-        <input
+      </Field>
+      <Field>
+        <Field.Label>Password</Field.Label>
+        <Input
           type="password"
           autoComplete="current-password"
           required
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           placeholder="••••••••"
-          style={field}
-          onFocus={(e) => (e.currentTarget.style.borderColor = "var(--studio-primary)")}
-          onBlur={(e) => (e.currentTarget.style.borderColor = "var(--hairline)")}
         />
-      </label>
+      </Field>
 
-      {error && (
-        <div
-          role="alert"
-          style={{
-            background: "color-mix(in srgb, var(--destructive) 10%, var(--background))",
-            color: "var(--destructive)",
-            border: "1px solid color-mix(in srgb, var(--destructive) 30%, var(--background))",
-            borderRadius: 10,
-            padding: "10px 12px",
-            fontSize: 13.5,
-          }}
-        >
-          {error}
-        </div>
-      )}
+      {error && <Alert variant="destructive" appearance="soft" description={error} />}
 
-      <button
-        type="submit"
-        disabled={busy}
-        style={{
-          height: 48,
-          marginTop: 4,
-          border: "none",
-          borderRadius: "var(--r-pill)",
-          background: busy ? "var(--studio-teal-dark)" : "var(--studio-primary)",
-          color: "var(--primary-foreground)",
-          fontWeight: 700,
-          fontSize: 15.5,
-          letterSpacing: "0.01em",
-          transition: "background .15s",
-        }}
-      >
+      <Button type="submit" size="lg" shape="round" loading={busy} style={{ marginTop: 4 }}>
         {busy ? "Signing in…" : "Sign in"}
-      </button>
+      </Button>
     </form>
   );
 }

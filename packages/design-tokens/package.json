@@ -12,6 +12,6 @@
     "build": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "@humain/foundation": "npm:@humain/ui@2.1.58"
+    "@humain/ui": "2.1.58"
   }
 }

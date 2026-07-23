@@ -1,7 +1,7 @@
 /* =============================================================================
    HUMAIN design tokens — TypeScript view over the real Foundation tokens.
    -----------------------------------------------------------------------------
-   Source of truth is `@humain/foundation/tokens.css` (the published `@humain/ui`
+   Source of truth is `@humain/ui/styles.css` (the published `@humain/ui`
    design system, generated from humain-os.tokens.json). Consumers must have that
    stylesheet loaded — apps import it in their root layout, ahead of globals.css.
 
@@ -126,7 +126,7 @@ export const shared = {
    nothing. Those strings therefore need the values inlined.
 
    This is the one sanctioned place where Foundation hexes are literal. Keep it
-   in sync with `@humain/foundation/tokens.css`; components must import this
+   in sync with `@humain/ui/styles.css`; components must import this
    rather than re-typing brand hexes of their own.
    ----------------------------------------------------------------------------- */
 

@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "skills": {
+    "humain-ui": {
+      "source": "/Users/ankeshtiwari/Downloads/humain-payload-starter/node_modules/.pnpm/@humain+ui@2.1.58_@date-fns+tz@1.5.0_@types+react@19.2.16_lucide-react@1.26.0_react@19.2.7__m_iikc2eyvjbijaokf4sbyiijpny/node_modules/@humain/ui",
+      "sourceType": "local",
+      "computedHash": "294c9f85405551d70fe5a823bed29dc11df95645f6f2b151a25294f2ebc60748"
+    }
+  }
+}

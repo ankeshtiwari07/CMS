@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { getPage } from "../../../lib/cms";
-import { RenderBlocks } from "@humain/ui";
+import { RenderBlocks } from "@humain/blocks-render";
 
 export const dynamic = "force-dynamic"; // SSR (avoids build-time CMS dependency)
 

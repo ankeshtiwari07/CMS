@@ -1,5 +1,5 @@
 {
-  "name": "@humain/ui",
+  "name": "@humain/blocks-render",
   "version": "1.0.0",
   "type": "module",
   "main": "index.tsx",

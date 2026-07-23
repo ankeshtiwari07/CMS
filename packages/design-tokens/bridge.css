@@ -1,7 +1,7 @@
 /* =============================================================================
    HUMAIN Foundation bridge
    -----------------------------------------------------------------------------
-   The canonical brand tokens live in `@humain/foundation/tokens.css` (the real
+   The canonical brand tokens live in `@humain/ui/styles.css` (the real
    published design system, `@humain/ui`, generated from humain-os.tokens.json).
    Import that file FIRST, then this one.
 

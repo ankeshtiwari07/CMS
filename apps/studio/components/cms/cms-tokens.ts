@@ -1,5 +1,5 @@
 // HUMAIN design tokens for the CMS surfaces, resolved from the real design
-// system (`@humain/foundation/tokens.css`, published as @humain/ui) rather than
+// system (`@humain/ui/styles.css`, published as @humain/ui) rather than
 // re-declared here. The previous version of this file hard-coded a palette
 // transcribed from a spec PDF; it had drifted from Foundation (wrong dark
 // primary, lime as the UI accent, teal-tinted neutrals, off-palette status

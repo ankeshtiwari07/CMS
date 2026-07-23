@@ -2,6 +2,8 @@
 const nextConfig = {
   reactStrictMode: true,
   transpilePackages: ["@humain/design-tokens", "@humain/ui"],
+  // @humain/ui ships untranspiled-for-Next ESM; Next must compile it (and it is
+  // listed above). Nothing else in the graph needs it.
   async headers() {
     return [
       {

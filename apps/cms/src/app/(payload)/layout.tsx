@@ -8,7 +8,13 @@ import React from "react";
 
 import { importMap } from "./admin/importMap.js";
 // Canonical HUMAIN tokens first, then our Payload-token mapping on top.
-import "@humain/foundation/tokens.css";
+// DELIBERATELY tokens.css, NOT styles.css: styles.css carries Tailwind
+// Preflight (`*{margin:0;padding:0;border:0}`, unstyled headings/lists,
+// `img,svg{display:block}`), which would trample Payload's own admin CSS —
+// that CSS assumes normal UA defaults. The admin needs the brand VARIABLES,
+// not the reset. Foundation React components must not be rendered bare in the
+// admin for the same reason; scope their styles if that ever becomes needed.
+import "@humain/ui/tokens.css";
 import "@humain/design-tokens/bridge.css";
 import "./custom.scss";
 import ThemeClassBridge from "./theme-class-bridge";

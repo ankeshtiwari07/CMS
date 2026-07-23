@@ -3,7 +3,7 @@
 
    Brand tokens are NOT defined here. They come from the real design system:
      apps/studio/app/layout.tsx imports
-       "@humain/foundation/tokens.css"      ← canonical HUMAIN tokens
+       "@humain/ui/styles.css"              ← canonical HUMAIN tokens + components
        "@humain/design-tokens/bridge.css"   ← legacy-name → Foundation aliases
    ahead of this file. Anything brand-coloured must reference a var from those.
 
@@ -62,3 +62,23 @@ select {
   background: var(--brand-pill);
   color: var(--ink);
 }
+
+/* ---------------------------------------------------------------------------
+   Preflight restoration.
+
+   styles.css ships Tailwind Preflight: `h1..h6 {font-size:inherit;
+   font-weight:inherit}` and `ol,ul,menu {list-style:none; padding:0}`. The
+   console renders agent output through components/studio/markdown.tsx, whose
+   headings would otherwise come out as flat body copy. Element defaults only —
+   inline styles (which this codebase uses almost everywhere) still win.
+   --------------------------------------------------------------------------- */
+h1 { font-size: 2em;    font-weight: 700; }
+h2 { font-size: 1.5em;  font-weight: 700; }
+h3 { font-size: 1.17em; font-weight: 700; }
+h4 { font-size: 1em;    font-weight: 700; }
+h5 { font-size: 0.83em; font-weight: 700; }
+h6 { font-size: 0.67em; font-weight: 700; }
+
+/* Markers for rendered markdown only; app chrome keeps the clean slate. */
+.hf-richtext ul { list-style: disc;    }
+.hf-richtext ol { list-style: decimal; }

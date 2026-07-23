@@ -1,7 +1,6 @@
 "use client";
 import React, { useEffect, useState } from "react";
-
-type Mode = "light" | "dark" | "system";
+import { PREF_KEY, THEME_EVENT, readPref, type Mode } from "@/lib/theme";
 
 // Inline icons so this doesn't depend on the icon set.
 const Sun = () => (<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" /></svg>);
@@ -16,23 +15,23 @@ const OPTIONS: { key: Mode; label: string; Icon: () => React.ReactElement }[] = 
 
 export default function ThemeToggle({ collapsed = false }: { collapsed?: boolean }) {
   const [mode, setMode] = useState<Mode>("system");
-  // `data-theme` records the choice; Foundation themes off the resolved `.dark`
-  // class, so both are kept in step here and in the no-flash script in layout.
-  function apply(m: Mode) {
-    const el = document.documentElement;
-    el.setAttribute("data-theme", m);
-    const dark = m === "dark" || (m === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
-    el.classList.toggle("dark", dark);
+  // This component owns the tri-state CHOICE only. It records it on
+  // `data-theme` (for its own UI) and announces it; ThemeSync resolves it and
+  // hands the answer to Foundation's ThemeProvider, which is the single writer
+  // of the `light`/`dark` classes that actually flip the tokens.
+  function announce(m: Mode) {
+    document.documentElement.setAttribute("data-theme", m);
+    window.dispatchEvent(new Event(THEME_EVENT));
   }
   useEffect(() => {
-    const t = (localStorage.getItem("humain-theme") as Mode) || "system";
+    const t = readPref();
     setMode(t);
-    apply(t);
+    announce(t);
   }, []);
   function choose(m: Mode) {
     setMode(m);
-    localStorage.setItem("humain-theme", m);
-    apply(m);
+    localStorage.setItem(PREF_KEY, m);
+    announce(m);
   }
   if (collapsed) {
     // cycle light -> dark -> system on click when the sidebar is collapsed

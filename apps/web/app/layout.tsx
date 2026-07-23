@@ -1,4 +1,8 @@
-import "@humain/foundation/tokens.css";
+// styles.css supersedes tokens.css (same tokens + `.dark` + component styles +
+// the compiled utility layer). It also ships Tailwind Preflight, which zeroes
+// margins and unstyles headings/lists — globals.css restores typography for
+// rendered CMS rich text below it.
+import "@humain/ui/styles.css";
 import "@humain/design-tokens/bridge.css";
 import "./globals.css";
 

@@ -13,7 +13,8 @@
   "dependencies": {
     "@humain/blocks": "workspace:*",
     "@humain/design-tokens": "workspace:*",
-    "@humain/foundation": "npm:@humain/ui@2.1.58",
+    "@humain/ui": "2.1.58",
+    "lucide-react": "^1.26.0",
     "@payloadcms/db-postgres": "3.85.0",
     "@payloadcms/next": "3.85.0",
     "@payloadcms/richtext-lexical": "3.85.0",

@@ -1,7 +1,7 @@
 /* Public site globals. Brand tokens come from the real design system —
-   layout.tsx imports "@humain/foundation/tokens.css" and the legacy-name
-   bridge ahead of this file. packages/ui renders blocks using those vars, so
-   both must be loaded for rendered pages to be on-brand. */
+   layout.tsx imports "@humain/ui/styles.css" and the legacy-name bridge ahead
+   of this file. packages/blocks-render renders blocks using those vars, so both
+   must be loaded for rendered pages to be on-brand. */
 * { box-sizing: border-box; }
 html, body {
   margin: 0;
@@ -13,3 +13,32 @@ html, body {
 }
 [dir="rtl"] body { font-family: var(--font-ar); }
 a { color: inherit; }
+
+/* ---------------------------------------------------------------------------
+   Preflight restoration.
+
+   styles.css ships Tailwind Preflight, which sets `h1..h6 {font-size:inherit;
+   font-weight:inherit}` and `ol,ul,menu {list-style:none; padding:0}`. That is
+   correct for utility-class UI, but this app renders CMS rich text and block
+   components that lean on default heading sizes and real bullets — e.g. the
+   `<h2>`/`<h3>` in packages/blocks-render carry a colour but no font-size, and
+   rich-text `<li>` carries nothing at all. Without this they render as flat
+   body copy with no markers.
+
+   Only element defaults are restored. Every block component sets its own inline
+   styles, and inline styles beat these rules, so nothing that already styles
+   itself is affected.
+   --------------------------------------------------------------------------- */
+h1 { font-size: 2em;    font-weight: 700; }
+h2 { font-size: 1.5em;  font-weight: 700; }
+h3 { font-size: 1.17em; font-weight: 700; }
+h4 { font-size: 1em;    font-weight: 700; }
+h5 { font-size: 0.83em; font-weight: 700; }
+h6 { font-size: 0.67em; font-weight: 700; }
+
+/* Scoped to rendered rich text so app chrome (nav lists, card grids) keeps
+   Preflight's clean slate. */
+.hf-richtext ul { list-style: disc;    padding-left: 1.5em; }
+.hf-richtext ol { list-style: decimal; padding-left: 1.5em; }
+.hf-richtext li { margin: 0.25em 0; }
+.hf-richtext p:not([style*="margin"]) { margin: 0 0 1em; }

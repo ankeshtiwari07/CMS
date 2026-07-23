@@ -152,5 +152,7 @@ export default function Markdown({ text }: { text: string }) {
     );
   }
 
-  return <div style={{ color: "var(--ink)", fontSize: 15 }}>{blocks}</div>;
+  // `hf-richtext` restores list markers that Tailwind Preflight (inside
+  // @humain/ui/styles.css) strips; the ul/ol here set padding but not markers.
+  return <div className="hf-richtext" style={{ color: "var(--ink)", fontSize: 15 }}>{blocks}</div>;
 }

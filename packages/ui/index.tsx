@@ -83,7 +83,9 @@ function renderNode(node: LexNode, key: number): React.ReactNode {
 export function RichTextRender({ value }: { value: any }) {
   const root = value?.root;
   if (!root) return null;
-  return <div style={{ color: studio.text.ink }}>{renderChildren(root.children)}</div>;
+  // `hf-richtext` re-enables list markers and paragraph rhythm that Tailwind
+  // Preflight (shipped inside @humain/ui/styles.css) strips. See globals.css.
+  return <div className="hf-richtext" style={{ color: studio.text.ink }}>{renderChildren(root.children)}</div>;
 }
 
 /* ------------------------------------------------------------------ *

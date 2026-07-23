@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/payload";
-import Sidebar from "@/components/studio/sidebar";
+import { CmsPanel } from "@/components/cms/cms-app-shell";
 import AdminFrame from "@/components/cms/admin-frame";
 
 export const dynamic = "force-dynamic";
@@ -26,11 +26,8 @@ export default async function CmsAdminPage({ params }: { params: Promise<{ slug?
   const src = "/admin" + (slug?.length ? "/" + slug.join("/") : "");
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", background: "var(--shell-bg)" }}>
-      <Sidebar user={{ name: user.name, email: user.email, roles: user.roles }} active="cms" />
-      <main style={{ flex: 1, padding: "10px 10px 10px 0" }}>
-        <AdminFrame src={src} title={titleFor(slug)} />
-      </main>
-    </div>
+    <CmsPanel label={titleFor(slug)}>
+      <AdminFrame src={src} title={titleFor(slug)} />
+    </CmsPanel>
   );
 }

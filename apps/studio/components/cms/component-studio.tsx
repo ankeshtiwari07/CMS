@@ -144,7 +144,7 @@ export default function ComponentStudio({ user, canPublish }: { user: { name?: s
   const card = { background: "var(--hc-card)", border: "1px solid var(--hc-border)", borderRadius: R.x2, boxShadow: "var(--hc-shadow-sm)" } as const;
 
   return (
-    <div style={{ ...cmsVars(theme), height: "calc(100vh - 20px)", borderRadius: R.x3, border: "1px solid var(--hc-border)", overflow: "hidden", display: "flex", flexDirection: "column", color: "var(--hc-fg)", backgroundColor: "var(--hc-bg)", backgroundImage: appBg(theme) } as any}>
+    <div style={{ ...cmsVars(theme), height: "100%", minHeight: 0, borderRadius: R.x3, border: "1px solid var(--hc-border)", overflow: "hidden", display: "flex", flexDirection: "column", color: "var(--hc-fg)", backgroundColor: "var(--hc-bg)", backgroundImage: appBg(theme) } as any}>
       {/* Header */}
       <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 18px", borderBottom: "1px solid var(--hc-border)" }}>
         <span style={{ display: "inline-flex", alignItems: "center", gap: 9, padding: "6px 12px", borderRadius: R.full, background: "var(--hc-primary-10)", color: "var(--hc-primary)", fontWeight: 700, ...TYPE.sm }}><LayersIcon size={15} color="var(--hc-primary)" /> Component Studio</span>

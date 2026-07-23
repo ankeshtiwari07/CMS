@@ -101,7 +101,7 @@ export default function DataStudio({ initialCollection }: { initialCollection: s
   const btn = (p?: boolean, dis?: boolean): React.CSSProperties => ({ padding: "7px 13px", borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: dis ? "default" : "pointer", border: p ? "none" : `1px solid ${LINE}`, background: p ? TEAL : "var(--card)", color: p ? "var(--primary-foreground)" : INK, opacity: dis ? 0.5 : 1 });
 
   return (
-    <div style={{ background: "var(--card)", borderRadius: 16, minHeight: "calc(100vh - 20px)", display: "flex", fontFamily: "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif", color: INK, overflow: "hidden" }}>
+    <div style={{ background: "var(--card)", borderRadius: 16, minHeight: "100%", display: "flex", fontFamily: "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif", color: INK, overflow: "hidden" }}>
       {/* collection rail */}
       <div style={{ width: 220, borderInlineEnd: `1px solid ${LINE}`, padding: "18px 12px", overflowY: "auto", flexShrink: 0 }}>
         <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: ".1em", color: TEAL, textTransform: "uppercase", padding: "0 6px 8px" }}>CMS Data</div>

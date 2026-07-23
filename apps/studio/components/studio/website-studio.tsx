@@ -138,7 +138,7 @@ export default function WebsiteStudio({ siteId }: { siteId: string | null }) {
     } catch (e: any) { flash(e.message); } finally { setBusy(""); }
   };
 
-  const shell: React.CSSProperties = { background: "var(--card)", borderRadius: 14, minHeight: "calc(100vh - 20px)", padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,.06)" };
+  const shell: React.CSSProperties = { background: "var(--card)", borderRadius: 14, minHeight: "100%", padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,.06)" };
   const btn = (x?: React.CSSProperties): React.CSSProperties => ({ padding: "9px 14px", borderRadius: 9, border: "1px solid var(--hairline)", background: "var(--card)", cursor: "pointer", fontSize: 13, fontWeight: 600, color: "var(--ink)", ...x });
   const primaryBtn = btn({ background: "var(--studio-teal-dark)", color: "var(--primary-foreground)", border: "none" });
 

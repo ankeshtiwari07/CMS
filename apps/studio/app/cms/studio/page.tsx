@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/payload";
-import Sidebar from "@/components/studio/sidebar";
+import { CmsPanel } from "@/components/cms/cms-app-shell";
 import CmsWorkspace from "@/components/cms/cms-workspace";
 import type { Tier } from "@/components/cms/cms-preview";
 
@@ -28,16 +28,13 @@ export default async function CmsStudioPage() {
   const canPublish = roles.some((r) => ["publisher", "siteAdmin", "admin"].includes(r));
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", background: "var(--shell-bg)" }}>
-      <Sidebar user={{ name: user.name, email: user.email, roles }} active="cms" />
-      <main style={{ flex: 1, padding: "10px 10px 10px 0" }}>
-        <CmsWorkspace
-          user={{ name: user.name, email: user.email, roles }}
-          canEdit={canEdit}
-          canPublish={canPublish}
-          tier={tier}
-        />
-      </main>
-    </div>
+    <CmsPanel label="Studio">
+      <CmsWorkspace
+        user={{ name: user.name, email: user.email, roles }}
+        canEdit={canEdit}
+        canPublish={canPublish}
+        tier={tier}
+      />
+    </CmsPanel>
   );
 }

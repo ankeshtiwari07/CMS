@@ -68,7 +68,7 @@ export default function DamStudio() {
   const card: React.CSSProperties = { border: `1px solid ${LINE}`, borderRadius: 14, background: "var(--card)" };
 
   return (
-    <div style={{ background: "var(--card)", borderRadius: 16, minHeight: "calc(100vh - 20px)", padding: "22px 26px", fontFamily: "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif", color: INK }}>
+    <div style={{ background: "var(--card)", borderRadius: 16, minHeight: "100%", padding: "22px 26px", fontFamily: "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif", color: INK }}>
       <div style={{ display: "flex", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
         <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: ".12em", color: TEAL, textTransform: "uppercase" }}>Digital Asset Management</div>
         <span style={{ fontSize: 12, fontWeight: 700, color: "var(--success)", background: "color-mix(in srgb, var(--success) 12%, var(--background))", border: `1px solid ${LINE}`, padding: "3px 9px", borderRadius: 999 }}>

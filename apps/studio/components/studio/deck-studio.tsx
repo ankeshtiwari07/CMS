@@ -391,7 +391,7 @@ export default function DeckStudio({ deckId, userName }: { deckId: string | null
       { rot: 13, x: 150, content: emailMock },
     ];
     return (
-      <div style={{ ...pane, height: "calc(100vh - 20px)", position: "relative" }}>
+      <div style={{ ...pane, height: "100%", minHeight: 0, position: "relative" }}>
         {notice && <div style={{ position: "fixed", top: 16, right: 16, background: "var(--studio-primary)", color: "var(--primary-foreground)", padding: "8px 14px", borderRadius: 8, zIndex: 60 }}>{notice}</div>}
         <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24 }}>
           {/* fanned deck previews */}
@@ -431,7 +431,7 @@ export default function DeckStudio({ deckId, userName }: { deckId: string | null
   }
 
   return (
-    <div style={{ display: "flex", gap: 12, height: "calc(100vh - 20px)" }}>
+    <div style={{ display: "flex", gap: 12, height: "100%", minHeight: 0 }}>
       {notice && <div style={{ position: "fixed", top: 16, right: 16, background: "var(--studio-primary)", color: "var(--primary-foreground)", padding: "8px 14px", borderRadius: 8, zIndex: 60 }}>{notice}</div>}
 
       {/* ---------------- LEFT: chat ---------------- */}

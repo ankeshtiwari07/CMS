@@ -9,7 +9,7 @@ export default function AdminFrame({ src, title }: { src: string; title: string 
   return (
     <div
       style={{
-        height: "calc(100vh - 20px)",
+        height: "100%", minHeight: 0,
         borderRadius: 22,
         overflow: "hidden",
         border: "1px solid var(--hairline)",

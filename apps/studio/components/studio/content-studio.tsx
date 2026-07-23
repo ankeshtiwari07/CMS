@@ -90,7 +90,7 @@ export default function ContentStudio({ projectId }: { projectId: string | null 
     try { const r = await fetch("/api/article/save", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: savedId, title, subtitle, prompt, sections }) }); const j = await r.json(); if (!r.ok) throw new Error(j.error || "Save failed"); setSavedId(j.id); flash("Saved to Projects"); } catch (e: any) { flash(e.message); } finally { setBusy(""); }
   };
 
-  const shell: React.CSSProperties = { background: "var(--card)", borderRadius: 14, minHeight: "calc(100vh - 20px)", padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,.06)" };
+  const shell: React.CSSProperties = { background: "var(--card)", borderRadius: 14, minHeight: "100%", padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,.06)" };
   const btn = (x?: React.CSSProperties): React.CSSProperties => ({ padding: "8px 13px", borderRadius: 9, border: "1px solid var(--hairline)", background: "var(--card-bg,#fff)", cursor: "pointer", fontSize: 13, fontWeight: 600, color: "var(--ink)", ...x });
   const primaryBtn = btn({ background: "var(--studio-primary)", color: "var(--primary-foreground)", border: "none" });
 

@@ -199,7 +199,7 @@ export default function CmsWorkspace({
   );
 
   return (
-    <div style={{ ...cmsVars(theme), height: "calc(100vh - 20px)", borderRadius: R.x3, border: "1px solid var(--hc-border)", overflow: "hidden", display: "flex", color: "var(--hc-fg)", backgroundColor: "var(--hc-bg)", backgroundImage: appBg(theme) } as any}>
+    <div style={{ ...cmsVars(theme), height: "100%", minHeight: 0, borderRadius: R.x3, border: "1px solid var(--hc-border)", overflow: "hidden", display: "flex", color: "var(--hc-fg)", backgroundColor: "var(--hc-bg)", backgroundImage: appBg(theme) } as any}>
       {/* LEFT — CMS Agent conversation */}
       <section style={{ width: started ? 440 : "100%", flexShrink: 0, display: "flex", flexDirection: "column", padding: started ? "16px 16px 16px 20px" : "0 24px", minWidth: 0 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: started ? "2px 2px 14px" : "20px 2px 0" }}>

@@ -69,7 +69,7 @@ export default function GovernanceStudio() {
   });
 
   return (
-    <div style={{ background: "var(--card)", borderRadius: 16, minHeight: "calc(100vh - 20px)", padding: "22px 26px", fontFamily: "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif", color: INK }}>
+    <div style={{ background: "var(--card)", borderRadius: 16, minHeight: "100%", padding: "22px 26px", fontFamily: "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif", color: INK }}>
       <div style={{ display: "flex", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
         <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: ".12em", color: TEAL, textTransform: "uppercase" }}>Governance Agent</div>
         {profile && (

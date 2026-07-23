@@ -71,7 +71,7 @@ export default function PageStudio() {
   const btn = (p?: boolean, dis?: boolean): React.CSSProperties => ({ padding: "8px 13px", borderRadius: 9, fontWeight: 700, fontSize: 13, cursor: dis ? "default" : "pointer", border: p ? "none" : `1px solid ${LINE}`, background: p ? TEAL : "var(--card)", color: p ? "var(--primary-foreground)" : INK, opacity: dis ? 0.55 : 1 });
 
   return (
-    <div style={{ background: "var(--card)", borderRadius: 16, minHeight: "calc(100vh - 20px)", padding: "22px 26px", fontFamily: "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif", color: INK }}>
+    <div style={{ background: "var(--card)", borderRadius: 16, minHeight: "100%", padding: "22px 26px", fontFamily: "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif", color: INK }}>
       <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: ".12em", color: TEAL, textTransform: "uppercase" }}>Pages · Blogs · Posts</div>
       <h1 style={{ margin: "6px 0 4px", fontSize: 26, letterSpacing: "-.01em" }}>Library Page Builder</h1>
       <p style={{ color: MUT, margin: 0, maxWidth: "72ch", fontSize: 14.5 }}>Generate a page, blog or post <b>composed from your component library</b> — the builder reuses live components and delegates any gaps to the Component Agent. Then reorder, edit, add or remove blocks (full CRUD) and publish through the approval flow.</p>

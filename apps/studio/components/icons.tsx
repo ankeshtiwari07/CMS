@@ -251,7 +251,7 @@ export const GalleryIcon = ({ size, color, stroke }: P) => (
     <path d="m4 17 5-5 4 3.5L17 12l3 3" />
   </svg>
 );
-export const StarIcon = ({ size = 14, color = "#0b1416" }: P) => (
+export const StarIcon = ({ size = 14, color = "var(--background)" }: P) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill={color}>
     <path d="m12 2 2.9 6.1 6.6.9-4.8 4.6 1.2 6.6L12 17.8 6.1 20.2l1.2-6.6L2.5 9l6.6-.9z" />
   </svg>

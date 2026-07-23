@@ -118,28 +118,28 @@ export default function BrandStudio({ archetypes, mine }: { archetypes: Guidelin
         </div>
         {tab === "recommend" ? (
           <div style={{ display: "grid", gap: 10 }}>
-            <p style={{ fontSize: 13, color: "var(--muted)", margin: 0 }}>Describe your brand — the AI recommends a full guideline you can review, edit, publish or download.</p>
+            <p style={{ fontSize: 13, color: "var(--text-muted)", margin: 0 }}>Describe your brand — the AI recommends a full guideline you can review, edit, publish or download.</p>
             <input placeholder="Industry (fintech, telecom, healthcare…)" value={brief.industry} onChange={(e) => setBrief({ ...brief, industry: e.target.value })} style={field} />
             <input placeholder="Target audience" value={brief.audience} onChange={(e) => setBrief({ ...brief, audience: e.target.value })} style={field} />
             <input placeholder="Desired tone (bold, trustworthy, premium…)" value={brief.tone} onChange={(e) => setBrief({ ...brief, tone: e.target.value })} style={field} />
             <textarea placeholder="Anything else? (values, competitors, must-haves)" value={brief.notes} onChange={(e) => setBrief({ ...brief, notes: e.target.value })} rows={3} style={{ ...field, resize: "vertical" }} />
             <button onClick={recommend} disabled={busy} style={{ ...primary, justifyContent: "center", height: 42 }}>
-              <SparkIcon size={16} color="#fff" /> {busy ? "Recommending…" : "Recommend brand guideline"}
+              <SparkIcon size={16} color="var(--primary-foreground)" /> {busy ? "Recommending…" : "Recommend brand guideline"}
             </button>
-            {err && <div style={{ color: "#b42318", fontSize: 13 }}>{err}</div>}
+            {err && <div style={{ color: "var(--destructive)", fontSize: 13 }}>{err}</div>}
           </div>
         ) : (
           <div style={{ display: "grid", gap: 14 }}>
             <div>
-              <div style={{ fontSize: 12, color: "var(--muted)", fontWeight: 600, marginBottom: 6 }}>YOUR GUIDELINES</div>
+              <div style={{ fontSize: 12, color: "var(--text-muted)", fontWeight: 600, marginBottom: 6 }}>YOUR GUIDELINES</div>
               {mine.length ? mine.map((m) => (
                 <button key={String(m.id)} onClick={() => view(m)} style={{ ...rowBtn, ...(g?.id === m.id ? rowOn : {}) }}>
                   {m.name}{m.isActive && <span style={activeTag}>ACTIVE</span>}
                 </button>
-              )) : <div style={{ fontSize: 13, color: "var(--muted)" }}>None yet — recommend one.</div>}
+              )) : <div style={{ fontSize: 13, color: "var(--text-muted)" }}>None yet — recommend one.</div>}
             </div>
             <div>
-              <div style={{ fontSize: 12, color: "var(--muted)", fontWeight: 600, marginBottom: 6 }}>ARCHETYPE LIBRARY</div>
+              <div style={{ fontSize: 12, color: "var(--text-muted)", fontWeight: 600, marginBottom: 6 }}>ARCHETYPE LIBRARY</div>
               {archetypes.map((a) => (
                 <button key={String(a.id)} onClick={() => view(a)} style={{ ...rowBtn, ...(g?.id === a.id ? rowOn : {}) }}>{a.name}</button>
               ))}
@@ -151,7 +151,7 @@ export default function BrandStudio({ archetypes, mine }: { archetypes: Guidelin
       {/* RIGHT: the viewable / verifiable guideline */}
       <div style={card}>
         {!g ? (
-          <div style={{ textAlign: "center", color: "var(--muted)", fontSize: 14, padding: "60px 0", border: "1.5px dashed var(--hairline)", borderRadius: 12 }}>
+          <div style={{ textAlign: "center", color: "var(--text-muted)", fontSize: 14, padding: "60px 0", border: "1.5px dashed var(--hairline)", borderRadius: 12 }}>
             <SparkIcon size={26} /><div style={{ marginTop: 10 }}>Recommend a brand guideline, or open one from the library, to review it here.</div>
           </div>
         ) : (
@@ -174,7 +174,7 @@ export default function BrandStudio({ archetypes, mine }: { archetypes: Guidelin
               </div>
             </div>
             {pub.s === "ok" && <div style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--studio-teal-dark)", fontSize: 13.5, fontWeight: 600, marginBottom: 12 }}><CheckIcon size={15} /> {pub.m}</div>}
-            {pub.s === "err" && <div style={{ color: "#b42318", fontSize: 13.5, marginBottom: 12 }}>⚠ {pub.m}</div>}
+            {pub.s === "err" && <div style={{ color: "var(--destructive)", fontSize: 13.5, marginBottom: 12 }}>⚠ {pub.m}</div>}
 
             {/* title + summary */}
             {editing ? (
@@ -184,7 +184,7 @@ export default function BrandStudio({ archetypes, mine }: { archetypes: Guidelin
             )}
             {editing ? (
               <textarea value={g.summary || ""} onChange={(e) => setG({ ...g, summary: e.target.value })} rows={2} style={{ ...field, marginBottom: 18, resize: "vertical" }} />
-            ) : (g.summary && <p style={{ color: "var(--muted)", fontSize: 14.5, margin: "0 0 18px" }}>{g.summary}</p>)}
+            ) : (g.summary && <p style={{ color: "var(--text-muted)", fontSize: 14.5, margin: "0 0 18px" }}>{g.summary}</p>)}
 
             {/* palette */}
             {pal(g).length > 0 && (
@@ -195,8 +195,8 @@ export default function BrandStudio({ archetypes, mine }: { archetypes: Guidelin
                     <div key={i} style={{ textAlign: "center" }}>
                       <div style={{ width: 72, height: 72, borderRadius: 14, background: c.hex, border: "1px solid rgba(0,0,0,0.08)", boxShadow: "var(--shadow-card)" }} />
                       <div style={{ fontSize: 12.5, fontWeight: 700, marginTop: 6 }}>{c.name}</div>
-                      <div style={{ fontSize: 11.5, color: "var(--muted)", fontVariantNumeric: "tabular-nums" }}>{c.hex}</div>
-                      {c.usage && <div style={{ fontSize: 11, color: "var(--muted)" }}>{c.usage}</div>}
+                      <div style={{ fontSize: 11.5, color: "var(--text-muted)", fontVariantNumeric: "tabular-nums" }}>{c.hex}</div>
+                      {c.usage && <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{c.usage}</div>}
                     </div>
                   ))}
                 </div>
@@ -211,7 +211,7 @@ export default function BrandStudio({ archetypes, mine }: { archetypes: Guidelin
                     <>
                       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
                         <input value={s.title} onChange={(e) => patchSection(s.id, "title", e.target.value)} style={{ ...field, fontWeight: 700, fontSize: 15 }} />
-                        <button onClick={() => setG({ ...g, sections: secs(g).filter((x) => x.id !== s.id) })} title="Remove" style={{ ...ghost, color: "#b42318" }}><TrashIcon size={14} /></button>
+                        <button onClick={() => setG({ ...g, sections: secs(g).filter((x) => x.id !== s.id) })} title="Remove" style={{ ...ghost, color: "var(--destructive)" }}><TrashIcon size={14} /></button>
                       </div>
                       <textarea value={s.content} onChange={(e) => patchSection(s.id, "content", e.target.value)} rows={5} style={{ ...field, resize: "vertical", lineHeight: 1.6 }} />
                     </>
@@ -236,12 +236,12 @@ export default function BrandStudio({ archetypes, mine }: { archetypes: Guidelin
   );
 }
 
-const card: React.CSSProperties = { background: "#fff", border: "1px solid var(--hairline)", borderRadius: 16, padding: 18 };
-const field: React.CSSProperties = { width: "100%", border: "1px solid var(--hairline)", borderRadius: 10, padding: "9px 11px", fontSize: 13.5, color: "var(--ink)", outline: "none", background: "#fff" };
+const card: React.CSSProperties = { background: "var(--card)", border: "1px solid var(--hairline)", borderRadius: 16, padding: 18 };
+const field: React.CSSProperties = { width: "100%", border: "1px solid var(--hairline)", borderRadius: 10, padding: "9px 11px", fontSize: 13.5, color: "var(--ink)", outline: "none", background: "var(--card)" };
 const sectionH: React.CSSProperties = { fontSize: 16, fontWeight: 700, color: "var(--studio-teal-dark)", margin: "0 0 6px", paddingBottom: 4, borderBottom: "2px solid var(--mint-pill)" };
-const pill = (a: boolean): React.CSSProperties => ({ display: "inline-flex", alignItems: "center", gap: 6, height: 34, padding: "0 14px", borderRadius: 999, border: "none", fontWeight: 600, fontSize: 13.5, cursor: "pointer", background: a ? "var(--studio-primary)" : "var(--mint-pill)", color: a ? "#fff" : "var(--studio-teal-dark)" });
-const primary: React.CSSProperties = { display: "inline-flex", alignItems: "center", gap: 6, height: 34, padding: "0 16px", borderRadius: 10, border: "none", background: "var(--studio-primary)", color: "#fff", fontSize: 13.5, fontWeight: 700, cursor: "pointer" };
-const ghost: React.CSSProperties = { height: 34, padding: "0 12px", borderRadius: 10, border: "1px solid var(--hairline)", background: "#fff", color: "var(--ink)", fontSize: 13, fontWeight: 600, cursor: "pointer" };
-const rowBtn: React.CSSProperties = { display: "flex", alignItems: "center", gap: 8, width: "100%", textAlign: "left", padding: "9px 11px", borderRadius: 10, border: "1px solid var(--hairline)", background: "#fff", color: "var(--ink)", fontSize: 13.5, fontWeight: 600, cursor: "pointer", marginBottom: 6 };
+const pill = (a: boolean): React.CSSProperties => ({ display: "inline-flex", alignItems: "center", gap: 6, height: 34, padding: "0 14px", borderRadius: 999, border: "none", fontWeight: 600, fontSize: 13.5, cursor: "pointer", background: a ? "var(--studio-primary)" : "var(--mint-pill)", color: a ? "var(--primary-foreground)" : "var(--studio-teal-dark)" });
+const primary: React.CSSProperties = { display: "inline-flex", alignItems: "center", gap: 6, height: 34, padding: "0 16px", borderRadius: 10, border: "none", background: "var(--studio-primary)", color: "var(--primary-foreground)", fontSize: 13.5, fontWeight: 700, cursor: "pointer" };
+const ghost: React.CSSProperties = { height: 34, padding: "0 12px", borderRadius: 10, border: "1px solid var(--hairline)", background: "var(--card)", color: "var(--ink)", fontSize: 13, fontWeight: 600, cursor: "pointer" };
+const rowBtn: React.CSSProperties = { display: "flex", alignItems: "center", gap: 8, width: "100%", textAlign: "left", padding: "9px 11px", borderRadius: 10, border: "1px solid var(--hairline)", background: "var(--card)", color: "var(--ink)", fontSize: 13.5, fontWeight: 600, cursor: "pointer", marginBottom: 6 };
 const rowOn: React.CSSProperties = { border: "1px solid var(--studio-primary)", background: "var(--mint-pill)", color: "var(--studio-teal-dark)" };
-const activeTag: React.CSSProperties = { marginLeft: "auto", fontSize: 10, fontWeight: 800, letterSpacing: "0.06em", color: "#fff", background: "var(--studio-primary)", padding: "2px 7px", borderRadius: 999 };
+const activeTag: React.CSSProperties = { marginLeft: "auto", fontSize: 10, fontWeight: 800, letterSpacing: "0.06em", color: "var(--primary-foreground)", background: "var(--studio-primary)", padding: "2px 7px", borderRadius: 999 };

@@ -8,10 +8,10 @@ export default async function SettingsLayout({ children }: { children: React.Rea
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   return (
-    <div style={{ display: "flex", minHeight: "100vh", background: "#eef4f3" }}>
+    <div style={{ display: "flex", minHeight: "100vh", background: "var(--shell-bg)" }}>
       <Sidebar user={{ name: user.name, email: user.email, roles: user.roles }} active="settings" />
       <main style={{ flex: 1, padding: "10px 10px 10px 0" }}>
-        <div style={{ minHeight: "calc(100vh - 20px)", borderRadius: 22, background: "#fff", border: "1px solid var(--hairline)", padding: "36px 40px" }}>
+        <div style={{ minHeight: "calc(100vh - 20px)", borderRadius: 22, background: "var(--card)", border: "1px solid var(--hairline)", padding: "36px 40px" }}>
           <h1 style={{ fontSize: 24, fontWeight: 700, color: "var(--ink)", margin: "0 0 18px" }}>Settings</h1>
           {children}
         </div>

@@ -30,7 +30,7 @@ export default function QuickCreate() {
     <div style={{ maxWidth: 1080, margin: "56px auto 0", padding: "0 8px" }}>
       <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
         <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--ink)", margin: 0 }}>{t("home.quickcreate")}</h2>
-        <a href="/studio?panel=explore" style={{ fontSize: 14, color: "var(--muted)", textDecoration: "none" }}>
+        <a href="/studio?panel=explore" style={{ fontSize: 14, color: "var(--text-muted)", textDecoration: "none" }}>
           {t("home.explore")}
         </a>
       </div>
@@ -56,7 +56,7 @@ export default function QuickCreate() {
                 borderRadius: "var(--r-card)",
                 border: "1px solid var(--hairline)",
                 padding: 0,
-                background: "#fff",
+                background: "var(--card)",
                 color: "var(--ink)",
                 overflow: "hidden",
                 transform: on ? "translateY(-2px)" : "none",
@@ -81,7 +81,7 @@ export default function QuickCreate() {
                   style={{
                     position: "absolute", top: 9, right: 10, width: 30, height: 30, borderRadius: "50%",
                     background: on ? "var(--studio-primary)" : "rgba(255,255,255,0.9)",
-                    color: on ? "#fff" : "var(--ink)", display: "grid", placeItems: "center",
+                    color: on ? "var(--primary-foreground)" : "var(--ink)", display: "grid", placeItems: "center",
                     boxShadow: "0 1px 3px rgba(0,0,0,0.15)", transition: "all .15s",
                   }}
                 >
@@ -91,7 +91,7 @@ export default function QuickCreate() {
               {/* footer */}
               <div style={{ padding: "12px 14px 14px", borderTop: "1px solid var(--hairline)" }}>
                 <div style={{ fontSize: 16, fontWeight: 700 }}>{t(`qc.${c.k}.t`)}</div>
-                <div style={{ fontSize: 12.5, color: "var(--muted)", marginTop: 2 }}>{t(`qc.${c.k}.s`)}</div>
+                <div style={{ fontSize: 12.5, color: "var(--text-muted)", marginTop: 2 }}>{t(`qc.${c.k}.s`)}</div>
               </div>
             </button>
           );

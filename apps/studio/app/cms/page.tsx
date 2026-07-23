@@ -11,7 +11,7 @@ const CMS_BG = [
   "linear-gradient(115deg, transparent 46%, rgba(17,81,90,0.55) 58%, transparent 60%)",
   "linear-gradient(115deg, transparent 54%, rgba(120,170,120,0.30) 66%, transparent 70%)",
   "linear-gradient(115deg, transparent 62%, rgba(194,229,75,0.18) 74%, transparent 80%)",
-  "linear-gradient(180deg, #0e2a2e 0%, #0b1416 42%)",
+  "linear-gradient(180deg, var(--deep-teal) 0%, var(--background) 42%)",
 ].join(",");
 
 export default async function CmsPage() {

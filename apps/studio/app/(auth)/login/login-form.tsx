@@ -44,13 +44,13 @@ export default function LoginForm() {
     fontSize: 15,
     outline: "none",
     color: "var(--ink)",
-    background: "#fff",
+    background: "var(--card)",
   };
 
   return (
     <form onSubmit={onSubmit} style={{ display: "grid", gap: 16, marginTop: 28 }}>
       <label style={{ display: "grid", gap: 7 }}>
-        <span style={{ fontSize: 13, fontWeight: 600, color: "var(--label, #0e4049)" }}>Email</span>
+        <span style={{ fontSize: 13, fontWeight: 600, color: "var(--label)" }}>Email</span>
         <input
           type="email"
           autoComplete="username"
@@ -64,7 +64,7 @@ export default function LoginForm() {
         />
       </label>
       <label style={{ display: "grid", gap: 7 }}>
-        <span style={{ fontSize: 13, fontWeight: 600, color: "var(--label, #0e4049)" }}>Password</span>
+        <span style={{ fontSize: 13, fontWeight: 600, color: "var(--label)" }}>Password</span>
         <input
           type="password"
           autoComplete="current-password"
@@ -82,9 +82,9 @@ export default function LoginForm() {
         <div
           role="alert"
           style={{
-            background: "#fdecec",
-            color: "#b42318",
-            border: "1px solid #f5c2c0",
+            background: "color-mix(in srgb, var(--destructive) 10%, var(--background))",
+            color: "var(--destructive)",
+            border: "1px solid color-mix(in srgb, var(--destructive) 30%, var(--background))",
             borderRadius: 10,
             padding: "10px 12px",
             fontSize: 13.5,
@@ -103,7 +103,7 @@ export default function LoginForm() {
           border: "none",
           borderRadius: "var(--r-pill)",
           background: busy ? "var(--studio-teal-dark)" : "var(--studio-primary)",
-          color: "#fff",
+          color: "var(--primary-foreground)",
           fontWeight: 700,
           fontSize: 15.5,
           letterSpacing: "0.01em",

@@ -529,7 +529,7 @@ export default function PromptBox({ onActive, onArtifact, seedPrompt }: {
   const chip = (active: boolean, extra: React.CSSProperties = {}): React.CSSProperties => ({
     display: "inline-flex", alignItems: "center", gap: 6, height: 34, padding: "0 13px",
     borderRadius: 999, border: `1px solid ${active ? "var(--studio-primary)" : "var(--hairline)"}`,
-    background: active ? "var(--mint-pill)" : "#fff", color: active ? "var(--studio-teal-dark)" : "var(--ink)",
+    background: active ? "var(--mint-pill)" : "var(--card)", color: active ? "var(--studio-teal-dark)" : "var(--ink)",
     fontSize: 13.5, fontWeight: 600, cursor: "pointer", position: "relative", ...extra,
   });
   const menuWrap: React.CSSProperties = {
@@ -559,9 +559,9 @@ export default function PromptBox({ onActive, onArtifact, seedPrompt }: {
                 </span>
                 <span style={{ flex: 1, minWidth: 0 }}>
                   <span style={{ display: "block", fontSize: 13.5, fontWeight: 600, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.name}</span>
-                  <span style={{ fontSize: 12, color: "var(--muted)" }}>{fmtSize(f.size)} · 100% uploaded</span>
+                  <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{fmtSize(f.size)} · 100% uploaded</span>
                 </span>
-                <button aria-label="Remove" onClick={() => setFiles((p) => p.filter((_, j) => j !== i))} style={{ border: "none", background: "transparent", color: "var(--muted)" }}>
+                <button aria-label="Remove" onClick={() => setFiles((p) => p.filter((_, j) => j !== i))} style={{ border: "none", background: "transparent", color: "var(--text-muted)" }}>
                   <XIcon size={16} />
                 </button>
               </div>
@@ -589,22 +589,22 @@ export default function PromptBox({ onActive, onArtifact, seedPrompt }: {
             </button>
             {open === "plus" && (
               <div style={{ ...menuWrap, top: 38, left: 0, maxHeight: 360, overflow: "auto" }}>
-                <button style={item} onClick={() => { fileRef.current?.click(); setOpen(null); }}><PaperclipIcon size={17} color="var(--muted)" /> Add photos &amp; files</button>
-                <button style={item} onClick={() => globalThis.dispatchEvent(new CustomEvent("humain:recent"))}><ClockIcon size={17} color="var(--muted)" /> Recent projects</button>
+                <button style={item} onClick={() => { fileRef.current?.click(); setOpen(null); }}><PaperclipIcon size={17} color="var(--text-muted)" /> Add photos &amp; files</button>
+                <button style={item} onClick={() => globalThis.dispatchEvent(new CustomEvent("humain:recent"))}><ClockIcon size={17} color="var(--text-muted)" /> Recent projects</button>
                 <div style={{ height: 1, background: "var(--hairline)", margin: "4px 0" }} />
-                <button style={item} onClick={() => openStudio("/cms/deck")}><MonitorIcon size={17} color="var(--muted)" /> Create Deck</button>
-                <button style={item} onClick={() => { setMode("image"); setOpen(null); }}><ImageIcon size={17} color="var(--muted)" /> Create Image</button>
-                <button style={item} onClick={() => { setMode("video"); setOpen(null); }}><VideoIcon size={17} color="var(--muted)" /> Create Video</button>
-                <button style={item} onClick={() => openStudio("/cms/website")}><CodeIcon size={17} color="var(--muted)" /> Build Website</button>
-                <button style={item} onClick={() => { setMode("website"); setOpen(null); }}><GlobeIcon size={17} color="var(--muted)" /> Website Copy</button>
-                <button style={item} onClick={() => { setMode("email"); setOpen(null); }}><MailIcon size={17} color="var(--muted)" /> Create Email</button>
-                <button style={item} onClick={() => { setMode("event"); setOpen(null); }}><CalendarIcon size={17} color="var(--muted)" /> Create Event</button>
-                <button style={item} onClick={() => { setMode("webinar"); setOpen(null); }}><MonitorIcon size={17} color="var(--muted)" /> Create Webinar</button>
-                <button style={item} onClick={() => { setMode("campaign"); setOpen(null); }}><MegaphoneIcon size={17} color="var(--muted)" /> Build Campaign</button>
-                <button style={item} onClick={() => { setMode("brandGuideline"); setOpen(null); }}><BookmarkIcon size={17} color="var(--muted)" /> Brand Guideline</button>
-                <button style={item} onClick={() => { globalThis.dispatchEvent(new CustomEvent("humain:prefill", { detail: { mode: "auto" } })); setOpen(null); }}><GridIcon size={17} color="var(--muted)" /> Use template</button>
-                <button style={item} onClick={() => { setMode("designSystem"); setOpen(null); }}><PaletteIcon size={17} color="var(--muted)" /> Design System</button>
-                <button style={item} onClick={() => { setMode("translation"); setOpen(null); }}><TranslateIcon size={17} color="var(--muted)" /> Translate</button>
+                <button style={item} onClick={() => openStudio("/cms/deck")}><MonitorIcon size={17} color="var(--text-muted)" /> Create Deck</button>
+                <button style={item} onClick={() => { setMode("image"); setOpen(null); }}><ImageIcon size={17} color="var(--text-muted)" /> Create Image</button>
+                <button style={item} onClick={() => { setMode("video"); setOpen(null); }}><VideoIcon size={17} color="var(--text-muted)" /> Create Video</button>
+                <button style={item} onClick={() => openStudio("/cms/website")}><CodeIcon size={17} color="var(--text-muted)" /> Build Website</button>
+                <button style={item} onClick={() => { setMode("website"); setOpen(null); }}><GlobeIcon size={17} color="var(--text-muted)" /> Website Copy</button>
+                <button style={item} onClick={() => { setMode("email"); setOpen(null); }}><MailIcon size={17} color="var(--text-muted)" /> Create Email</button>
+                <button style={item} onClick={() => { setMode("event"); setOpen(null); }}><CalendarIcon size={17} color="var(--text-muted)" /> Create Event</button>
+                <button style={item} onClick={() => { setMode("webinar"); setOpen(null); }}><MonitorIcon size={17} color="var(--text-muted)" /> Create Webinar</button>
+                <button style={item} onClick={() => { setMode("campaign"); setOpen(null); }}><MegaphoneIcon size={17} color="var(--text-muted)" /> Build Campaign</button>
+                <button style={item} onClick={() => { setMode("brandGuideline"); setOpen(null); }}><BookmarkIcon size={17} color="var(--text-muted)" /> Brand Guideline</button>
+                <button style={item} onClick={() => { globalThis.dispatchEvent(new CustomEvent("humain:prefill", { detail: { mode: "auto" } })); setOpen(null); }}><GridIcon size={17} color="var(--text-muted)" /> Use template</button>
+                <button style={item} onClick={() => { setMode("designSystem"); setOpen(null); }}><PaletteIcon size={17} color="var(--text-muted)" /> Design System</button>
+                <button style={item} onClick={() => { setMode("translation"); setOpen(null); }}><TranslateIcon size={17} color="var(--text-muted)" /> Translate</button>
               </div>
             )}
           </div>
@@ -619,11 +619,11 @@ export default function PromptBox({ onActive, onArtifact, seedPrompt }: {
                 </span>
                 {open === "ratio" && (
                   <div style={{ ...menuWrap, top: 42, left: 0, minWidth: 200 }}>
-                    <div style={{ padding: "6px 10px", fontSize: 12, color: "var(--muted)", fontWeight: 600 }}>Choose image ratio</div>
+                    <div style={{ padding: "6px 10px", fontSize: 12, color: "var(--text-muted)", fontWeight: 600 }}>Choose image ratio</div>
                     {RATIOS.map((r) => (
                       <button key={r.key} style={item} onClick={() => { setRatio(r.key); setOpen(null); }}>
-                        <SquareIcon size={15} color="var(--muted)" /> {r.label}
-                        <span style={{ marginInlineStart: "auto", color: "var(--muted)", fontSize: 12 }}>{r.hint}</span>
+                        <SquareIcon size={15} color="var(--text-muted)" /> {r.label}
+                        <span style={{ marginInlineStart: "auto", color: "var(--text-muted)", fontSize: 12 }}>{r.hint}</span>
                         {ratio === r.key && <CheckIcon size={15} color="var(--studio-primary)" />}
                       </button>
                     ))}
@@ -634,7 +634,7 @@ export default function PromptBox({ onActive, onArtifact, seedPrompt }: {
                 <span style={chip(false)} onClick={() => setOpen(open === "style" ? null : "style")}><PaletteIcon size={16} /> Style</span>
                 {open === "style" && (
                   <div style={{ ...menuWrap, top: 42, left: 0 }}>
-                    <div style={{ padding: "6px 10px", fontSize: 12, color: "var(--muted)", fontWeight: 600 }}>Choose image style</div>
+                    <div style={{ padding: "6px 10px", fontSize: 12, color: "var(--text-muted)", fontWeight: 600 }}>Choose image style</div>
                     {STYLES.map((s) => (
                       <button key={s} style={{ ...item, justifyContent: "space-between" }} onClick={() => { setStyle(s); setOpen(null); }}>
                         <span>{s}</span>{style === s && <CheckIcon size={15} color="var(--studio-primary)" />}
@@ -643,7 +643,7 @@ export default function PromptBox({ onActive, onArtifact, seedPrompt }: {
                   </div>
                 )}
               </div>
-              <span style={{ ...chip(false), color: "var(--muted)", padding: "0 11px" }}><ImageIcon size={15} /> {files.length || 1}</span>
+              <span style={{ ...chip(false), color: "var(--text-muted)", padding: "0 11px" }}><ImageIcon size={15} /> {files.length || 1}</span>
             </>
           )}
           {mode === "deck" && (
@@ -672,7 +672,7 @@ export default function PromptBox({ onActive, onArtifact, seedPrompt }: {
             </button>
             {open === "model" && (
               <div style={{ ...menuWrap, top: 42, right: 0, minWidth: 248, maxHeight: 360, overflow: "auto" }}>
-                <div style={{ padding: "6px 10px", fontSize: 12, color: "var(--muted)", fontWeight: 600 }}>Choose a model</div>
+                <div style={{ padding: "6px 10px", fontSize: 12, color: "var(--text-muted)", fontWeight: 600 }}>Choose a model</div>
                 {models.map((m) => {
                   const active = m.id === modelId;
                   return (
@@ -684,12 +684,12 @@ export default function PromptBox({ onActive, onArtifact, seedPrompt }: {
                     >
                       <span style={{ display: "flex", flexDirection: "column", lineHeight: 1.25 }}>
                         <span style={{ fontWeight: 600 }}>{m.label}</span>
-                        <span style={{ fontSize: 11, color: "var(--muted)" }}>
+                        <span style={{ fontSize: 11, color: "var(--text-muted)" }}>
                           {m.family}{m.fast ? " · fast" : ""}{m.configured ? "" : " · key needed"}
                         </span>
                       </span>
                       {active ? <CheckIcon size={15} color="var(--studio-primary)" />
-                        : !m.configured ? <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#d1d5db" }} />
+                        : !m.configured ? <span style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--muted-foreground)" }} />
                         : <span style={{ width: 7, height: 7, borderRadius: "50%", background: "var(--studio-primary)" }} />}
                     </button>
                   );
@@ -703,9 +703,9 @@ export default function PromptBox({ onActive, onArtifact, seedPrompt }: {
             aria-label={busy ? t("prompt.stop") : hasText ? "Generate" : listening ? "Stop voice" : "Voice input"}
             title={busy ? t("prompt.stop") : undefined}
             onClick={busy ? stop : hasText ? generate : toggleMic}
-            style={{ width: 40, height: 40, borderRadius: "50%", border: "none", background: busy ? "var(--studio-teal-dark)" : listening ? "var(--studio-teal-dark)" : "var(--studio-primary)", color: "#fff", display: "grid", placeItems: "center", cursor: "pointer" }}
+            style={{ width: 40, height: 40, borderRadius: "50%", border: "none", background: busy ? "var(--studio-teal-dark)" : listening ? "var(--studio-teal-dark)" : "var(--studio-primary)", color: "var(--primary-foreground)", display: "grid", placeItems: "center", cursor: "pointer" }}
           >
-            {busy ? <SquareIcon size={15} color="#fff" /> : hasText ? <ArrowUpIcon size={19} color="#fff" /> : <MicIcon size={19} color="#fff" />}
+            {busy ? <SquareIcon size={15} color="var(--primary-foreground)" /> : hasText ? <ArrowUpIcon size={19} color="var(--primary-foreground)" /> : <MicIcon size={19} color="var(--primary-foreground)" />}
           </button>
         </div>
       </div>
@@ -715,11 +715,11 @@ export default function PromptBox({ onActive, onArtifact, seedPrompt }: {
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "center", marginTop: 14 }}>
         {/* Deck / Website open their dedicated builders (carry the typed prompt). */}
         <button onClick={() => openStudio("/cms/deck")}
-          style={{ display: "inline-flex", alignItems: "center", gap: 7, height: 38, padding: "0 16px", borderRadius: 999, cursor: "pointer", fontSize: 13.5, fontWeight: 700, border: "none", background: "var(--studio-primary)", color: "#fff" }}>
+          style={{ display: "inline-flex", alignItems: "center", gap: 7, height: 38, padding: "0 16px", borderRadius: 999, cursor: "pointer", fontSize: 13.5, fontWeight: 700, border: "none", background: "var(--studio-primary)", color: "var(--primary-foreground)" }}>
           <MonitorIcon size={16} /> Deck
         </button>
         <button onClick={() => openStudio("/cms/website")}
-          style={{ display: "inline-flex", alignItems: "center", gap: 7, height: 38, padding: "0 16px", borderRadius: 999, cursor: "pointer", fontSize: 13.5, fontWeight: 700, border: "none", background: "var(--studio-primary)", color: "#fff" }}>
+          style={{ display: "inline-flex", alignItems: "center", gap: 7, height: 38, padding: "0 16px", borderRadius: 999, cursor: "pointer", fontSize: 13.5, fontWeight: 700, border: "none", background: "var(--studio-primary)", color: "var(--primary-foreground)" }}>
           <CodeIcon size={16} /> Website
         </button>
         {QUICK_ACTIONS.map((a) => {
@@ -734,7 +734,7 @@ export default function PromptBox({ onActive, onArtifact, seedPrompt }: {
                 borderRadius: 999, cursor: "pointer", fontSize: 13.5, fontWeight: 600,
                 border: "1px solid transparent",
                 background: on ? "var(--studio-primary)" : "var(--mint-pill)",
-                color: on ? "#ffffff" : "var(--studio-teal-dark)",
+                color: on ? "var(--primary-foreground)" : "var(--studio-teal-dark)",
                 transition: "background .15s, color .15s",
               }}
             >
@@ -748,7 +748,7 @@ export default function PromptBox({ onActive, onArtifact, seedPrompt }: {
       {/* type-ahead suggestions */}
       {open === "suggest" && suggestions.length > 0 && !turns.length && (
         <div style={{ marginTop: 10, background: "var(--card-bg)", border: "1px solid var(--hairline)", borderRadius: 14, boxShadow: "var(--shadow-card)", padding: 10 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--muted)", fontSize: 13, padding: "4px 8px" }}><SparkIcon size={15} /> Suggestions</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, color: "var(--text-muted)", fontSize: 13, padding: "4px 8px" }}><SparkIcon size={15} /> Suggestions</div>
           {suggestions.map((s, i) => (
             <button key={i} onClick={() => {
               setOpen(null);
@@ -770,14 +770,14 @@ export default function PromptBox({ onActive, onArtifact, seedPrompt }: {
             t.role === "user" ? (
               <div key={i} style={{ alignSelf: "flex-end", maxWidth: "85%", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 3 }}>
                 <div style={{ background: "var(--mint-pill)", color: "var(--studio-teal-dark)", borderRadius: 14, padding: "10px 14px", fontSize: 14.5, lineHeight: 1.5, whiteSpace: "pre-wrap" }}>{t.text}</div>
-                <button onClick={() => editTurn(i)} disabled={busy} title="Edit this prompt" style={{ border: "none", background: "transparent", color: "var(--muted)", fontSize: 12, cursor: "pointer", padding: "0 4px" }}>✎ Edit</button>
+                <button onClick={() => editTurn(i)} disabled={busy} title="Edit this prompt" style={{ border: "none", background: "transparent", color: "var(--text-muted)", fontSize: 12, cursor: "pointer", padding: "0 4px" }}>✎ Edit</button>
               </div>
             ) : (
               <AssistantTurn key={i} t={t} paneled={!!onArtifact} onRegen={i === turns.length - 1 ? regenerate : undefined} />
             ),
           )}
           {busy && turns[turns.length - 1]?.role !== "assistant" && (
-            <div style={{ background: "#fff", border: "1px solid var(--hairline)", borderRadius: 18, padding: 18, display: "flex", alignItems: "center", gap: 12, color: "var(--studio-teal-dark)" }}>
+            <div style={{ background: "var(--card)", border: "1px solid var(--hairline)", borderRadius: 18, padding: 18, display: "flex", alignItems: "center", gap: 12, color: "var(--studio-teal-dark)" }}>
               <span className="humain-spin" style={{ width: 18, height: 18, border: "2.5px solid var(--mint-pill)", borderTopColor: "var(--studio-primary)", borderRadius: "50%", display: "inline-block" }} />
               <span style={{ fontWeight: 600 }}>{t("prompt.generating")} {current?.label ?? "Claude"}…</span>
               <style>{`@keyframes humain-spin{to{transform:rotate(360deg)}}.humain-spin{animation:humain-spin .7s linear infinite}`}</style>
@@ -813,11 +813,11 @@ function AssistantTurn({ t, onRegen, paneled }: { t: Turn; onRegen?: () => void;
       )}
 
       {t.html ? (
-        <iframe title="Website preview" srcDoc={t.text} style={{ width: "100%", height: 520, border: "1px solid var(--hairline)", borderRadius: 12, background: "#fff" }} />
+        <iframe title="Website preview" srcDoc={t.text} style={{ width: "100%", height: 520, border: "1px solid var(--hairline)", borderRadius: 12, background: "var(--card)" }} />
       ) : (
         <div style={{ color: "var(--ink)", lineHeight: 1.65, fontSize: 15 }}>
           {t.streaming && !t.text ? (
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 8, color: "var(--muted)" }}>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 8, color: "var(--text-muted)" }}>
               <span style={{ width: 15, height: 15, border: "2.5px solid var(--hairline)", borderTopColor: "var(--studio-primary)", borderRadius: "50%", display: "inline-block", animation: "humainspin .7s linear infinite" }} />
               {tr("prompt.thinking")}
               <style>{`@keyframes humainspin{to{transform:rotate(360deg)}}`}</style>
@@ -848,7 +848,7 @@ function AssistantTurn({ t, onRegen, paneled }: { t: Turn; onRegen?: () => void;
         <div style={{ display: "flex", alignItems: "center", gap: 2, marginTop: 8 }}>
           <button onClick={() => navigator.clipboard?.writeText(t.text || "")} title="Copy" style={actionBtn}>Copy</button>
           {onRegen && <button onClick={onRegen} title="Regenerate" style={actionBtn}>↻ Retry</button>}
-          <span style={{ fontSize: 11.5, color: "var(--muted)", marginLeft: 6 }}>{t.model ?? "Claude"}</span>
+          <span style={{ fontSize: 11.5, color: "var(--text-muted)", marginLeft: 6 }}>{t.model ?? "Claude"}</span>
         </div>
       )}
     </div>
@@ -856,7 +856,7 @@ function AssistantTurn({ t, onRegen, paneled }: { t: Turn; onRegen?: () => void;
 }
 
 const actionBtn: React.CSSProperties = {
-  border: "none", background: "transparent", color: "var(--muted)", cursor: "pointer",
+  border: "none", background: "transparent", color: "var(--text-muted)", cursor: "pointer",
   fontSize: 12.5, fontWeight: 600, padding: "4px 8px", borderRadius: 7,
 };
 
@@ -865,7 +865,7 @@ const badge: React.CSSProperties = {
   color: "var(--studio-teal-dark)", background: "var(--mint-pill)", padding: "4px 10px", borderRadius: 999,
 };
 const btnSm: React.CSSProperties = {
-  border: "1px solid var(--hairline)", background: "#fff", borderRadius: 8, padding: "5px 10px",
+  border: "1px solid var(--hairline)", background: "var(--card)", borderRadius: 8, padding: "5px 10px",
   fontSize: 12.5, color: "var(--ink)", cursor: "pointer",
 };
 
@@ -926,7 +926,7 @@ function DocCard({ doc }: { doc: DocArt }) {
         ) : (
           <div style={{ fontSize: 19, fontWeight: 700, color: "var(--ink)", marginBottom: 6 }}>{title}</div>
         )}
-        {doc.summary && !editing && <p style={{ color: "var(--muted)", fontSize: 13.5, margin: "0 0 10px" }}>{doc.summary}</p>}
+        {doc.summary && !editing && <p style={{ color: "var(--text-muted)", fontSize: 13.5, margin: "0 0 10px" }}>{doc.summary}</p>}
         {editing ? (
           <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={14}
             style={{ width: "100%", fontFamily: "var(--font-mono, monospace)", fontSize: 13.5, lineHeight: 1.6, border: "1px solid var(--hairline)", borderRadius: 8, padding: "10px 12px", resize: "vertical" }} />
@@ -945,15 +945,15 @@ function DocCard({ doc }: { doc: DocArt }) {
       <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderTop: "1px solid var(--hairline)", flexWrap: "wrap" }}>
         <span style={{ fontSize: 13, color: "var(--ink)", fontWeight: 600 }}>Publish to</span>
         <select value={dest} onChange={(e) => setDest(e.target.value)}
-          style={{ height: 34, borderRadius: 8, border: "1px solid var(--hairline)", padding: "0 10px", fontSize: 13.5, background: "#fff", color: "var(--ink)" }}>
+          style={{ height: 34, borderRadius: 8, border: "1px solid var(--hairline)", padding: "0 10px", fontSize: 13.5, background: "var(--card)", color: "var(--ink)" }}>
           {PUBLISH_TARGETS.map((t) => <option key={t.slug} value={t.slug}>{t.label}</option>)}
         </select>
         <button onClick={publish} disabled={pub.state === "busy"}
-          style={{ height: 34, padding: "0 16px", borderRadius: 8, border: "none", background: "var(--studio-primary)", color: "#fff", fontSize: 13.5, fontWeight: 700, cursor: pub.state === "busy" ? "default" : "pointer" }}>
+          style={{ height: 34, padding: "0 16px", borderRadius: 8, border: "none", background: "var(--studio-primary)", color: "var(--primary-foreground)", fontSize: 13.5, fontWeight: 700, cursor: pub.state === "busy" ? "default" : "pointer" }}>
           {pub.state === "busy" ? "Publishing…" : "Publish"}
         </button>
         {pub.state === "ok" && <span style={{ fontSize: 13, color: "var(--studio-teal-dark)", fontWeight: 600 }}>✓ {pub.msg}</span>}
-        {pub.state === "err" && <span style={{ fontSize: 13, color: "#c0392b" }}>⚠ {pub.msg}</span>}
+        {pub.state === "err" && <span style={{ fontSize: 13, color: "var(--destructive)" }}>⚠ {pub.msg}</span>}
       </div>
     </div>
   );
@@ -979,14 +979,14 @@ function SiteViewer({ html }: { html: string }) {
           <button onClick={download} style={btnSm}>Download</button>
         </span>
       </div>
-      <iframe title="Built site preview" srcDoc={html} style={{ width: "100%", height: 560, border: "none", background: "#fff", display: "block" }} />
+      <iframe title="Built site preview" srcDoc={html} style={{ width: "100%", height: 560, border: "none", background: "var(--card)", display: "block" }} />
     </div>
   );
 }
 
 const pubBtn: React.CSSProperties = {
   height: 34, padding: "0 16px", borderRadius: 8, border: "none",
-  background: "var(--studio-primary)", color: "#fff", fontSize: 13.5, fontWeight: 700, cursor: "pointer",
+  background: "var(--studio-primary)", color: "var(--primary-foreground)", fontSize: 13.5, fontWeight: 700, cursor: "pointer",
 };
 
 // Video package: the script/storyboard (rich) + a one-click real render.
@@ -1030,7 +1030,7 @@ function ImageRender({ prompt, ratio }: { prompt: string; ratio?: string }) {
           <a href={state.url} target="_blank" rel="noreferrer" style={{ ...btnSm, textDecoration: "none", display: "inline-block", marginTop: 8 }}>Open full size</a>
         </>
       ) : state.status === "failed" || state.status === "unconfigured" ? (
-        <div style={{ fontSize: 13, color: "var(--muted)", background: "var(--soft-bg)", border: "1px solid var(--hairline)", borderRadius: 10, padding: "10px 12px" }}>{state.message || "Image unavailable."}</div>
+        <div style={{ fontSize: 13, color: "var(--text-muted)", background: "var(--soft-bg)", border: "1px solid var(--hairline)", borderRadius: 10, padding: "10px 12px" }}>{state.message || "Image unavailable."}</div>
       ) : (
         <div style={{ display: "flex", alignItems: "center", gap: 10, color: "var(--studio-teal-dark)", fontSize: 13.5 }}>
           <span className="humain-spin" style={{ width: 16, height: 16, border: "2.5px solid var(--mint-pill)", borderTopColor: "var(--studio-primary)", borderRadius: "50%", display: "inline-block" }} />
@@ -1067,14 +1067,14 @@ function BrandArtifactCard({ brand }: { brand: any }) {
   return (
     <div style={{ marginTop: 14, border: "1px solid var(--hairline)", borderRadius: 12, padding: 16 }}>
       <div style={{ fontSize: 18, fontWeight: 800, marginBottom: brand.summary ? 4 : 10 }}>{brand.name}</div>
-      {brand.summary && <p style={{ color: "var(--muted)", fontSize: 13.5, margin: "0 0 12px" }}>{brand.summary}</p>}
+      {brand.summary && <p style={{ color: "var(--text-muted)", fontSize: 13.5, margin: "0 0 12px" }}>{brand.summary}</p>}
       {palette.length > 0 && (
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 14 }}>
           {palette.map((c: any, i: number) => (
             <div key={i} style={{ textAlign: "center" }}>
               <div style={{ width: 56, height: 56, borderRadius: 12, background: c.hex, border: "1px solid rgba(0,0,0,0.08)" }} />
               <div style={{ fontSize: 11.5, fontWeight: 700, marginTop: 5 }}>{c.name}</div>
-              <div style={{ fontSize: 11, color: "var(--muted)" }}>{c.hex}</div>
+              <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{c.hex}</div>
             </div>
           ))}
         </div>
@@ -1085,14 +1085,14 @@ function BrandArtifactCard({ brand }: { brand: any }) {
         ))}
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
-        <select value={dest} onChange={(e) => setDest(e.target.value as any)} style={{ height: 34, borderRadius: 8, border: "1px solid var(--hairline)", padding: "0 8px", fontSize: 13, background: "#fff" }}>
+        <select value={dest} onChange={(e) => setDest(e.target.value as any)} style={{ height: 34, borderRadius: 8, border: "1px solid var(--hairline)", padding: "0 8px", fontSize: 13, background: "var(--card)" }}>
           <option value="active">Active Brand (AI follows)</option>
           <option value="library">Brand Library</option>
         </select>
         <button onClick={publish} disabled={pub.s === "busy"} style={pubBtn}>{pub.s === "busy" ? "Publishing…" : "Publish"}</button>
         <button onClick={downloadMd} style={btnSm}>Download</button>
         {pub.s === "ok" && <span style={{ fontSize: 13, color: "var(--studio-teal-dark)", fontWeight: 600 }}>✓ {pub.m}</span>}
-        {pub.s === "err" && <span style={{ fontSize: 13, color: "#c0392b" }}>⚠ {pub.m}</span>}
+        {pub.s === "err" && <span style={{ fontSize: 13, color: "var(--destructive)" }}>⚠ {pub.m}</span>}
       </div>
     </div>
   );
@@ -1123,20 +1123,20 @@ function ThemeArtifactCard({ theme }: { theme: any }) {
           <div key={n} style={{ textAlign: "center" }}>
             <div style={{ width: 48, height: 48, borderRadius: 10, background: c, border: "1px solid rgba(0,0,0,0.08)" }} />
             <div style={{ fontSize: 11, fontWeight: 700, marginTop: 4 }}>{n}</div>
-            <div style={{ fontSize: 10.5, color: "var(--muted)" }}>{c}</div>
+            <div style={{ fontSize: 10.5, color: "var(--text-muted)" }}>{c}</div>
           </div>
         ))}
       </div>
       <div style={{ background: theme.canvas, color: theme.ink, border: "1px solid var(--hairline)", borderRadius: Math.max(10, theme.radius || 12), padding: 16 }}>
         <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 8 }}>Preview</div>
-        <button style={{ height: 34, padding: "0 14px", borderRadius: 999, border: "none", background: theme.primary, color: "#fff", fontWeight: 700, marginRight: 8 }}>Primary</button>
+        <button style={{ height: 34, padding: "0 14px", borderRadius: 999, border: "none", background: theme.primary, color: "var(--primary-foreground)", fontWeight: 700, marginRight: 8 }}>Primary</button>
         <button style={{ height: 34, padding: "0 14px", borderRadius: 999, border: "none", background: theme.accent, color: theme.ink, fontWeight: 700 }}>Accent</button>
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12, flexWrap: "wrap" }}>
         <button onClick={apply} disabled={s.st === "busy"} style={pubBtn}>{s.st === "busy" ? "Applying…" : "Apply theme"}</button>
-        <span style={{ fontSize: 12.5, color: "var(--muted)" }}>Font: {theme.font} · Radius {theme.radius}px · {theme.mode}</span>
+        <span style={{ fontSize: 12.5, color: "var(--text-muted)" }}>Font: {theme.font} · Radius {theme.radius}px · {theme.mode}</span>
         {s.st === "ok" && <span style={{ fontSize: 13, color: "var(--studio-teal-dark)", fontWeight: 600 }}>✓ {s.m}</span>}
-        {s.st === "err" && <span style={{ fontSize: 13, color: "#c0392b" }}>⚠ {s.m}</span>}
+        {s.st === "err" && <span style={{ fontSize: 13, color: "var(--destructive)" }}>⚠ {s.m}</span>}
       </div>
     </div>
   );
@@ -1185,7 +1185,7 @@ function VideoRender({ prompt }: { prompt: string }) {
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
         <span style={{ fontSize: 13.5, fontWeight: 600, color: "var(--ink)" }}>🎬 Render this as a real video</span>
         <button onClick={render} disabled={busy}
-          style={{ height: 38, padding: "0 16px", borderRadius: 10, border: "none", background: "var(--studio-primary)", color: "#fff", fontSize: 13.5, fontWeight: 700, cursor: busy ? "default" : "pointer" }}>
+          style={{ height: 38, padding: "0 16px", borderRadius: 10, border: "none", background: "var(--studio-primary)", color: "var(--primary-foreground)", fontSize: 13.5, fontWeight: 700, cursor: busy ? "default" : "pointer" }}>
           {busy ? "Rendering…" : "Render video"}
         </button>
       </div>
@@ -1196,7 +1196,7 @@ function VideoRender({ prompt }: { prompt: string }) {
             <video src={state.url} controls style={{ width: "100%", borderRadius: 12, background: "#000" }} />
           )}
           {(state.status === "unconfigured" || state.status === "failed") && (
-            <div style={{ fontSize: 13, color: "var(--muted)", background: "var(--soft-bg)", border: "1px solid var(--hairline)", borderRadius: 10, padding: "10px 12px" }}>
+            <div style={{ fontSize: 13, color: "var(--text-muted)", background: "var(--soft-bg)", border: "1px solid var(--hairline)", borderRadius: 10, padding: "10px 12px" }}>
               {state.message || "Render unavailable."}
             </div>
           )}

@@ -23,7 +23,7 @@ export default function SettingsNav() {
               border: "none",
               borderBottom: `2px solid ${active ? "var(--studio-primary)" : "transparent"}`,
               background: "transparent",
-              color: active ? "var(--studio-primary)" : "var(--muted)",
+              color: active ? "var(--studio-primary)" : "var(--text-muted)",
               fontWeight: 600,
               fontSize: 14.5,
               cursor: "pointer",

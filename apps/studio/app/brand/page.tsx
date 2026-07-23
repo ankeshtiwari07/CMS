@@ -24,12 +24,12 @@ export default async function BrandPage() {
   const { archetypes, mine } = await load(user.id);
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", background: "#eef4f3" }}>
+    <div style={{ display: "flex", minHeight: "100vh", background: "var(--shell-bg)" }}>
       <Sidebar user={{ name: user.name, email: user.email, roles: user.roles }} active="brand" />
       <main style={{ flex: 1, padding: "10px 10px 10px 0" }}>
-        <div style={{ minHeight: "calc(100vh - 20px)", borderRadius: 22, background: "#fff", border: "1px solid var(--hairline)", padding: "32px 36px" }}>
+        <div style={{ minHeight: "calc(100vh - 20px)", borderRadius: 22, background: "var(--card)", border: "1px solid var(--hairline)", padding: "32px 36px" }}>
           <h1 style={{ fontSize: 24, fontWeight: 700, color: "var(--ink)", margin: "0 0 4px" }}>Brand Studio</h1>
-          <p style={{ color: "var(--muted)", fontSize: 13.5, margin: "0 0 22px" }}>
+          <p style={{ color: "var(--text-muted)", fontSize: 13.5, margin: "0 0 22px" }}>
             Explore the HUMAIN guideline and curated enterprise archetypes, let Claude tailor one to your need, and compose your own by picking the sections you like.
           </p>
           <BrandStudio archetypes={archetypes} mine={mine} />

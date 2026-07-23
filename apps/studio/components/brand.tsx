@@ -12,7 +12,7 @@ const LETTERS = [
   "M98.0362 0V9.46915L88.8271 0H86.1455V13.7229H89.1093V4.25378L98.3184 13.7229H101V0H98.0362Z",
 ];
 
-const tint = (onDark?: boolean, color?: string) => color || (onDark ? "#ffffff" : "var(--ink)");
+const tint = (onDark?: boolean, color?: string) => color || (onDark ? "var(--card)" : "var(--ink)");
 
 export function HumainWordmark({ size = 20, onDark = false, color }: { size?: number; onDark?: boolean; color?: string }) {
   return (

@@ -16,15 +16,23 @@ const OPTIONS: { key: Mode; label: string; Icon: () => React.ReactElement }[] = 
 
 export default function ThemeToggle({ collapsed = false }: { collapsed?: boolean }) {
   const [mode, setMode] = useState<Mode>("system");
+  // `data-theme` records the choice; Foundation themes off the resolved `.dark`
+  // class, so both are kept in step here and in the no-flash script in layout.
+  function apply(m: Mode) {
+    const el = document.documentElement;
+    el.setAttribute("data-theme", m);
+    const dark = m === "dark" || (m === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+    el.classList.toggle("dark", dark);
+  }
   useEffect(() => {
     const t = (localStorage.getItem("humain-theme") as Mode) || "system";
     setMode(t);
-    document.documentElement.setAttribute("data-theme", t);
+    apply(t);
   }, []);
   function choose(m: Mode) {
     setMode(m);
     localStorage.setItem("humain-theme", m);
-    document.documentElement.setAttribute("data-theme", m);
+    apply(m);
   }
   if (collapsed) {
     // cycle light -> dark -> system on click when the sidebar is collapsed
@@ -44,7 +52,7 @@ export default function ThemeToggle({ collapsed = false }: { collapsed?: boolean
         return (
           <button key={o.key} onClick={() => choose(o.key)} title={o.label} aria-pressed={on}
             style={{ flex: 1, display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 5, height: 30, borderRadius: 7, border: "none",
-              background: on ? "var(--studio-primary)" : "transparent", color: on ? "#fff" : "var(--muted)", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+              background: on ? "var(--studio-primary)" : "transparent", color: on ? "var(--primary-foreground)" : "var(--text-muted)", fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
             <o.Icon /> {o.label}
           </button>
         );

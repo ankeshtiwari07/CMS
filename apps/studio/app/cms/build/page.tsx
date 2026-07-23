@@ -14,7 +14,7 @@ export default async function CmsBuildPage() {
   if (!(user.roles ?? []).includes("admin")) redirect("/cms/studio");
   const canPublish = (user.roles ?? []).some((r) => ["publisher", "siteAdmin", "admin"].includes(r));
   return (
-    <div style={{ display: "flex", minHeight: "100vh", background: "#eef4f3" }}>
+    <div style={{ display: "flex", minHeight: "100vh", background: "var(--shell-bg)" }}>
       <Sidebar user={{ name: user.name, email: user.email, roles: user.roles }} active="cms" />
       <main style={{ flex: 1, padding: "10px 10px 10px 0" }}>
         <ComponentStudio user={{ name: user.name, email: user.email, roles: user.roles }} canPublish={canPublish} />

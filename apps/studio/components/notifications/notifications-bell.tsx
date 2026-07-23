@@ -62,7 +62,7 @@ export default function NotificationsBell({
     try { await fetch("/api/notifications/read", { method: "POST" }); } catch { /* ignore */ }
   }
 
-  const bellColor = onDark ? "#ffffff" : "var(--ink)";
+  const bellColor = onDark ? "var(--primary-foreground)" : "var(--ink)";
   const panel: React.CSSProperties = {
     position: "absolute",
     width: 340,
@@ -91,7 +91,7 @@ export default function NotificationsBell({
         <span style={{ position: "relative", display: "grid", placeItems: "center" }}>
           <BellIcon size={21} color={bellColor} />
           {unread > 0 && (
-            <span style={{ position: "absolute", top: -5, right: -7, minWidth: 16, height: 16, padding: "0 4px", borderRadius: 999, background: onDark ? "var(--lime)" : "var(--studio-primary)", color: onDark ? "#0b1416" : "#fff", fontSize: 10, fontWeight: 700, display: "grid", placeItems: "center" }}>
+            <span style={{ position: "absolute", top: -5, right: -7, minWidth: 16, height: 16, padding: "0 4px", borderRadius: 999, background: onDark ? "var(--lime)" : "var(--studio-primary)", color: onDark ? "var(--background)" : "var(--primary-foreground)", fontSize: 10, fontWeight: 700, display: "grid", placeItems: "center" }}>
               {unread > 99 ? "99+" : unread}
             </span>
           )}
@@ -111,7 +111,7 @@ export default function NotificationsBell({
           </div>
 
           {items.length === 0 ? (
-            <div style={{ padding: "28px 14px", textAlign: "center", color: "var(--muted)", fontSize: 13 }}>No activity yet.</div>
+            <div style={{ padding: "28px 14px", textAlign: "center", color: "var(--text-muted)", fontSize: 13 }}>No activity yet.</div>
           ) : (
             <div>
               {items.map((i) => {
@@ -127,8 +127,8 @@ export default function NotificationsBell({
                     </span>
                     <span style={{ flex: 1, minWidth: 0 }}>
                       <span style={{ display: "block", fontSize: 13.5, fontWeight: 600, color: "var(--ink)" }}>{i.title}</span>
-                      {i.detail && <span style={{ display: "block", fontSize: 12.5, color: "var(--muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{i.detail}</span>}
-                      <span style={{ fontSize: 11.5, color: "var(--muted)" }}>{ago(i.ts)}</span>
+                      {i.detail && <span style={{ display: "block", fontSize: 12.5, color: "var(--text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{i.detail}</span>}
+                      <span style={{ fontSize: 11.5, color: "var(--text-muted)" }}>{ago(i.ts)}</span>
                     </span>
                     {i.unread && <span style={{ flexShrink: 0, width: 8, height: 8, borderRadius: "50%", background: "var(--studio-primary)", marginTop: 6 }} />}
                   </button>

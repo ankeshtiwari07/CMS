@@ -35,7 +35,7 @@ export default async function StudioHome() {
   const locale: Locale = (LOCALES.find((l) => l.code === raw)?.code || "en") as Locale;
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", background: "#eef4f3" }}>
+    <div style={{ display: "flex", minHeight: "100vh", background: "var(--shell-bg)" }}>
       <Sidebar user={{ name: user.name, email: user.email, roles: user.roles }} active="create" />
 
       <main style={{ flex: 1, padding: "10px 10px 10px 0" }}>

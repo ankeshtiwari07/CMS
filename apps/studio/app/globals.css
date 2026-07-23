@@ -1,119 +1,64 @@
-/* HUMAIN console — exact Figma tokens for both surfaces. */
-:root {
-  /* Studio (light) */
-  --studio-primary: #00a18b;
-  --studio-teal-dark: #0e7c6b;
-  --mint-tint: #ceebe7;
-  --mint-pill: #e4f4f0;
-  --canvas: #ffffff;
-  --ink: #1a1a1a;
-  --muted: #6b7280;
-  --hairline: #e6e8eb;
+/* =============================================================================
+   HUMAIN Create Studio — global styles.
 
-  /* CMS (dark) */
-  --cms-bg: #0b1416;
-  --deep-teal: #0e2a2e;
-  --teal-accent: #11515a;
-  --lime: #c2e54b;
-  --lime-dark: #9dbf2d;
-  --publish-blue: #103b47;
-  --card-mint: #bfebc8;
-  --surface: #ffffff;
-  --label: #0e4049;
+   Brand tokens are NOT defined here. They come from the real design system:
+     apps/studio/app/layout.tsx imports
+       "@humain/foundation/tokens.css"      ← canonical HUMAIN tokens
+       "@humain/design-tokens/bridge.css"   ← legacy-name → Foundation aliases
+   ahead of this file. Anything brand-coloured must reference a var from those.
 
-  /* scale */
-  --r-input: 10px;
-  --r-card: 18px;
-  --r-pill: 999px;
-  --shadow-card: 0 8px 24px rgba(0, 0, 0, 0.12);
-  --font-ui: var(--font-inter), "Inter", system-ui, sans-serif;
-  --font-ar: var(--font-plex-ar), "IBM Plex Sans Arabic", sans-serif;
-}
-
-/* ---- Theme: light / dark / system --------------------------------------------
-   <html data-theme="light|dark|system">. Theme-scoped variables (incl. the
-   hard-coded shell/card colors as vars) so the [style*] overrides below can be
-   written once and resolve to LIGHT values under system-light (no visual change)
-   and DARK values under explicit-dark or system-dark. */
-:root {
-  --shell-bg: #eef4f3;   /* outer page background used inline across pages */
-  --card-bg: #ffffff;    /* cards / panels */
-  --soft-bg: #fafcfb;    /* subtle inner panels */
-  --hero-mid: #eafaf6;   /* studio-home hero gradient stops */
-  --hero-end: #ffffff;
-}
-:root[data-theme="dark"] {
-  color-scheme: dark;
-  --canvas: #0e1614; --ink: #e9f0ed; --muted: #93a49e; --hairline: #24322f;
-  --mint-tint: #16302b; --mint-pill: #14322c; --surface: #141d1b;
-  --shadow-card: 0 10px 28px rgba(0, 0, 0, 0.55);
-  --shell-bg: #0a1210; --card-bg: #141d1b; --soft-bg: #10201c;
-  --hero-mid: #0f221d; --hero-end: #0e1614;
-}
-@media (prefers-color-scheme: dark) {
-  :root[data-theme="system"] {
-    color-scheme: dark;
-    --canvas: #0e1614; --ink: #e9f0ed; --muted: #93a49e; --hairline: #24322f;
-    --mint-tint: #16302b; --mint-pill: #14322c; --surface: #141d1b;
-    --shadow-card: 0 10px 28px rgba(0, 0, 0, 0.55);
-    --shell-bg: #0a1210; --card-bg: #141d1b; --soft-bg: #10201c;
-    --hero-mid: #0f221d; --hero-end: #0e1614;
-  }
-}
-/* Overrides apply for dark + system; under system-LIGHT the vars are still the
-   light values, so appearance is unchanged. Explicit light never matches. */
-:is(:root[data-theme="dark"], :root[data-theme="system"]) body { background: var(--shell-bg); color: var(--ink); }
-:is(:root[data-theme="dark"], :root[data-theme="system"]) [style*="#eef4f3"] { background: var(--shell-bg) !important; }
-:is(:root[data-theme="dark"], :root[data-theme="system"]) [style*="background: #fff"],
-:is(:root[data-theme="dark"], :root[data-theme="system"]) [style*="background:#fff"],
-:is(:root[data-theme="dark"], :root[data-theme="system"]) [style*="background: #ffffff"],
-:is(:root[data-theme="dark"], :root[data-theme="system"]) [style*="background:#ffffff"],
-:is(:root[data-theme="dark"], :root[data-theme="system"]) [style*="background: white"] { background: var(--card-bg) !important; }
-:is(:root[data-theme="dark"], :root[data-theme="system"]) [style*="background: #fafcfb"],
-:is(:root[data-theme="dark"], :root[data-theme="system"]) [style*="background:#fafcfb"],
-:is(:root[data-theme="dark"], :root[data-theme="system"]) [style*="background: #f5f8f7"] { background: var(--soft-bg) !important; }
-/* Dark-text hexes hard-coded inline → flip to the theme ink so headings/body
-   aren't near-invisible in dark. (Under system-light these map to the light
-   ink, an imperceptible change.) */
-:is(:root[data-theme="dark"], :root[data-theme="system"]) [style*="color: #12241f"],
-:is(:root[data-theme="dark"], :root[data-theme="system"]) [style*="color:#12241f"],
-:is(:root[data-theme="dark"], :root[data-theme="system"]) [style*="color: #1a1a1a"],
-:is(:root[data-theme="dark"], :root[data-theme="system"]) [style*="color: #111726"],
-:is(:root[data-theme="dark"], :root[data-theme="system"]) [style*="color: #0b1416"],
-:is(:root[data-theme="dark"], :root[data-theme="system"]) [style*="color: #1c3b34"],
-:is(:root[data-theme="dark"], :root[data-theme="system"]) [style*="color: #12241f"] { color: var(--ink) !important; }
-:is(:root[data-theme="dark"], :root[data-theme="system"]) [style*="color: #5b6d67"],
-:is(:root[data-theme="dark"], :root[data-theme="system"]) [style*="color: #6b7d77"],
-:is(:root[data-theme="dark"], :root[data-theme="system"]) [style*="color: #6b7280"],
-:is(:root[data-theme="dark"], :root[data-theme="system"]) [style*="color:#5b6d67"] { color: var(--muted) !important; }
+   Theming: Foundation ships its dark values under `.dark`. The no-flash script
+   in layout.tsx resolves light/dark/system and toggles that class on <html>,
+   so there are no per-theme overrides in this file — and, critically, none of
+   the old `[style*="#hex"] !important` patches that used to be needed because
+   components hard-coded colours. Those components now use vars.
+   ============================================================================= */
 
 * {
   box-sizing: border-box;
 }
+
 html,
 body {
   margin: 0;
   padding: 0;
   font-family: var(--font-ui);
+  background: var(--shell-bg);
+  color: var(--ink);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
+
 [dir="rtl"] body,
 [dir="rtl"] {
   font-family: var(--font-ar);
 }
+
 a {
   color: inherit;
 }
+
 button {
   font-family: inherit;
   cursor: pointer;
 }
+
 input,
 textarea,
 select {
   font-family: inherit;
 }
+
 ::placeholder {
-  color: var(--muted);
+  color: var(--text-muted);
+}
+
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: var(--brand-pill);
+  color: var(--ink);
 }

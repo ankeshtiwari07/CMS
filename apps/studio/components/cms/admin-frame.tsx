@@ -13,20 +13,20 @@ export default function AdminFrame({ src, title }: { src: string; title: string 
         borderRadius: 22,
         overflow: "hidden",
         border: "1px solid var(--hairline)",
-        background: "#fff",
+        background: "var(--card)",
         display: "flex",
         flexDirection: "column",
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 18px", borderBottom: "1px solid var(--hairline)", background: "linear-gradient(180deg,var(--mint-tint),#fff)" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 18px", borderBottom: "1px solid var(--hairline)", background: "linear-gradient(180deg,var(--mint-tint),var(--background))" }}>
         <span style={{ fontWeight: 800, color: "var(--studio-teal-dark)", fontSize: 14 }}>HUMAIN CMS Admin</span>
-        <span style={{ color: "var(--muted)", fontSize: 13 }}>· {title}</span>
+        <span style={{ color: "var(--text-muted)", fontSize: 13 }}>· {title}</span>
         <div style={{ flex: 1 }} />
-        <a href={src} target="_blank" rel="noreferrer" style={{ fontSize: 12.5, color: "var(--muted)", textDecoration: "none" }}>Open full ↗</a>
+        <a href={src} target="_blank" rel="noreferrer" style={{ fontSize: 12.5, color: "var(--text-muted)", textDecoration: "none" }}>Open full ↗</a>
       </div>
       <div style={{ position: "relative", flex: 1 }}>
         {loading && (
-          <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", color: "var(--muted)", fontSize: 14 }}>Loading {title}…</div>
+          <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", color: "var(--text-muted)", fontSize: 14 }}>Loading {title}…</div>
         )}
         <iframe
           src={src}

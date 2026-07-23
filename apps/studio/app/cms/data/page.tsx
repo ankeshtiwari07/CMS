@@ -11,7 +11,7 @@ export default async function DataPage({ searchParams }: { searchParams: Promise
   if (!user) redirect("/login");
   const { collection } = await searchParams;
   return (
-    <div style={{ display: "flex", minHeight: "100vh", background: "#eef4f3" }}>
+    <div style={{ display: "flex", minHeight: "100vh", background: "var(--shell-bg)" }}>
       <Sidebar user={{ name: user.name, email: user.email, roles: user.roles }} active="data" />
       <main style={{ flex: 1, padding: "10px 10px 10px 0", minWidth: 0 }}>
         <DataStudio initialCollection={collection ?? null} />

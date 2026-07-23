@@ -1,0 +1,97 @@
+/* =============================================================================
+   HUMAIN Foundation bridge
+   -----------------------------------------------------------------------------
+   The canonical brand tokens live in `@humain/foundation/tokens.css` (the real
+   published design system, `@humain/ui`, generated from humain-os.tokens.json).
+   Import that file FIRST, then this one.
+
+   This file contains NO brand hex values. It only maps the legacy variable
+   names this monorepo grew before Foundation was available onto their
+   Foundation equivalents, so existing components keep working while the
+   hard-coded hexes are swept out of them.
+
+   Because every alias resolves through a Foundation variable, and Foundation
+   flips those variables under `.dark`, the whole app themes correctly with no
+   per-theme duplication here. That is what lets us delete the old
+   `[style*="#hex"] !important` dark-mode override block.
+
+   Brand ramps, for reference (do not re-declare — use the vars):
+     air    = HUMAIN teal   (air-600 #009688 light primary, air-500 dark)
+     oasis  = HUMAIN lime   (oasis-400 #b8e636)
+   ============================================================================= */
+
+:root {
+  /* ---- Brand ------------------------------------------------------------- */
+  --studio-primary: var(--primary);
+  --studio-teal-dark: var(--primary-hover);
+  --deep-teal: var(--air-800);
+  --teal-accent: var(--air-700);
+  --lime: var(--oasis-400);
+  --lime-dark: var(--oasis-600);
+  --card-mint: var(--air-100);
+  --publish-blue: var(--air-900);
+
+  /* Brand-tinted fills. Foundation has no themed "10% of brand" token, so we
+     derive them from --primary; they stay correct in both themes. */
+  --brand-tint: color-mix(in srgb, var(--primary) 8%, var(--background));
+  --brand-pill: color-mix(in srgb, var(--primary) 12%, var(--background));
+  --mint-tint: var(--brand-tint);
+  --mint-pill: var(--brand-pill);
+
+  /* Ink for FIXED brand fills. `--lime` and the mint launcher gradient are the
+     same colour in both themes, so text sitting on them must NOT flip with the
+     theme — `var(--foreground)` would go white-on-lime in dark. Foundation has
+     no on-oasis pair, so we use the darkest brand ink, which reads on both. */
+  --on-brand-ink: var(--air-950);
+
+  /* ---- Surfaces ---------------------------------------------------------- */
+  --canvas: var(--background);
+  --cms-bg: var(--background);
+  --surface: var(--card);
+  --shell-bg: var(--surface-1);
+  --card-bg: var(--card);
+  --soft-bg: var(--surface-2);
+
+  /* ---- Text -------------------------------------------------------------- */
+  /* CAUTION: Foundation declares --text-primary/secondary/tertiary/quaternary
+     ONLY in :root — they have no `.dark` counterpart, so they stay black-on-
+     black in dark mode. Never point a text colour at them. The *-foreground
+     family below is the equivalent scale that does flip. */
+  --ink: var(--foreground);
+  --label: var(--secondary-foreground);
+  /* Repo-legacy `--muted` was a TEXT colour; Foundation's `--muted` is a
+     SURFACE. We do not shadow Foundation's — components use --text-muted. */
+  --text-muted: var(--muted-foreground);
+
+  /* ---- Lines ------------------------------------------------------------- */
+  --hairline: var(--border);
+
+  /* ---- Radii — Foundation scale (the old 10px/18px were off-system) ------- */
+  --r-input: var(--border-radius-lg);
+  --r-card: var(--border-radius-2xl);
+  --r-pill: var(--border-radius-full);
+
+  /* ---- Elevation — composed from Foundation's decomposed shadow parts ----- */
+  --shadow-card: 0 var(--shadow-medium-2-offset-y) var(--shadow-medium-2-blur-radius)
+    var(--shadow-medium-2-spread-radius) var(--shadow-medium-2-color);
+  --shadow-soft: 0 var(--shadow-soft-2-offset-y) var(--shadow-soft-2-blur-radius)
+    var(--shadow-soft-2-spread-radius) var(--shadow-soft-2-color);
+  --shadow-elevated: 0 var(--shadow-elevated-2-offset-y) var(--shadow-elevated-2-blur-radius)
+    var(--shadow-elevated-2-spread-radius) var(--shadow-elevated-2-color);
+
+  /* ---- Type -------------------------------------------------------------- */
+  /* Next/font supplies --font-inter; Foundation names the family. Arabic has no
+     Foundation token, so the local IBM Plex Sans Arabic face stays authoritative. */
+  --font-ui: var(--font-inter), var(--font-family-sans);
+  --font-ar: var(--font-plex-ar), "IBM Plex Sans Arabic", sans-serif;
+  --font-mono: var(--font-family-mono);
+
+  /* ---- Status ------------------------------------------------------------ */
+  --ok: var(--success);
+  --warn: var(--warning);
+  --danger: var(--destructive);
+
+  /* ---- Hero gradient stops (studio home) --------------------------------- */
+  --hero-mid: color-mix(in srgb, var(--primary) 6%, var(--background));
+  --hero-end: var(--background);
+}

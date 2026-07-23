@@ -53,7 +53,7 @@ export default function Markdown({ text }: { text: string }) {
       while (i < lines.length && !/^\s*```\s*$/.test(lines[i])) { buf.push(lines[i]); i++; }
       i++; // closing fence
       blocks.push(
-        <pre key={k()} style={{ background: "#0B1416", color: "#E6F2EE", padding: "12px 14px", borderRadius: 10, overflowX: "auto", fontSize: 13, lineHeight: 1.5, margin: "8px 0" }}>
+        <pre key={k()} style={{ background: "var(--surface-2)", color: "var(--foreground)", padding: "12px 14px", borderRadius: 10, overflowX: "auto", fontSize: 13, lineHeight: 1.5, margin: "8px 0" }}>
           <code>{buf.join("\n")}</code>
         </pre>,
       );

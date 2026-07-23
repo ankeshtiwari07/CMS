@@ -10,14 +10,14 @@ export default async function SearchPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   return (
-    <div style={{ display: "flex", minHeight: "100vh", background: "#eef4f3" }}>
+    <div style={{ display: "flex", minHeight: "100vh", background: "var(--shell-bg)" }}>
       <Sidebar user={{ name: user.name, email: user.email, roles: user.roles }} active="search" />
       <main style={{ flex: 1, padding: "10px 10px 10px 0" }}>
         <div
           style={{
             minHeight: "calc(100vh - 20px)",
             borderRadius: 22,
-            background: "#fff",
+            background: "var(--card)",
             border: "1px solid var(--hairline)",
             padding: "56px 40px",
           }}

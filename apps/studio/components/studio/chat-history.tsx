@@ -72,12 +72,12 @@ export default function ChatHistory({ collapsed }: { collapsed: boolean }) {
 
   return (
     <div style={{ marginTop: 10, maxHeight: "38vh", flexShrink: 1, minHeight: 0, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-      <div style={{ padding: "4px 14px 6px", fontSize: 11, fontWeight: 700, letterSpacing: ".05em", color: "var(--muted)", textTransform: "uppercase" }}>
+      <div style={{ padding: "4px 14px 6px", fontSize: 11, fontWeight: 700, letterSpacing: ".05em", color: "var(--text-muted)", textTransform: "uppercase" }}>
         {t("chats.title")}
       </div>
       <div style={{ overflowY: "auto", paddingRight: 2 }}>
         {chats.length === 0 ? (
-          <div style={{ padding: "4px 14px", fontSize: 13, color: "var(--muted)" }}>{t("chats.empty")}</div>
+          <div style={{ padding: "4px 14px", fontSize: 13, color: "var(--text-muted)" }}>{t("chats.empty")}</div>
         ) : (
           chats.map((c) => {
             const on = activeId === String(c.id);
@@ -99,7 +99,7 @@ export default function ChatHistory({ collapsed }: { collapsed: boolean }) {
                 {hot && (
                   <span style={{ display: "flex", gap: 2, paddingRight: 6 }}>
                     <button aria-label={t("chats.rename")} title={t("chats.rename")} onClick={() => rename(c)} style={iconBtn}><PencilIcon size={14} /></button>
-                    <button aria-label={t("chats.delete")} title={t("chats.delete")} onClick={() => remove(c)} style={{ ...iconBtn, color: "#b42318" }}><TrashIcon size={14} /></button>
+                    <button aria-label={t("chats.delete")} title={t("chats.delete")} onClick={() => remove(c)} style={{ ...iconBtn, color: "var(--destructive)" }}><TrashIcon size={14} /></button>
                   </span>
                 )}
               </div>
@@ -112,6 +112,6 @@ export default function ChatHistory({ collapsed }: { collapsed: boolean }) {
 }
 
 const iconBtn: React.CSSProperties = {
-  border: "none", background: "transparent", color: "var(--muted)", cursor: "pointer",
+  border: "none", background: "transparent", color: "var(--text-muted)", cursor: "pointer",
   width: 24, height: 24, borderRadius: 6, display: "grid", placeItems: "center",
 };

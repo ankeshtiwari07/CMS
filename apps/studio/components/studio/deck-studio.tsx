@@ -335,11 +335,11 @@ export default function DeckStudio({ deckId, userName }: { deckId: string | null
   }, [present, deck]);
 
   // ---------- styles ----------
-  const btn = (x?: React.CSSProperties): React.CSSProperties => ({ padding: "8px 13px", borderRadius: 9, border: "1px solid var(--hairline)", background: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 600, color: "var(--ink)", ...x });
-  const primaryBtn = btn({ background: "var(--studio-primary)", color: "#fff", border: "none" });
+  const btn = (x?: React.CSSProperties): React.CSSProperties => ({ padding: "8px 13px", borderRadius: 9, border: "1px solid var(--hairline)", background: "var(--card)", cursor: "pointer", fontSize: 13, fontWeight: 600, color: "var(--ink)", ...x });
+  const primaryBtn = btn({ background: "var(--studio-primary)", color: "var(--primary-foreground)", border: "none" });
   const tb: React.CSSProperties = { width: 32, height: 32, borderRadius: 8, border: "1px solid var(--hairline)", background: "var(--card-bg,#fff)", cursor: "pointer", fontSize: 14, color: "var(--ink)", display: "grid", placeItems: "center" };
   const menuItem: React.CSSProperties = { display: "flex", alignItems: "center", gap: 8, width: "100%", padding: "8px 10px", border: "none", background: "transparent", borderRadius: 8, fontSize: 13.5, color: "var(--ink)", cursor: "pointer", textAlign: "left", whiteSpace: "nowrap" };
-  const pane: React.CSSProperties = { background: "#fff", borderRadius: 16, border: "1px solid var(--hairline)", display: "flex", flexDirection: "column", minWidth: 0 };
+  const pane: React.CSSProperties = { background: "var(--card)", borderRadius: 16, border: "1px solid var(--hairline)", display: "flex", flexDirection: "column", minWidth: 0 };
   const scale = boxW / W;
   const langMenu = (asCopy: boolean) => (
     <div style={{ position: "absolute", right: "100%", top: 0, marginRight: 4, background: "var(--card-bg,#fff)", border: "1px solid var(--hairline)", borderRadius: 10, boxShadow: "var(--shadow-card)", padding: 6, minWidth: 140, maxHeight: 280, overflowY: "auto" }}>
@@ -358,31 +358,31 @@ export default function DeckStudio({ deckId, userName }: { deckId: string | null
     const greeting = first ? `Good morning ${first.charAt(0).toUpperCase() + first.slice(1)}! What do you want to create today?` : "What do you want to create today?";
     // Realistic fanned previews (deck slide · city visual · email) — matches Figma.
     const deckMock = (
-      <div style={{ position: "absolute", inset: 0, background: "#fff", padding: "12px 13px", display: "flex", flexDirection: "column" }}>
-        <div style={{ fontSize: 8, fontWeight: 800, color: "#0b1416" }}>Q4 2024 GROWTH</div>
-        <div style={{ fontSize: 13, fontWeight: 800, color: "#0b1416", marginBottom: 6 }}>STRATEGY</div>
+      <div style={{ position: "absolute", inset: 0, background: "var(--card)", padding: "12px 13px", display: "flex", flexDirection: "column" }}>
+        <div style={{ fontSize: 8, fontWeight: 800, color: "var(--foreground)" }}>Q4 2024 GROWTH</div>
+        <div style={{ fontSize: 13, fontWeight: 800, color: "var(--foreground)", marginBottom: 6 }}>STRATEGY</div>
         <div style={{ display: "flex", gap: 8, flex: 1 }}>
           <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 4 }}>
-            {["Expand market reach", "Innovate product line", "Optimize journey"].map((t, k) => <div key={k} style={{ fontSize: 6.5, color: "#3a4a4a" }}>▸ {t}</div>)}
+            {["Expand market reach", "Innovate product line", "Optimize journey"].map((t, k) => <div key={k} style={{ fontSize: 6.5, color: "var(--text-muted)" }}>▸ {t}</div>)}
           </div>
           <div style={{ width: 46, display: "flex", alignItems: "flex-end", gap: 3 }}>
-            {[10, 18, 13, 24].map((h, k) => <div key={k} style={{ width: 8, height: h, background: k === 3 ? "#c2e54b" : "#00a18b", borderRadius: 2 }} />)}
+            {[10, 18, 13, 24].map((h, k) => <div key={k} style={{ width: 8, height: h, background: k === 3 ? "var(--lime)" : "var(--primary)", borderRadius: 2 }} />)}
           </div>
         </div>
       </div>
     );
     const cityMock = (
       <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg,#04121a,#0a2b2f)", overflow: "hidden" }}>
-        {[14, 30, 46, 60, 74, 88].map((l, k) => <div key={k} style={{ position: "absolute", left: `${l}%`, bottom: 0, width: 3, height: `${30 + (k % 3) * 22}%`, background: k % 2 ? "linear-gradient(#7de7c6,transparent)" : "linear-gradient(#c2e54b,transparent)", opacity: 0.85 }} />)}
+        {[14, 30, 46, 60, 74, 88].map((l, k) => <div key={k} style={{ position: "absolute", left: `${l}%`, bottom: 0, width: 3, height: `${30 + (k % 3) * 22}%`, background: k % 2 ? "linear-gradient(#7de7c6,transparent)" : "linear-gradient(var(--lime),transparent)", opacity: 0.85 }} />)}
         <div style={{ position: "absolute", inset: 0, background: "linear-gradient(180deg,transparent 55%,rgba(0,0,0,.5))" }} />
       </div>
     );
     const emailMock = (
-      <div style={{ position: "absolute", inset: 0, background: "#eef4f3", padding: "12px 13px" }}>
-        <div style={{ fontSize: 8, color: "#5a6a6c" }}>To: janet.chen@…</div>
-        <div style={{ fontSize: 9.5, fontWeight: 800, color: "#0b1416", margin: "4px 0" }}>Subject: Q4 Project Alpha</div>
-        <div style={{ fontSize: 8, color: "#5a6a6c", marginBottom: 8 }}>From: Janet Chen</div>
-        {[100, 92, 80, 96, 60].map((w, k) => <div key={k} style={{ height: 3, width: `${w}%`, background: "#cdd9d6", borderRadius: 2, marginBottom: 4 }} />)}
+      <div style={{ position: "absolute", inset: 0, background: "var(--shell-bg)", padding: "12px 13px" }}>
+        <div style={{ fontSize: 8, color: "var(--text-muted)" }}>To: janet.chen@…</div>
+        <div style={{ fontSize: 9.5, fontWeight: 800, color: "var(--foreground)", margin: "4px 0" }}>Subject: Q4 Project Alpha</div>
+        <div style={{ fontSize: 8, color: "var(--text-muted)", marginBottom: 8 }}>From: Janet Chen</div>
+        {[100, 92, 80, 96, 60].map((w, k) => <div key={k} style={{ height: 3, width: `${w}%`, background: "var(--surface-3)", borderRadius: 2, marginBottom: 4 }} />)}
       </div>
     );
     const previews = [
@@ -392,12 +392,12 @@ export default function DeckStudio({ deckId, userName }: { deckId: string | null
     ];
     return (
       <div style={{ ...pane, height: "calc(100vh - 20px)", position: "relative" }}>
-        {notice && <div style={{ position: "fixed", top: 16, right: 16, background: "var(--studio-primary)", color: "#fff", padding: "8px 14px", borderRadius: 8, zIndex: 60 }}>{notice}</div>}
+        {notice && <div style={{ position: "fixed", top: 16, right: 16, background: "var(--studio-primary)", color: "var(--primary-foreground)", padding: "8px 14px", borderRadius: 8, zIndex: 60 }}>{notice}</div>}
         <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24 }}>
           {/* fanned deck previews */}
           <div style={{ position: "relative", width: 420, height: 150, marginBottom: 34 }}>
             {previews.map((p, i) => (
-              <div key={i} style={{ position: "absolute", left: "50%", top: 0, width: 220, height: 132, marginLeft: -110, transform: `translateX(${p.x * 0.55}px) rotate(${p.rot}deg)`, borderRadius: 14, overflow: "hidden", boxShadow: "0 12px 30px rgba(0,0,0,.18)", border: "1px solid rgba(255,255,255,.35)", zIndex: p.front ? 3 : 1, background: "#fff" }}>{p.content}</div>
+              <div key={i} style={{ position: "absolute", left: "50%", top: 0, width: 220, height: 132, marginLeft: -110, transform: `translateX(${p.x * 0.55}px) rotate(${p.rot}deg)`, borderRadius: 14, overflow: "hidden", boxShadow: "0 12px 30px rgba(0,0,0,.18)", border: "1px solid rgba(255,255,255,.35)", zIndex: p.front ? 3 : 1, background: "var(--card)" }}>{p.content}</div>
             ))}
           </div>
           <h1 style={{ fontSize: 30, fontWeight: 800, color: "var(--ink)", textAlign: "center", margin: "0 0 22px" }}>{greeting}</h1>
@@ -421,7 +421,7 @@ export default function DeckStudio({ deckId, userName }: { deckId: string | null
               </select>
               <span style={{ marginInlineStart: "auto" }} />
               <span style={{ ...chip, background: "var(--mint-pill)", color: "var(--studio-teal-dark)", border: "none" }}>Claude Opus 4.8</span>
-              <button style={{ width: 40, height: 34, borderRadius: 999, border: "none", background: "var(--studio-primary)", color: "#fff", cursor: "pointer", fontSize: 18 }}
+              <button style={{ width: 40, height: 34, borderRadius: 999, border: "none", background: "var(--studio-primary)", color: "var(--primary-foreground)", cursor: "pointer", fontSize: 18 }}
                 disabled={!compose.trim()} onClick={() => { if (compose.trim()) { startFromPrompt(compose); setCompose(""); } }}>↑</button>
             </div>
           </div>
@@ -432,13 +432,13 @@ export default function DeckStudio({ deckId, userName }: { deckId: string | null
 
   return (
     <div style={{ display: "flex", gap: 12, height: "calc(100vh - 20px)" }}>
-      {notice && <div style={{ position: "fixed", top: 16, right: 16, background: "var(--studio-primary)", color: "#fff", padding: "8px 14px", borderRadius: 8, zIndex: 60 }}>{notice}</div>}
+      {notice && <div style={{ position: "fixed", top: 16, right: 16, background: "var(--studio-primary)", color: "var(--primary-foreground)", padding: "8px 14px", borderRadius: 8, zIndex: 60 }}>{notice}</div>}
 
       {/* ---------------- LEFT: chat ---------------- */}
       <div style={{ ...pane, width: 440, flexShrink: 0 }}>
         <div style={{ flex: 1, overflowY: "auto", padding: 18, display: "flex", flexDirection: "column", gap: 14 }}>
           {phase === "compose" && chat.length === 0 && (
-            <div style={{ margin: "auto 0", textAlign: "center", color: "var(--muted)" }}>
+            <div style={{ margin: "auto 0", textAlign: "center", color: "var(--text-muted)" }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: "var(--studio-primary)", letterSpacing: 1 }}>DECK STUDIO</div>
               <div style={{ fontSize: 20, fontWeight: 700, color: "var(--ink)", margin: "8px 0" }}>Describe your deck</div>
               <div style={{ fontSize: 13.5 }}>HUMAIN will ask a couple of questions, draft an outline you can edit, then design the slides.</div>
@@ -446,7 +446,7 @@ export default function DeckStudio({ deckId, userName }: { deckId: string | null
           )}
           {chat.map((m, i) => (
             m.role === "user" ? (
-              <div key={i} style={{ alignSelf: "flex-end", maxWidth: "88%", background: "var(--studio-primary)", color: "#fff", borderRadius: 14, padding: "10px 13px", fontSize: 14, lineHeight: 1.5, whiteSpace: "pre-wrap" }}>{m.text}</div>
+              <div key={i} style={{ alignSelf: "flex-end", maxWidth: "88%", background: "var(--studio-primary)", color: "var(--primary-foreground)", borderRadius: 14, padding: "10px 13px", fontSize: 14, lineHeight: 1.5, whiteSpace: "pre-wrap" }}>{m.text}</div>
             ) : (
               <div key={i} style={{ alignSelf: "flex-start", maxWidth: "92%", background: "var(--soft-bg, #f4f7f6)", color: "var(--ink)", borderRadius: 14, padding: "10px 13px", fontSize: 14, lineHeight: 1.5, whiteSpace: "pre-wrap" }}>
                 <div style={{ fontSize: 10.5, fontWeight: 700, color: "var(--studio-primary)", marginBottom: 3 }}>HUMAIN</div>{m.text}
@@ -456,12 +456,12 @@ export default function DeckStudio({ deckId, userName }: { deckId: string | null
           {/* current clarifying question */}
           {phase === "setup" && questions.length > 0 && questions[qi] && (
             <div style={{ border: "1px solid var(--hairline)", borderRadius: 14, padding: 16 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", color: "var(--muted)", fontSize: 12, fontWeight: 700 }}><span>Question</span><span>{qi + 1} of {questions.length}</span></div>
+              <div style={{ display: "flex", justifyContent: "space-between", color: "var(--text-muted)", fontSize: 12, fontWeight: 700 }}><span>Question</span><span>{qi + 1} of {questions.length}</span></div>
               <div style={{ fontSize: 15.5, fontWeight: 700, color: "var(--ink)", margin: "8px 0 2px" }}>{questions[qi].question}</div>
-              {questions[qi].hint && <div style={{ fontSize: 12.5, color: "var(--muted)", marginBottom: 10 }}>{questions[qi].hint}</div>}
+              {questions[qi].hint && <div style={{ fontSize: 12.5, color: "var(--text-muted)", marginBottom: 10 }}>{questions[qi].hint}</div>}
               <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
                 {questions[qi].options.map((o) => (
-                  <label key={o} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 10, cursor: "pointer", border: `1px solid ${choice === o ? "var(--studio-primary)" : "var(--hairline)"}`, background: choice === o ? "var(--mint-pill)" : "#fff" }}>
+                  <label key={o} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 10, cursor: "pointer", border: `1px solid ${choice === o ? "var(--studio-primary)" : "var(--hairline)"}`, background: choice === o ? "var(--mint-pill)" : "var(--card)" }}>
                     <input type="radio" checked={choice === o} onChange={() => setChoice(o)} /> <span style={{ fontSize: 14 }}>{o}</span>
                   </label>
                 ))}
@@ -476,7 +476,7 @@ export default function DeckStudio({ deckId, userName }: { deckId: string | null
             </div>
           )}
           {busy && <div style={{ display: "flex", alignItems: "center", gap: 10, color: "var(--studio-teal-dark)", fontSize: 13 }}><span className="humain-spin" style={{ width: 16, height: 16, border: "2.5px solid var(--mint-pill)", borderTopColor: "var(--studio-primary)", borderRadius: "50%", display: "inline-block" }} /> {busy}<style>{`@keyframes humain-spin{to{transform:rotate(360deg)}}.humain-spin{animation:humain-spin .7s linear infinite}`}</style></div>}
-          {err && <div style={{ color: "#b42318", fontSize: 13 }}>{err}</div>}
+          {err && <div style={{ color: "var(--destructive)", fontSize: 13 }}>{err}</div>}
           <div ref={chatEndRef} />
         </div>
         {/* composer */}
@@ -501,7 +501,7 @@ export default function DeckStudio({ deckId, userName }: { deckId: string | null
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px", borderBottom: "1px solid var(--hairline)" }}>
           <div style={{ minWidth: 0 }}>
             <div style={{ fontSize: 18, fontWeight: 800, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{deck?.title || outTitle || "Deck setup"}</div>
-            <div style={{ fontSize: 12.5, color: "var(--muted)", marginTop: 2 }}>{phase === "deck" ? `${deck?.slides.length} slides` : phase === "outline" ? "Review your outline before generating" : "I am preparing questions before generating the outline."}</div>
+            <div style={{ fontSize: 12.5, color: "var(--text-muted)", marginTop: 2 }}>{phase === "deck" ? `${deck?.slides.length} slides` : phase === "outline" ? "Review your outline before generating" : "I am preparing questions before generating the outline."}</div>
           </div>
           <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end" }}>
             {phase === "deck" && !editing && (<>
@@ -536,7 +536,7 @@ export default function DeckStudio({ deckId, userName }: { deckId: string | null
               <button style={tb} title="Redo" onMouseDown={(e) => e.preventDefault()} onClick={() => exec("redo")}>↷</button>
               <button style={btn(showSource ? { background: "var(--mint-pill)" } : {})} onClick={() => setShowSource((s) => !s)}>&lt;/&gt; Source</button>
               <button style={btn()} onClick={() => { setEditing(false); setShowSource(false); }}>Exit edit</button>
-              {dirty && <span style={{ fontSize: 12, fontWeight: 700, color: "#b26a00", background: "#fff3e0", padding: "4px 9px", borderRadius: 999 }}>Unsaved</span>}
+              {dirty && <span style={{ fontSize: 12, fontWeight: 700, color: "#b26a00", background: "color-mix(in srgb, var(--warning) 12%, var(--background))", padding: "4px 9px", borderRadius: 999 }}>Unsaved</span>}
               <button style={primaryBtn} disabled={!!busy} onClick={save}>Save</button>
             </>)}
             {!editing && setupLabel && <span style={{ fontSize: 12, fontWeight: 700, color: "var(--studio-teal-dark)", background: "var(--mint-pill)", padding: "5px 11px", borderRadius: 999 }}>{setupLabel}</span>}
@@ -550,32 +550,32 @@ export default function DeckStudio({ deckId, userName }: { deckId: string | null
               <div style={{ maxWidth: 760, margin: "0 auto" }}>
                 <input value={outTitle} onChange={(e) => setOutTitle(e.target.value)} style={{ width: "100%", fontSize: 24, fontWeight: 700, border: "none", borderBottom: "2px solid var(--hairline)", padding: "6px 2px", color: "var(--ink)", background: "transparent", marginBottom: 6 }} />
                 <div style={{ display: "flex", gap: 8, alignItems: "center", margin: "10px 0 16px" }}>
-                  <span style={{ fontSize: 12.5, color: "var(--muted)" }}>{outline.length} slides · 16:9 · theme</span>
+                  <span style={{ fontSize: 12.5, color: "var(--text-muted)" }}>{outline.length} slides · 16:9 · theme</span>
                   <select value={themeId} onChange={(e) => setThemeId(e.target.value)} style={{ ...btn(), padding: "6px 8px" }}>{themes.map((th) => <option key={th.id} value={th.id}>{th.name}</option>)}</select>
                 </div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: "var(--muted)", marginBottom: 10 }}>SLIDE TITLES — edit, reorder or remove</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-muted)", marginBottom: 10 }}>SLIDE TITLES — edit, reorder or remove</div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                   {outline.map((o, i) => (
                     <div key={i} draggable onDragStart={() => { dragI.current = i; }} onDragOver={(e) => e.preventDefault()} onDrop={() => dropAt(i)}
-                      style={{ display: "flex", gap: 10, alignItems: "center", padding: 12, borderRadius: 10, border: "1px solid var(--hairline)", background: "var(--soft-bg, #fafcfb)" }}>
-                      <span title="Drag to reorder" style={{ cursor: "grab", color: "var(--muted)", fontSize: 16, lineHeight: 1, userSelect: "none" }}>⠿</span>
+                      style={{ display: "flex", gap: 10, alignItems: "center", padding: 12, borderRadius: 10, border: "1px solid var(--hairline)", background: "var(--soft-bg)" }}>
+                      <span title="Drag to reorder" style={{ cursor: "grab", color: "var(--text-muted)", fontSize: 16, lineHeight: 1, userSelect: "none" }}>⠿</span>
                       <span style={{ color: "var(--studio-primary)", fontWeight: 800, minWidth: 24 }}>{String(i + 1).padStart(2, "0")}</span>
                       <input value={o.title} onChange={(e) => setOutline((os) => os.map((x, k) => k === i ? { ...x, title: e.target.value } : x))} style={{ flex: 1, border: "none", background: "transparent", fontSize: 15, fontWeight: 600, color: "var(--ink)", outline: "none" }} />
                       <button style={btn({ padding: "4px 8px" })} onClick={() => move(i, -1)}>↑</button>
                       <button style={btn({ padding: "4px 8px" })} onClick={() => move(i, 1)}>↓</button>
-                      <button style={btn({ padding: "4px 8px", color: "#b42318" })} onClick={() => setOutline((os) => os.filter((_, k) => k !== i))}>✕</button>
+                      <button style={btn({ padding: "4px 8px", color: "var(--destructive)" })} onClick={() => setOutline((os) => os.filter((_, k) => k !== i))}>✕</button>
                     </div>
                   ))}
                 </div>
                 <button style={btn({ marginTop: 10 })} onClick={() => setOutline((os) => [...os, { title: "New slide", intent: "" }])}>+ Add slide</button>
                 <div style={{ position: "sticky", bottom: 0, marginTop: 20, display: "flex", justifyContent: "flex-end", gap: 12 }}>
-                  <span style={{ alignSelf: "center", fontSize: 13, color: "var(--muted)" }}>{outline.length} slides · Ready to generate</span>
+                  <span style={{ alignSelf: "center", fontSize: 13, color: "var(--text-muted)" }}>{outline.length} slides · Ready to generate</span>
                   <button style={primaryBtn} disabled={!!busy} onClick={generateDeck}>{busy || "Generate deck →"}</button>
                 </div>
               </div>
             ) : (
               // setup / compose placeholder
-              <div style={{ height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", color: "var(--muted)" }}>
+              <div style={{ height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", color: "var(--text-muted)" }}>
                 <div style={{ fontSize: 15, fontWeight: 700, color: "var(--studio-teal-dark)", marginBottom: 14 }}>Content</div>
                 <div style={{ width: 220, border: "1px dashed var(--hairline)", borderRadius: 12, padding: 20 }}>
                   <div style={{ height: 46, background: "var(--mint-pill)", borderRadius: 8, marginBottom: 12 }} />
@@ -591,7 +591,7 @@ export default function DeckStudio({ deckId, userName }: { deckId: string | null
           <div style={{ flex: 1, display: "flex", minHeight: 0 }}>
             {/* thumbnails */}
             <div style={{ width: 150, borderRight: "1px solid var(--hairline)", overflowY: "auto", padding: 10, display: "flex", flexDirection: "column", gap: 8 }}>
-              <div style={{ fontSize: 10.5, fontWeight: 700, color: "var(--muted)" }}>{deck.slides.length} SLIDES</div>
+              <div style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-muted)" }}>{deck.slides.length} SLIDES</div>
               {deck.slides.map((s, i) => (
                 <div key={s.id} onClick={() => setCur(i)} style={{ cursor: "pointer", border: i === cur ? "2px solid var(--studio-primary)" : "2px solid transparent", borderRadius: 10, padding: 2 }}>
                   <ScaledSlide slide={s} t={t} index={i} total={deck.slides.length} boxW={122} />
@@ -612,7 +612,7 @@ export default function DeckStudio({ deckId, userName }: { deckId: string | null
                 )}
                 <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap", justifyContent: "center" }}>
                   <button style={btn()} onClick={() => setCur((c) => Math.max(0, c - 1))}>←</button>
-                  <span style={{ alignSelf: "center", fontSize: 13, color: "var(--muted)" }}>{cur + 1} / {deck.slides.length}</span>
+                  <span style={{ alignSelf: "center", fontSize: 13, color: "var(--text-muted)" }}>{cur + 1} / {deck.slides.length}</span>
                   <button style={btn()} onClick={() => setCur((c) => Math.min(deck.slides.length - 1, c + 1))}>→</button>
                   {!editing && <button style={btn()} disabled={!!busy} onClick={() => sendRefineQuick("Improve and tighten this slide.")}>↻ Refine</button>}
                   {!editing && <select value={deck.theme} onChange={(e) => setDeck({ ...deck, theme: e.target.value })} style={{ ...btn(), padding: "8px 10px" }}>{themes.map((th) => <option key={th.id} value={th.id}>{th.name}</option>)}</select>}
@@ -620,16 +620,16 @@ export default function DeckStudio({ deckId, userName }: { deckId: string | null
               </div>
               {editing && showSource && (
                 <div style={{ width: 340, flexShrink: 0, background: "var(--card-bg,#fff)", border: "1px solid var(--hairline)", borderRadius: 12, padding: 14, display: "flex", flexDirection: "column" }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: "var(--muted)" }}>HTML SOURCE</div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-muted)" }}>HTML SOURCE</div>
                   <div style={{ fontSize: 12.5, color: "var(--ink)", margin: "2px 0 8px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{slide.title || `Slide ${cur + 1}`}</div>
                   <textarea value={slide.html || slideHtml(slide, t)} onChange={(e) => { setCurHtml(e.target.value); setSrcNonce((n) => n + 1); }}
-                    style={{ flex: 1, minHeight: 380, width: "100%", border: "1px solid var(--hairline)", borderRadius: 8, padding: 10, fontFamily: "monospace", fontSize: 12, resize: "none", color: "var(--ink)", background: "var(--soft-bg,#fafcfb)" }} />
+                    style={{ flex: 1, minHeight: 380, width: "100%", border: "1px solid var(--hairline)", borderRadius: 8, padding: 10, fontFamily: "monospace", fontSize: 12, resize: "none", color: "var(--ink)", background: "var(--soft-bg)" }} />
                 </div>
               )}
             </div>
           </div>
         ) : (
-          <div style={{ flex: 1, display: "grid", placeItems: "center", color: "var(--muted)" }}>{busy || "Loading…"}</div>
+          <div style={{ flex: 1, display: "grid", placeItems: "center", color: "var(--text-muted)" }}>{busy || "Loading…"}</div>
         )}
       </div>
 
@@ -639,7 +639,7 @@ export default function DeckStudio({ deckId, userName }: { deckId: string | null
           <PresentSlide slide={deck.slides[cur]} t={t} index={cur} total={deck.slides.length} />
           <div style={{ position: "fixed", bottom: 20, display: "flex", gap: 14, alignItems: "center" }} onClick={(e) => e.stopPropagation()}>
             <button style={btn()} onClick={() => setCur((c) => Math.max(0, c - 1))}>←</button>
-            <span style={{ color: "#fff" }}>{cur + 1} / {deck.slides.length}</span>
+            <span style={{ color: "var(--primary-foreground)" }}>{cur + 1} / {deck.slides.length}</span>
             <button style={btn()} onClick={() => setCur((c) => Math.min(deck.slides.length - 1, c + 1))}>→</button>
             <button style={btn()} onClick={() => setPresent(false)}>✕ Esc</button>
           </div>

@@ -171,10 +171,10 @@ function SectionThumb({ head, html, index, label, onClick, dragging, onDragStart
   return (
     <button onClick={onClick} title={label} draggable onDragStart={onDragStart} onDragOver={onDragOver} onDrop={onDrop}
       style={{ display: "block", width: "100%", padding: 0, border: "none", background: "transparent", cursor: "grab", marginBottom: 10, opacity: dragging ? 0.45 : 1 }}>
-      <div style={{ position: "relative", width: TW, height: TH, margin: "0 auto", borderRadius: R.lg, overflow: "hidden", border: `1.5px solid ${dragging ? primary : border}`, background: "#fff", boxShadow: "var(--hc-shadow-sm)" }}>
+      <div style={{ position: "relative", width: TW, height: TH, margin: "0 auto", borderRadius: R.lg, overflow: "hidden", border: `1.5px solid ${dragging ? primary : border}`, background: "var(--card)", boxShadow: "var(--hc-shadow-sm)" }}>
         <iframe title={label} sandbox="allow-same-origin" scrolling="no" tabIndex={-1} srcDoc={doc}
-          style={{ position: "absolute", top: 0, left: 0, width: PW, height: Math.round(TH / scale), border: "none", transform: `scale(${scale})`, transformOrigin: "top left", pointerEvents: "none", background: "#fff" }} />
-        <span style={{ position: "absolute", top: 5, left: 5, minWidth: 18, height: 18, padding: "0 5px", borderRadius: R.md, background: "rgba(0,0,0,0.55)", color: "#fff", fontSize: 11, fontWeight: 700, display: "grid", placeItems: "center" }}>{index + 1}</span>
+          style={{ position: "absolute", top: 0, left: 0, width: PW, height: Math.round(TH / scale), border: "none", transform: `scale(${scale})`, transformOrigin: "top left", pointerEvents: "none", background: "var(--card)" }} />
+        <span style={{ position: "absolute", top: 5, left: 5, minWidth: 18, height: 18, padding: "0 5px", borderRadius: R.md, background: "rgba(0,0,0,0.55)", color: "var(--primary-foreground)", fontSize: 11, fontWeight: 700, display: "grid", placeItems: "center" }}>{index + 1}</span>
       </div>
       <div style={{ fontSize: 11.5, fontWeight: 600, color: muted, textAlign: "center", marginTop: 4, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: TW, marginLeft: "auto", marginRight: "auto" }}>{label}</div>
     </button>
@@ -210,7 +210,7 @@ function EmptyState() {
 function DeviceFrame({ device, children }: { device: "desktop" | "mobile"; children: React.ReactNode }) {
   return (
     <div style={{ flex: 1, minHeight: 0, overflow: "auto", background: soft, display: "grid", placeItems: device === "mobile" ? "start center" : "stretch", padding: device === "mobile" ? "18px 0" : 0 }}>
-      <div style={{ width: device === "mobile" ? 390 : "100%", maxWidth: "100%", height: device === "mobile" ? 760 : "100%", background: "#fff", borderRadius: device === "mobile" ? R.x3 : 0, overflow: "hidden", border: device === "mobile" ? `1px solid ${border}` : "none", boxShadow: device === "mobile" ? "var(--hc-shadow-lg)" : "none" }}>{children}</div>
+      <div style={{ width: device === "mobile" ? 390 : "100%", maxWidth: "100%", height: device === "mobile" ? 760 : "100%", background: "var(--card)", borderRadius: device === "mobile" ? R.x3 : 0, overflow: "hidden", border: device === "mobile" ? `1px solid ${border}` : "none", boxShadow: device === "mobile" ? "var(--hc-shadow-lg)" : "none" }}>{children}</div>
     </div>
   );
 }
@@ -332,7 +332,7 @@ function SeoView({ artifact }: { artifact: Artifact | null }) {
       </div>
       {seo.title && <div style={{ marginBottom: 12 }}><div style={{ fontSize: 12, color: muted, fontWeight: 700 }}>TITLE</div><div style={{ color: fg }}>{seo.title}</div></div>}
       {seo.description && <div style={{ marginBottom: 16 }}><div style={{ fontSize: 12, color: muted, fontWeight: 700 }}>DESCRIPTION</div><div style={{ color: fg }}>{seo.description}</div></div>}
-      <div style={{ display: "grid", gap: 8 }}>{checks.map((c, i) => (<div key={i} style={{ display: "flex", alignItems: "center", gap: 10, ...TYPE.sm, color: fg }}><span style={{ width: 20, height: 20, borderRadius: "50%", background: c.ok ? primary : soft, color: "#fff", display: "grid", placeItems: "center" }}>{c.ok ? <CheckIcon size={13} color="#fff" /> : ""}</span>{c.label}</div>))}</div>
+      <div style={{ display: "grid", gap: 8 }}>{checks.map((c, i) => (<div key={i} style={{ display: "flex", alignItems: "center", gap: 10, ...TYPE.sm, color: fg }}><span style={{ width: 20, height: 20, borderRadius: "50%", background: c.ok ? primary : soft, color: "var(--primary-foreground)", display: "grid", placeItems: "center" }}>{c.ok ? <CheckIcon size={13} color="var(--primary-foreground)" /> : ""}</span>{c.label}</div>))}</div>
     </div>
   );
 }
@@ -482,7 +482,7 @@ function VersionsView({ artifact, onRestore }: { artifact: Artifact | null; onRe
     <div style={{ padding: 28, overflow: "auto" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4, gap: 12 }}>
         <div style={{ fontWeight: 800, color: fg, ...TYPE.base }}>Version history</div>
-        <button onClick={saveNow} disabled={!artifact || busy === "save"} style={{ padding: "6px 12px", borderRadius: R.lg, border: "none", background: primary, color: "#fff", fontWeight: 700, fontSize: 13, cursor: artifact ? "pointer" : "not-allowed", opacity: artifact ? 1 : 0.5 }}>{busy === "save" ? "Saving…" : "Save version"}</button>
+        <button onClick={saveNow} disabled={!artifact || busy === "save"} style={{ padding: "6px 12px", borderRadius: R.lg, border: "none", background: primary, color: "var(--primary-foreground)", fontWeight: 700, fontSize: 13, cursor: artifact ? "pointer" : "not-allowed", opacity: artifact ? 1 : 0.5 }}>{busy === "save" ? "Saving…" : "Save version"}</button>
       </div>
       <div style={{ color: muted, ...TYPE.sm, marginBottom: 16 }}>Snapshots are captured automatically as you edit (and whenever you save a checkpoint). Restore any version into the editor, or download it as a standalone file.</div>
       {msg && <div style={{ marginBottom: 12, padding: "8px 12px", borderRadius: R.lg, background: pill, color: primary, ...TYPE.sm }}>{msg}</div>}
@@ -615,8 +615,8 @@ export default function CmsPreview({
               <div style={{ flex: 1 }} />
               {editable && (
                 <button onClick={() => { setEditMode((v) => !v); setSel(null); }} title="Visually edit elements"
-                  style={{ display: "inline-flex", alignItems: "center", gap: 6, height: 30, padding: "0 11px", borderRadius: R.lg, border: "none", background: editMode ? primary : soft, color: editMode ? "#fff" : primary, fontWeight: 700, fontSize: 12.5, cursor: "pointer", marginRight: 8 }}>
-                  <PencilIcon size={14} color={editMode ? "#fff" : primary} /> {editMode ? "Editing" : "Edit"}
+                  style={{ display: "inline-flex", alignItems: "center", gap: 6, height: 30, padding: "0 11px", borderRadius: R.lg, border: "none", background: editMode ? primary : soft, color: editMode ? "var(--primary-foreground)" : primary, fontWeight: 700, fontSize: 12.5, cursor: "pointer", marginRight: 8 }}>
+                  <PencilIcon size={14} color={editMode ? "var(--primary-foreground)" : primary} /> {editMode ? "Editing" : "Edit"}
                 </button>
               )}
               {tab === "preview" && (
@@ -632,9 +632,9 @@ export default function CmsPreview({
                 <span style={{ fontWeight: 700, color: primary }}>&lt;{sel.tag}&gt;</span>
                 <span style={{ color: muted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", flex: 1 }}>{sel.tag === "img" ? "(image selected — regenerate it with AI)" : sel.text.slice(0, 70) || "(selected — type to edit inline)"}</span>
                 {sel.tag === "img" && (
-                  <button onClick={regenImage} disabled={imgBusy} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 11px", borderRadius: R.lg, border: "none", background: imgBusy ? soft : primary, color: "#fff", fontWeight: 700, fontSize: 12.5, cursor: imgBusy ? "default" : "pointer" }}><ImageIcon size={13} color="#fff" /> {imgBusy ? "Generating…" : "Regenerate image"}</button>
+                  <button onClick={regenImage} disabled={imgBusy} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 11px", borderRadius: R.lg, border: "none", background: imgBusy ? soft : primary, color: "var(--primary-foreground)", fontWeight: 700, fontSize: 12.5, cursor: imgBusy ? "default" : "pointer" }}><ImageIcon size={13} color="var(--primary-foreground)" /> {imgBusy ? "Generating…" : "Regenerate image"}</button>
                 )}
-                <button onClick={() => onAskAboutSelection(sel.text)} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 11px", borderRadius: R.lg, border: "none", background: primary, color: "#fff", fontWeight: 700, fontSize: 12.5, cursor: "pointer" }}><SparkIcon size={13} color="#fff" /> Ask AI to change this</button>
+                <button onClick={() => onAskAboutSelection(sel.text)} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 11px", borderRadius: R.lg, border: "none", background: primary, color: "var(--primary-foreground)", fontWeight: 700, fontSize: 12.5, cursor: "pointer" }}><SparkIcon size={13} color="var(--primary-foreground)" /> Ask AI to change this</button>
               </div>
             )}
 

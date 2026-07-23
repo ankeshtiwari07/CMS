@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@humain/design-tokens": "workspace:*",
+    "@humain/foundation": "npm:@humain/ui@2.1.58",
     "@humain/ui": "workspace:*",
     "next": "16.2.7",
     "next-intl": "^4.13.0",

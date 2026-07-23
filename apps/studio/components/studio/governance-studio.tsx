@@ -10,9 +10,9 @@ type Report = {
 };
 type Profile = { name: string; palette: string[]; paletteMeta: { hex: string; name?: string; usage?: string }[]; fonts: string[]; voice: string; ragText: string; grounded: boolean };
 
-const TEAL = "#00a18b", INK = "#0b1416", LINE = "#e3ebe9", MUT = "#5a6a6c";
-const statusColor = (s: string) => (s === "pass" ? "#159a5b" : s === "warn" ? "#c47d0a" : "#c0392b");
-const sevColor = (s: string) => (s === "fail" ? "#c0392b" : s === "warn" ? "#c47d0a" : "#5a6a6c");
+const TEAL = "var(--primary)", INK = "var(--background)", LINE = "var(--hairline)", MUT = "var(--text-muted)";
+const statusColor = (s: string) => (s === "pass" ? "var(--success)" : s === "warn" ? "var(--warning)" : "var(--destructive)");
+const sevColor = (s: string) => (s === "fail" ? "var(--destructive)" : s === "warn" ? "var(--warning)" : "var(--text-muted)");
 
 export default function GovernanceStudio() {
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -59,21 +59,21 @@ export default function GovernanceStudio() {
 
   const ring = useMemo(() => {
     const s = report?.score ?? 0;
-    return { background: `conic-gradient(${statusColor(report?.status || "warn")} ${s}%, #eaf0ee 0)` };
+    return { background: `conic-gradient(${statusColor(report?.status || "warn")} ${s}%, var(--surface-3) 0)` };
   }, [report]);
 
-  const card: React.CSSProperties = { border: `1px solid ${LINE}`, borderRadius: 14, background: "#fff", padding: 16 };
+  const card: React.CSSProperties = { border: `1px solid ${LINE}`, borderRadius: 14, background: "var(--card)", padding: 16 };
   const btn = (primary?: boolean, disabled?: boolean): React.CSSProperties => ({
     padding: "9px 14px", borderRadius: 10, fontWeight: 700, fontSize: 13.5, cursor: disabled ? "default" : "pointer",
-    border: primary ? "none" : `1px solid ${LINE}`, background: primary ? TEAL : "#fff", color: primary ? "#fff" : INK, opacity: disabled ? 0.55 : 1,
+    border: primary ? "none" : `1px solid ${LINE}`, background: primary ? TEAL : "var(--card)", color: primary ? "var(--primary-foreground)" : INK, opacity: disabled ? 0.55 : 1,
   });
 
   return (
-    <div style={{ background: "#fff", borderRadius: 16, minHeight: "calc(100vh - 20px)", padding: "22px 26px", fontFamily: "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif", color: INK }}>
+    <div style={{ background: "var(--card)", borderRadius: 16, minHeight: "calc(100vh - 20px)", padding: "22px 26px", fontFamily: "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif", color: INK }}>
       <div style={{ display: "flex", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
         <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: ".12em", color: TEAL, textTransform: "uppercase" }}>Governance Agent</div>
         {profile && (
-          <span style={{ fontSize: 12, fontWeight: 700, color: profile.grounded ? "#159a5b" : "#c47d0a", background: profile.grounded ? "#e7f6ee" : "#fbf1e0", border: `1px solid ${LINE}`, padding: "3px 9px", borderRadius: 999 }}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: profile.grounded ? "var(--success)" : "var(--warning)", background: profile.grounded ? "color-mix(in srgb, var(--success) 12%, var(--background))" : "var(--soft-warning)", border: `1px solid ${LINE}`, padding: "3px 9px", borderRadius: 999 }}>
             {profile.grounded ? `● Grounded on “${profile.name}” (RAG + brand guidelines)` : "○ No active brand — using defaults"}
           </span>
         )}
@@ -99,7 +99,7 @@ export default function GovernanceStudio() {
           </div>
           <div style={{ flex: 1, minWidth: 260 }}>
             <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: ".1em", color: MUT, fontWeight: 700, marginBottom: 8 }}>Voice &amp; guidelines (grounding)</div>
-            <div style={{ fontSize: 13, color: "#334", lineHeight: 1.55, whiteSpace: "pre-wrap", maxHeight: 120, overflow: "auto" }}>{profile.voice || "—"}</div>
+            <div style={{ fontSize: 13, color: "var(--ink)", lineHeight: 1.55, whiteSpace: "pre-wrap", maxHeight: 120, overflow: "auto" }}>{profile.voice || "—"}</div>
             {profile.fonts.length > 0 && <div style={{ fontSize: 12, color: MUT, marginTop: 8 }}>Fonts: {profile.fonts.join(", ")}</div>}
           </div>
         </div>
@@ -120,7 +120,7 @@ export default function GovernanceStudio() {
           <textarea value={html} onChange={(e) => { setHtml(e.target.value); }} placeholder="Paste a page/section/component HTML, or click “Load latest website”." spellCheck={false}
             style={{ width: "100%", height: 150, resize: "vertical", border: `1px solid ${LINE}`, borderRadius: 10, padding: 10, fontFamily: "ui-monospace,monospace", fontSize: 12, color: INK, outline: "none" }} />
           <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: ".1em", color: MUT, fontWeight: 700, margin: "12px 0 8px" }}>Live preview</div>
-          <iframe title="preview" srcDoc={html || "<div style='font-family:sans-serif;color:#889;padding:24px'>Nothing to preview yet.</div>"} style={{ width: "100%", height: 320, border: `1px solid ${LINE}`, borderRadius: 10, background: "#fff" }} />
+          <iframe title="preview" srcDoc={html || "<div style='font-family:sans-serif;color:#889;padding:24px'>Nothing to preview yet.</div>"} style={{ width: "100%", height: 320, border: `1px solid ${LINE}`, borderRadius: 10, background: "var(--card)" }} />
         </div>
 
         {/* Report */}
@@ -130,7 +130,7 @@ export default function GovernanceStudio() {
             <div>
               <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
                 <div style={{ width: 92, height: 92, borderRadius: "50%", display: "grid", placeItems: "center", ...ring }}>
-                  <div style={{ width: 70, height: 70, borderRadius: "50%", background: "#fff", display: "grid", placeItems: "center" }}>
+                  <div style={{ width: 70, height: 70, borderRadius: "50%", background: "var(--card)", display: "grid", placeItems: "center" }}>
                     <div style={{ fontSize: 24, fontWeight: 800 }}>{report.score}</div>
                   </div>
                 </div>
@@ -145,8 +145,8 @@ export default function GovernanceStudio() {
                 {(["palette", "tone", "messaging", "visual"] as const).map((k) => (
                   <div key={k} style={{ display: "flex", alignItems: "center", gap: 10 }}>
                     <div style={{ width: 78, fontSize: 12, color: MUT, textTransform: "capitalize" }}>{k}</div>
-                    <div style={{ flex: 1, height: 7, background: "#eef2f0", borderRadius: 99, overflow: "hidden" }}>
-                      <div style={{ width: `${report.dimensions[k]}%`, height: "100%", background: report.dimensions[k] >= 85 ? "#159a5b" : report.dimensions[k] >= 65 ? "#c47d0a" : "#c0392b" }} />
+                    <div style={{ flex: 1, height: 7, background: "var(--surface-2)", borderRadius: 99, overflow: "hidden" }}>
+                      <div style={{ width: `${report.dimensions[k]}%`, height: "100%", background: report.dimensions[k] >= 85 ? "var(--success)" : report.dimensions[k] >= 65 ? "var(--warning)" : "var(--destructive)" }} />
                     </div>
                     <div style={{ width: 30, fontSize: 12, fontWeight: 700, textAlign: "right" }}>{report.dimensions[k]}</div>
                   </div>
@@ -175,12 +175,12 @@ export default function GovernanceStudio() {
                     {report.findings.map((f, i) => (
                       <div key={i} style={{ border: `1px solid ${LINE}`, borderRadius: 10, padding: "9px 11px" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          <span style={{ fontSize: 10, fontWeight: 800, color: "#fff", background: sevColor(f.severity), padding: "1px 7px", borderRadius: 5, textTransform: "uppercase" }}>{f.severity}</span>
+                          <span style={{ fontSize: 10, fontWeight: 800, color: "var(--primary-foreground)", background: sevColor(f.severity), padding: "1px 7px", borderRadius: 5, textTransform: "uppercase" }}>{f.severity}</span>
                           <span style={{ fontSize: 11, color: MUT, textTransform: "capitalize" }}>{f.dimension}</span>
                         </div>
                         <div style={{ fontSize: 13, marginTop: 5 }}>{f.issue}</div>
                         {f.evidence && <div style={{ fontSize: 11.5, color: MUT, marginTop: 3, fontFamily: "ui-monospace,monospace" }}>evidence: {f.evidence}</div>}
-                        {f.fix && <div style={{ fontSize: 12, color: "#159a5b", marginTop: 3 }}>→ {f.fix}</div>}
+                        {f.fix && <div style={{ fontSize: 12, color: "var(--success)", marginTop: 3 }}>→ {f.fix}</div>}
                       </div>
                     ))}
                   </div>
@@ -188,7 +188,7 @@ export default function GovernanceStudio() {
               )}
 
               {changes && (
-                <div style={{ marginTop: 14, fontSize: 12.5, color: "#334" }}>
+                <div style={{ marginTop: 14, fontSize: 12.5, color: "var(--ink)" }}>
                   <b>Applied fixes:</b> {changes.length ? changes.join(" · ") : "no changes needed"}
                 </div>
               )}

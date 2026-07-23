@@ -41,7 +41,7 @@ export default function SearchClient() {
           border: "1.5px solid var(--studio-primary)",
           borderRadius: 14,
           padding: "12px 16px",
-          background: "#fff",
+          background: "var(--card)",
         }}
       >
         <SearchIcon size={20} color="var(--studio-primary)" />
@@ -52,12 +52,12 @@ export default function SearchClient() {
           placeholder="Search content across the platform…"
           style={{ flex: 1, border: "none", outline: "none", fontSize: 16, color: "var(--ink)" }}
         />
-        {busy && <span style={{ color: "var(--muted)", fontSize: 13 }}>…</span>}
+        {busy && <span style={{ color: "var(--text-muted)", fontSize: 13 }}>…</span>}
       </div>
 
       <div style={{ marginTop: 18, display: "grid", gap: 8 }}>
         {searched && results.length === 0 && !busy && (
-          <div style={{ color: "var(--muted)", padding: 16, textAlign: "center" }}>No results for “{q}”.</div>
+          <div style={{ color: "var(--text-muted)", padding: 16, textAlign: "center" }}>No results for “{q}”.</div>
         )}
         {results.map((r) => (
           <a
@@ -74,12 +74,12 @@ export default function SearchClient() {
               borderRadius: 12,
               textDecoration: "none",
               color: "var(--ink)",
-              background: "#fff",
+              background: "var(--card)",
             }}
           >
             <span style={{ fontWeight: 600 }}>{r.title}</span>
             <span style={{ display: "flex", gap: 10, alignItems: "center" }}>
-              <span style={{ fontSize: 12, color: "var(--muted)" }}>{r.label}</span>
+              <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{r.label}</span>
               <span
                 style={{
                   fontSize: 11,
@@ -87,7 +87,7 @@ export default function SearchClient() {
                   padding: "3px 9px",
                   borderRadius: 999,
                   background: r.status === "published" ? "var(--mint-pill)" : "var(--hairline)",
-                  color: r.status === "published" ? "var(--studio-teal-dark)" : "var(--muted)",
+                  color: r.status === "published" ? "var(--studio-teal-dark)" : "var(--text-muted)",
                 }}
               >
                 {r.status}

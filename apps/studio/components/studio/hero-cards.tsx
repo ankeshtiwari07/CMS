@@ -6,14 +6,14 @@ import type { CSSProperties } from "react";
 
 function SlidesCard() {
   return (
-    <div style={{ width: "100%", height: "100%", background: "linear-gradient(135deg,#0b3b36,#0e7c6b)", padding: 12 }}>
+    <div style={{ width: "100%", height: "100%", background: "linear-gradient(135deg,#0b3b36,var(--studio-teal-dark))", padding: 12 }}>
       <div style={{ background: "rgba(255,255,255,0.95)", borderRadius: 8, height: "100%", padding: 10, display: "flex", flexDirection: "column", gap: 5 }}>
-        <div style={{ width: "55%", height: 7, borderRadius: 4, background: "#0e7c6b" }} />
-        <div style={{ width: "82%", height: 5, borderRadius: 3, background: "#d3ddd9" }} />
-        <div style={{ width: "72%", height: 5, borderRadius: 3, background: "#d3ddd9" }} />
+        <div style={{ width: "55%", height: 7, borderRadius: 4, background: "var(--studio-teal-dark)" }} />
+        <div style={{ width: "82%", height: 5, borderRadius: 3, background: "var(--hairline)" }} />
+        <div style={{ width: "72%", height: 5, borderRadius: 3, background: "var(--hairline)" }} />
         <div style={{ display: "flex", gap: 5, marginTop: "auto", alignItems: "flex-end" }}>
-          {[13, 20, 10, 24].map((h, i) => <div key={i} style={{ width: 7, height: h, borderRadius: 2, background: i % 2 ? "#c2e54b" : "#0e7c6b" }} />)}
-          <div style={{ width: 30, height: 30, borderRadius: "50%", background: "conic-gradient(#0e7c6b 0 40%,#c2e54b 40% 70%,#d3ddd9 70% 100%)", marginLeft: "auto" }} />
+          {[13, 20, 10, 24].map((h, i) => <div key={i} style={{ width: 7, height: h, borderRadius: 2, background: i % 2 ? "var(--lime)" : "var(--studio-teal-dark)" }} />)}
+          <div style={{ width: 30, height: 30, borderRadius: "50%", background: "conic-gradient(var(--studio-teal-dark) 0 40%,var(--lime) 40% 70%,var(--hairline) 70% 100%)", marginLeft: "auto" }} />
         </div>
       </div>
     </div>
@@ -24,9 +24,9 @@ function CityCard() {
   const streaks = [
     { l: "10%", w: 3, h: "50%", c: "#3fe0d0" }, { l: "18%", w: 2, h: "34%", c: "#8ef2c8" },
     { l: "26%", w: 4, h: "66%", c: "#22d3ee" }, { l: "35%", w: 2, h: "44%", c: "#67e8f9" },
-    { l: "44%", w: 3, h: "78%", c: "#c2e54b" }, { l: "53%", w: 2, h: "40%", c: "#3fe0d0" },
+    { l: "44%", w: 3, h: "78%", c: "var(--lime)" }, { l: "53%", w: 2, h: "40%", c: "#3fe0d0" },
     { l: "62%", w: 4, h: "60%", c: "#22d3ee" }, { l: "72%", w: 2, h: "48%", c: "#8ef2c8" },
-    { l: "80%", w: 3, h: "56%", c: "#3fe0d0" }, { l: "88%", w: 2, h: "36%", c: "#c2e54b" },
+    { l: "80%", w: 3, h: "56%", c: "#3fe0d0" }, { l: "88%", w: 2, h: "36%", c: "var(--lime)" },
   ];
   return (
     <div style={{ width: "100%", height: "100%", background: "radial-gradient(120% 100% at 50% 100%, #0f3b46 0%, #061319 72%)", position: "relative", overflow: "hidden" }}>
@@ -42,7 +42,7 @@ function CityCard() {
 function EmailCard() {
   return (
     <div style={{ width: "100%", height: "100%", background: "linear-gradient(135deg,#eaf7e6,#d6efd0)", padding: 11 }}>
-      <div style={{ background: "#fff", borderRadius: 8, height: "100%", padding: 10 }}>
+      <div style={{ background: "var(--card)", borderRadius: 8, height: "100%", padding: 10 }}>
         <div style={{ fontSize: 7.5, color: "#9aa" }}>Tue 11, 2022, 9:10 PM</div>
         <div style={{ fontSize: 10, fontWeight: 800, color: "#12313a", margin: "4px 0 5px", lineHeight: 1.2 }}>Q4 Project Alpha — Update</div>
         <div style={{ fontSize: 8, color: "#2f9e5a", fontWeight: 700 }}>From: Janet Chen</div>
@@ -55,7 +55,7 @@ function EmailCard() {
 }
 
 export default function HeroCards() {
-  const card: CSSProperties = { width: 212, height: 138, borderRadius: 16, overflow: "hidden", boxShadow: "0 16px 34px -16px rgba(16,60,55,0.34)", border: "1px solid rgba(0,0,0,0.05)", background: "#fff", flexShrink: 0 };
+  const card: CSSProperties = { width: 212, height: 138, borderRadius: 16, overflow: "hidden", boxShadow: "0 16px 34px -16px rgba(16,60,55,0.34)", border: "1px solid rgba(0,0,0,0.05)", background: "var(--card)", flexShrink: 0 };
   return (
     <div style={{ display: "flex", justifyContent: "center", alignItems: "flex-end", margin: "8px 0 0", pointerEvents: "none", userSelect: "none" }}>
       <div style={{ ...card, transform: "rotate(-7deg)", marginRight: -28, marginBottom: 14, zIndex: 1 }}><SlidesCard /></div>

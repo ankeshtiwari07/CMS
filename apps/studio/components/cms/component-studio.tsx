@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { cmsVars, appBg, R, TYPE, type Theme } from "@/components/cms/cms-tokens";
+import { standaloneDocCss } from "@humain/design-tokens";
 import { LayersIcon, PlusIcon, SparkIcon, TrashIcon, GlobeIcon, XIcon, CheckIcon } from "@/components/icons";
 
 type Comp = { id: string | number; name: string; key?: string; type: string; category?: string; status: string; html?: string; description?: string };
@@ -13,28 +14,33 @@ const TYPE_LABELS: Record<string, string> = { logoCloud: "Logo cloud", cta: "Cal
 const titleCase = (s: string) => TYPE_LABELS[s] ?? String(s || "").replace(/([a-z])([A-Z])/g, "$1 $2").replace(/^./, (c) => c.toUpperCase());
 
 // A neutral wrapper so bare component markup renders reasonably in the canvas.
+// NOTE: this is an `<iframe srcDoc>` — a separate document that inherits none of
+// the host page's custom properties, so the tokens have to be declared inside it
+// (standaloneDocCss). Never reference a host var here; it silently resolves to
+// nothing. The preview always renders light, matching the published site.
 function pageDoc(html: string): string {
   return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <style>
+${standaloneDocCss}
 *{box-sizing:border-box}
-body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#0b1416;background:#fff;-webkit-font-smoothing:antialiased}
+body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--foreground);background:var(--background);-webkit-font-smoothing:antialiased}
 img{max-width:100%;display:block}
 section,header,footer{padding:32px}
 h1,h2,h3{margin:0 0 .35em;line-height:1.2}
-p{margin:0;color:#54636a;line-height:1.6}
-a{color:#009688}
+p{margin:0;color:var(--text-muted);line-height:1.6}
+a{color:var(--primary)}
 .features{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;max-width:1040px;margin:0 auto}
-.features .card{background:#f6faf9;border:1px solid #e7efed;border-radius:14px;padding:22px}
-.features .card i{display:inline-flex;width:40px;height:40px;align-items:center;justify-content:center;border-radius:11px;background:#e2f3f0;color:#009688;font-style:normal;font-size:19px;margin-bottom:12px}
+.features .card{background:var(--soft-bg);border:1px solid var(--hairline);border-radius:14px;padding:22px}
+.features .card i{display:inline-flex;width:40px;height:40px;align-items:center;justify-content:center;border-radius:11px;background:color-mix(in srgb, var(--primary) 14%, var(--background));color:var(--primary);font-style:normal;font-size:19px;margin-bottom:12px}
 .features .card h3{font-size:16px}
 .features .card p{font-size:14px}
-.cta-band{background:#009688;color:#fff;border-radius:16px;text-align:center;display:grid;gap:16px;place-items:center;padding:44px;max-width:1040px;margin:0 auto}
-.cta-band h2{color:#fff;font-size:25px}
-.cta-band a{display:inline-block;background:#fff;color:#009688;padding:11px 22px;border-radius:10px;font-weight:700;text-decoration:none}
+.cta-band{background:var(--primary);color:var(--primary-foreground);border-radius:16px;text-align:center;display:grid;gap:16px;place-items:center;padding:44px;max-width:1040px;margin:0 auto}
+.cta-band h2{color:var(--primary-foreground);font-size:25px}
+.cta-band a{display:inline-block;background:var(--primary-foreground);color:var(--primary);padding:11px 22px;border-radius:10px;font-weight:700;text-decoration:none}
 .hero-split{display:grid;grid-template-columns:1fr 1fr;gap:30px;align-items:center;max-width:1040px;margin:0 auto}
 .hero-split h1{font-size:32px}
 .hero-split .copy p{margin-bottom:20px;font-size:16px}
-.hero-split .copy a{display:inline-block;background:#009688;color:#fff;padding:11px 22px;border-radius:10px;font-weight:700;text-decoration:none}
+.hero-split .copy a{display:inline-block;background:var(--primary);color:var(--primary-foreground);padding:11px 22px;border-radius:10px;font-weight:700;text-decoration:none}
 .hero-split .media img{width:100%;border-radius:16px}
 @media(max-width:680px){.features{grid-template-columns:1fr}.hero-split{grid-template-columns:1fr}}
 </style></head><body>${html}</body></html>`;
@@ -153,13 +159,13 @@ export default function ComponentStudio({ user, canPublish }: { user: { name?: s
         <aside style={{ width: 300, flexShrink: 0, borderRight: "1px solid var(--hc-border)", display: "flex", flexDirection: "column", padding: 14, gap: 10, minHeight: 0 }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <span style={{ fontWeight: 800, ...TYPE.sm }}>Component Library</span>
-            {isAdmin && <button onClick={() => { setFormErr(null); setEditingId(null); setForm({ name: "", type: "section", status: "live", html: "", description: "" }); setShowNew(true); }} style={{ ...btn(true, false), padding: "5px 10px" }}><PlusIcon size={13} color="#fff" /> New</button>}
+            {isAdmin && <button onClick={() => { setFormErr(null); setEditingId(null); setForm({ name: "", type: "section", status: "live", html: "", description: "" }); setShowNew(true); }} style={{ ...btn(true, false), padding: "5px 10px" }}><PlusIcon size={13} color="var(--primary-foreground)" /> New</button>}
           </div>
           <input value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="Search components…" style={{ padding: "8px 11px", borderRadius: R.lg, border: "1px solid var(--hc-input)", background: "var(--hc-card)", color: "var(--hc-fg)", ...TYPE.sm, outline: "none" }} />
           {isAdmin && (
             <div style={{ display: "flex", gap: 6 }}>
               <input value={aiPrompt} onChange={(e) => setAiPrompt(e.target.value)} onKeyDown={(e) => e.key === "Enter" && aiGenerate(aiPrompt)} placeholder="Generate a component with AI…" style={{ flex: 1, padding: "8px 11px", borderRadius: R.lg, border: "1px solid var(--hc-input)", background: "var(--hc-card)", color: "var(--hc-fg)", ...TYPE.sm, outline: "none" }} />
-              <button onClick={() => aiGenerate(aiPrompt)} disabled={busy || !aiPrompt.trim()} title="Generate with AI" style={{ ...btn(true, busy || !aiPrompt.trim()), padding: "0 11px" }}><SparkIcon size={15} color="#fff" /></button>
+              <button onClick={() => aiGenerate(aiPrompt)} disabled={busy || !aiPrompt.trim()} title="Generate with AI" style={{ ...btn(true, busy || !aiPrompt.trim()), padding: "0 11px" }}><SparkIcon size={15} color="var(--primary-foreground)" /></button>
             </div>
           )}
           <div style={{ flex: 1, overflowY: "auto", display: "grid", gap: 8, alignContent: "start", paddingRight: 2 }}>
@@ -208,7 +214,7 @@ export default function ComponentStudio({ user, canPublish }: { user: { name?: s
                     <button onClick={() => move(i, 1)} disabled={i === blocks.length - 1} style={miniBtn(i === blocks.length - 1)} title="Move down">↓</button>
                     <button onClick={() => remove(b.uid)} style={miniBtn(false)} title="Remove"><TrashIcon size={13} color="var(--hc-destructive)" /></button>
                   </div>
-                  <iframe title={b.comp.name} srcDoc={pageDoc(renderTemplate(b.comp.html) || `<section style="padding:40px;text-align:center;color:#888">${b.comp.name} — no HTML yet</section>`)} style={{ width: "100%", height: 240, border: "none", background: "#fff", display: "block" }} />
+                  <iframe title={b.comp.name} srcDoc={pageDoc(renderTemplate(b.comp.html) || `<section style="padding:40px;text-align:center;color:var(--text-muted)">${b.comp.name} — no HTML yet</section>`)} style={{ width: "100%", height: 240, border: "none", background: "var(--card)", display: "block" }} />
                 </div>
               ))}
             </div>
@@ -237,12 +243,12 @@ export default function ComponentStudio({ user, canPublish }: { user: { name?: s
                 </label>
               </div>
               <label style={lbl()}>HTML<textarea value={form.html} onChange={(e) => setForm((f) => ({ ...f, html: e.target.value }))} rows={8} style={{ ...inp(), fontFamily: "ui-monospace,monospace", fontSize: 12.5, resize: "vertical" }} /></label>
-              {form.html && <iframe title="preview" srcDoc={pageDoc(renderTemplate(form.html))} style={{ width: "100%", height: 180, border: "1px solid var(--hc-border)", borderRadius: R.lg, background: "#fff" }} />}
+              {form.html && <iframe title="preview" srcDoc={pageDoc(renderTemplate(form.html))} style={{ width: "100%", height: 180, border: "1px solid var(--hc-border)", borderRadius: R.lg, background: "var(--card)" }} />}
             </div>
-            {formErr && <div style={{ margin: "10px 0 0", padding: "9px 12px", borderRadius: R.lg, background: "rgba(220,38,38,0.10)", color: "#b42318", fontWeight: 600, ...TYPE.sm, flexShrink: 0 }}>{formErr}{/approval|review|publish/i.test(formErr) ? <> · <a href="/review" style={{ color: "#b42318", textDecoration: "underline" }}>Open Review</a></> : null}</div>}
+            {formErr && <div style={{ margin: "10px 0 0", padding: "9px 12px", borderRadius: R.lg, background: "rgba(220,38,38,0.10)", color: "var(--destructive)", fontWeight: 600, ...TYPE.sm, flexShrink: 0 }}>{formErr}{/approval|review|publish/i.test(formErr) ? <> · <a href="/review" style={{ color: "var(--destructive)", textDecoration: "underline" }}>Open Review</a></> : null}</div>}
             <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 14, flexShrink: 0 }}>
               <button onClick={() => setShowNew(false)} style={btn(false, false)}>Cancel</button>
-              <button onClick={saveComponent} disabled={busy} style={btn(true, busy)}><CheckIcon size={14} color="#fff" /> Save to library</button>
+              <button onClick={saveComponent} disabled={busy} style={btn(true, busy)}><CheckIcon size={14} color="var(--primary-foreground)" /> Save to library</button>
             </div>
           </div>
         </div>
@@ -251,7 +257,7 @@ export default function ComponentStudio({ user, canPublish }: { user: { name?: s
   );
 
   function pill(): any { return { display: "inline-flex", alignItems: "center", alignSelf: "center", flex: "0 0 auto", width: "fit-content", height: "fit-content", fontSize: 11, fontWeight: 700, lineHeight: 1.4, whiteSpace: "nowrap", padding: "3px 9px", borderRadius: R.full, background: "var(--hc-primary-10)", color: "var(--hc-primary)" }; }
-  function btn(primary: boolean, disabled: boolean): any { return { display: "inline-flex", alignItems: "center", gap: 7, padding: "8px 14px", borderRadius: R.lg, border: primary ? "none" : "1px solid var(--hc-border)", background: primary ? "var(--hc-primary)" : "var(--hc-card)", color: primary ? "#fff" : "var(--hc-fg)", fontWeight: 700, ...TYPE.sm, cursor: disabled ? "default" : "pointer", opacity: disabled ? 0.5 : 1 }; }
+  function btn(primary: boolean, disabled: boolean): any { return { display: "inline-flex", alignItems: "center", gap: 7, padding: "8px 14px", borderRadius: R.lg, border: primary ? "none" : "1px solid var(--hc-border)", background: primary ? "var(--hc-primary)" : "var(--hc-card)", color: primary ? "var(--primary-foreground)" : "var(--hc-fg)", fontWeight: 700, ...TYPE.sm, cursor: disabled ? "default" : "pointer", opacity: disabled ? 0.5 : 1 }; }
   function miniBtn(disabled: boolean): any { return { width: 26, height: 26, borderRadius: R.md, border: "1px solid var(--hc-border)", background: "var(--hc-card)", color: "var(--hc-fg)", display: "grid", placeItems: "center", cursor: disabled ? "default" : "pointer", opacity: disabled ? 0.4 : 1, fontSize: 13 }; }
   function lbl(): any { return { display: "grid", gap: 5, fontWeight: 700, ...TYPE.sm, color: "var(--hc-fg)" }; }
   function inp(): any { return { padding: "9px 11px", borderRadius: R.lg, border: "1px solid var(--hc-input)", background: "var(--hc-card)", color: "var(--hc-fg)", ...TYPE.sm, outline: "none", fontWeight: 400, width: "100%" }; }

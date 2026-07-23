@@ -10,7 +10,7 @@ export default async function DamPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   return (
-    <div style={{ display: "flex", minHeight: "100vh", background: "#eef4f3" }}>
+    <div style={{ display: "flex", minHeight: "100vh", background: "var(--shell-bg)" }}>
       <Sidebar user={{ name: user.name, email: user.email, roles: user.roles }} active="dam" />
       <main style={{ flex: 1, padding: "10px 10px 10px 0", minWidth: 0 }}>
         <DamStudio />

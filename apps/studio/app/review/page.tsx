@@ -11,14 +11,14 @@ export default async function ReviewPage() {
   if (!user) redirect("/login");
   const approver = hasRole(user, ["reviewer", "publisher", "brand", "siteAdmin", "compliance", "admin"]);
   return (
-    <div style={{ display: "flex", minHeight: "100vh", background: "#eef4f3" }}>
+    <div style={{ display: "flex", minHeight: "100vh", background: "var(--shell-bg)" }}>
       <Sidebar user={{ name: user.name, email: user.email, roles: user.roles }} active="review" />
       <main style={{ flex: 1, padding: "10px 10px 10px 0" }}>
-        <div style={{ minHeight: "calc(100vh - 20px)", borderRadius: 22, background: "#fff", border: "1px solid var(--hairline)" }}>
+        <div style={{ minHeight: "calc(100vh - 20px)", borderRadius: 22, background: "var(--card)", border: "1px solid var(--hairline)" }}>
           {approver ? (
             <ReviewQueue />
           ) : (
-            <div style={{ padding: 40, color: "var(--muted)" }}>The Review Queue is for approver roles (reviewer, brand, compliance, publisher, admin).</div>
+            <div style={{ padding: 40, color: "var(--text-muted)" }}>The Review Queue is for approver roles (reviewer, brand, compliance, publisher, admin).</div>
           )}
         </div>
       </main>

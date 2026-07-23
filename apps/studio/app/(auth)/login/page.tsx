@@ -13,7 +13,7 @@ export default function LoginPage() {
         placeItems: "center",
         padding: 24,
         background:
-          "radial-gradient(1200px 480px at 50% -10%, var(--mint-tint) 0%, #f3fbf9 38%, #ffffff 70%)",
+          "radial-gradient(1200px 480px at 50% -10%, var(--mint-tint) 0%, var(--hero-mid) 38%, var(--hero-end) 70%)",
       }}
     >
       <section
@@ -59,7 +59,7 @@ export default function LoginPage() {
           <LoginForm />
         </Suspense>
 
-        <p style={{ textAlign: "center", marginTop: 22, fontSize: 12.5, color: "var(--muted)" }}>
+        <p style={{ textAlign: "center", marginTop: 22, fontSize: 12.5, color: "var(--text-muted)" }}>
           Sovereign by design · Arabic-first
         </p>
       </section>

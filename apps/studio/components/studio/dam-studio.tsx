@@ -7,7 +7,7 @@ type Asset = {
   width?: number; height?: number; alt?: string; usageRights?: string; aiGenerated?: boolean; createdAt?: string; sizes: Rendition[];
 };
 
-const TEAL = "#00a18b", INK = "#0b1416", LINE = "#e3ebe9", MUT = "#5a6a6c";
+const TEAL = "var(--primary)", INK = "var(--background)", LINE = "var(--hairline)", MUT = "var(--text-muted)";
 const kb = (n?: number) => (n == null ? "—" : n < 1024 ? `${n} B` : n < 1048576 ? `${(n / 1024).toFixed(0)} KB` : `${(n / 1048576).toFixed(1)} MB`);
 const isImg = (m?: string) => (m || "").startsWith("image/");
 
@@ -65,13 +65,13 @@ export default function DamStudio() {
   const shown = useMemo(() => assets.filter((a) => !q.trim() || (a.filename + " " + (a.alt || "")).toLowerCase().includes(q.toLowerCase())), [assets, q]);
   const totalBytes = useMemo(() => assets.reduce((s, a) => s + (a.filesize || 0), 0), [assets]);
 
-  const card: React.CSSProperties = { border: `1px solid ${LINE}`, borderRadius: 14, background: "#fff" };
+  const card: React.CSSProperties = { border: `1px solid ${LINE}`, borderRadius: 14, background: "var(--card)" };
 
   return (
-    <div style={{ background: "#fff", borderRadius: 16, minHeight: "calc(100vh - 20px)", padding: "22px 26px", fontFamily: "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif", color: INK }}>
+    <div style={{ background: "var(--card)", borderRadius: 16, minHeight: "calc(100vh - 20px)", padding: "22px 26px", fontFamily: "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif", color: INK }}>
       <div style={{ display: "flex", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
         <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: ".12em", color: TEAL, textTransform: "uppercase" }}>Digital Asset Management</div>
-        <span style={{ fontSize: 12, fontWeight: 700, color: "#159a5b", background: "#e7f6ee", border: `1px solid ${LINE}`, padding: "3px 9px", borderRadius: 999 }}>
+        <span style={{ fontSize: 12, fontWeight: 700, color: "var(--success)", background: "color-mix(in srgb, var(--success) 12%, var(--background))", border: `1px solid ${LINE}`, padding: "3px 9px", borderRadius: 999 }}>
           ● Storage: self-hosted S3 / MinIO · bucket “{store}”
         </span>
       </div>
@@ -83,7 +83,7 @@ export default function DamStudio() {
       {/* toolbar */}
       <div style={{ display: "flex", gap: 10, marginTop: 16, flexWrap: "wrap", alignItems: "center" }}>
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search assets…" style={{ padding: "9px 12px", borderRadius: 10, border: `1px solid ${LINE}`, fontSize: 13.5, outline: "none", minWidth: 220 }} />
-        <button onClick={() => fileRef.current?.click()} disabled={busy} style={{ padding: "9px 16px", borderRadius: 10, border: "none", background: TEAL, color: "#fff", fontWeight: 700, fontSize: 13.5, cursor: busy ? "default" : "pointer", opacity: busy ? 0.6 : 1 }}>
+        <button onClick={() => fileRef.current?.click()} disabled={busy} style={{ padding: "9px 16px", borderRadius: 10, border: "none", background: TEAL, color: "var(--primary-foreground)", fontWeight: 700, fontSize: 13.5, cursor: busy ? "default" : "pointer", opacity: busy ? 0.6 : 1 }}>
           {busy ? "Uploading…" : "Upload assets"}
         </button>
         <input ref={fileRef} type="file" multiple accept="image/*,application/pdf,video/*" style={{ display: "none" }} onChange={(e) => upload(e.target.files)} />
@@ -94,7 +94,7 @@ export default function DamStudio() {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(180px,1fr))", gap: 14, marginTop: 18 }}>
         {shown.map((a) => (
           <div key={a.id} onClick={() => open(a)} style={{ ...card, overflow: "hidden", cursor: "pointer" }}>
-            <div style={{ height: 130, background: "#f4f8f7", display: "grid", placeItems: "center", borderBottom: `1px solid ${LINE}` }}>
+            <div style={{ height: 130, background: "var(--soft-bg)", display: "grid", placeItems: "center", borderBottom: `1px solid ${LINE}` }}>
               {isImg(a.mimeType)
                 ? <img src={(a.sizes.find((s) => s.name === "thumbnail")?.url) || a.url} alt={a.alt || a.filename} style={{ maxWidth: "100%", maxHeight: 130, objectFit: "contain" }} />
                 : <div style={{ fontSize: 34 }}>📄</div>}
@@ -102,7 +102,7 @@ export default function DamStudio() {
             <div style={{ padding: "9px 11px" }}>
               <div style={{ fontSize: 12.5, fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{a.filename}</div>
               <div style={{ fontSize: 11, color: MUT, marginTop: 2 }}>{a.width && a.height ? `${a.width}×${a.height} · ` : ""}{kb(a.filesize)}</div>
-              {a.alt && <div style={{ marginTop: 5 }}><span style={{ fontSize: 9.5, fontWeight: 700, color: TEAL, background: "#e7f6ef", padding: "1px 6px", borderRadius: 5 }}>AI alt-text</span></div>}
+              {a.alt && <div style={{ marginTop: 5 }}><span style={{ fontSize: 9.5, fontWeight: 700, color: TEAL, background: "color-mix(in srgb, var(--success) 12%, var(--background))", padding: "1px 6px", borderRadius: 5 }}>AI alt-text</span></div>}
             </div>
           </div>
         ))}
@@ -112,13 +112,13 @@ export default function DamStudio() {
       {/* detail modal */}
       {sel && (
         <div onClick={() => setSel(null)} style={{ position: "fixed", inset: 0, background: "rgba(6,16,12,.5)", zIndex: 60, display: "grid", placeItems: "center", padding: 20 }}>
-          <div onClick={(e) => e.stopPropagation()} style={{ background: "#fff", borderRadius: 16, maxWidth: 860, width: "100%", maxHeight: "90vh", overflow: "auto", padding: 22 }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--card)", borderRadius: 16, maxWidth: 860, width: "100%", maxHeight: "90vh", overflow: "auto", padding: 22 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
               <div style={{ fontWeight: 800, fontSize: 16 }}>{sel.filename}</div>
-              <button onClick={() => setSel(null)} style={{ border: `1px solid ${LINE}`, background: "#fff", borderRadius: 8, padding: "4px 10px", cursor: "pointer" }}>✕</button>
+              <button onClick={() => setSel(null)} style={{ border: `1px solid ${LINE}`, background: "var(--card)", borderRadius: 8, padding: "4px 10px", cursor: "pointer" }}>✕</button>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: 20 }}>
-              <div style={{ background: "#f4f8f7", borderRadius: 12, display: "grid", placeItems: "center", minHeight: 240, border: `1px solid ${LINE}` }}>
+              <div style={{ background: "var(--soft-bg)", borderRadius: 12, display: "grid", placeItems: "center", minHeight: 240, border: `1px solid ${LINE}` }}>
                 {isImg(sel.mimeType) ? <img src={sel.url} alt={sel.alt || sel.filename} style={{ maxWidth: "100%", maxHeight: 360 }} /> : <div style={{ fontSize: 60 }}>📄</div>}
               </div>
               <div style={{ fontSize: 13, lineHeight: 1.9 }}>
@@ -132,14 +132,14 @@ export default function DamStudio() {
                   <textarea value={altDraft} onChange={(e) => setAltDraft(e.target.value)} rows={2}
                     style={{ width: "100%", border: `1px solid ${LINE}`, borderRadius: 8, padding: "7px 9px", fontSize: 12.5, resize: "vertical", outline: "none", color: INK }} />
                   <button onClick={saveAlt} disabled={savingAlt || altDraft === (sel.alt || "")}
-                    style={{ marginTop: 6, border: "none", background: TEAL, color: "#fff", borderRadius: 8, padding: "6px 12px", fontWeight: 700, fontSize: 12.5, cursor: savingAlt ? "default" : "pointer", opacity: savingAlt || altDraft === (sel.alt || "") ? 0.5 : 1 }}>
+                    style={{ marginTop: 6, border: "none", background: TEAL, color: "var(--primary-foreground)", borderRadius: 8, padding: "6px 12px", fontWeight: 700, fontSize: 12.5, cursor: savingAlt ? "default" : "pointer", opacity: savingAlt || altDraft === (sel.alt || "") ? 0.5 : 1 }}>
                     {savingAlt ? "Saving…" : "Save alt-text"}
                   </button>
                 </div>
                 <div style={{ marginTop: 8 }}>
                   <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: ".1em", color: MUT, fontWeight: 700, marginBottom: 4 }}>Renditions ({sel.sizes.length})</div>
                   {sel.sizes.map((s) => (
-                    <div key={s.name} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "#334" }}>
+                    <div key={s.name} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "var(--ink)" }}>
                       <span style={{ textTransform: "capitalize" }}>{s.name}</span><span style={{ color: MUT }}>{s.width}×{s.height} · {kb(s.filesize)}</span>
                     </div>
                   ))}
@@ -148,10 +148,10 @@ export default function DamStudio() {
                   <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: ".1em", color: MUT, fontWeight: 700, marginBottom: 4 }}>Public URL</div>
                   <div style={{ display: "flex", gap: 6 }}>
                     <input readOnly value={sel.url} style={{ flex: 1, fontSize: 11.5, padding: "6px 8px", border: `1px solid ${LINE}`, borderRadius: 7, color: MUT }} />
-                    <button onClick={() => navigator.clipboard?.writeText(sel.url)} style={{ border: `1px solid ${LINE}`, background: "#fff", borderRadius: 7, padding: "0 10px", cursor: "pointer", fontSize: 12 }}>Copy</button>
+                    <button onClick={() => navigator.clipboard?.writeText(sel.url)} style={{ border: `1px solid ${LINE}`, background: "var(--card)", borderRadius: 7, padding: "0 10px", cursor: "pointer", fontSize: 12 }}>Copy</button>
                   </div>
                 </div>
-                <button onClick={() => del(sel)} style={{ marginTop: 16, border: "1px solid #f0c4bd", background: "#fff", color: "#c0392b", borderRadius: 9, padding: "8px 14px", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>Delete asset</button>
+                <button onClick={() => del(sel)} style={{ marginTop: 16, border: "1px solid color-mix(in srgb, var(--destructive) 30%, var(--background))", background: "var(--card)", color: "var(--destructive)", borderRadius: 9, padding: "8px 14px", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>Delete asset</button>
               </div>
             </div>
           </div>
@@ -164,8 +164,8 @@ export default function DamStudio() {
 function Row({ k, v }: { k: string; v: string }) {
   return (
     <div style={{ display: "flex", gap: 10 }}>
-      <span style={{ width: 96, color: "#5a6a6c", flexShrink: 0 }}>{k}</span>
-      <span style={{ color: "#22302e", wordBreak: "break-word" }}>{v}</span>
+      <span style={{ width: 96, color: "var(--text-muted)", flexShrink: 0 }}>{k}</span>
+      <span style={{ color: "var(--foreground)", wordBreak: "break-word" }}>{v}</span>
     </div>
   );
 }

@@ -14,15 +14,19 @@ export type Theme = {
   mode: "light" | "dark";
 };
 
+// HUMAIN Foundation defaults. These stay literal hex (not var()) because they
+// seed <input type="color">, which cannot resolve a custom property. Values are
+// the real design-system tokens: air-600 primary, --primary-hover, oasis-400
+// accent, neutral ink/muted, 2xl radius.
 export const DEFAULT_THEME: Theme = {
-  primary: "#00A18B",
-  primaryDark: "#0E7C6B",
-  accent: "#C2E54B",
-  ink: "#1A1A1A",
+  primary: "#009688",
+  primaryDark: "#00796B",
+  accent: "#B8E636",
+  ink: "#161616",
   canvas: "#FFFFFF",
-  muted: "#6B7280",
+  muted: "#737373",
   font: "Inter",
-  radius: 18,
+  radius: 16,
   mode: "light",
 };
 
@@ -128,7 +132,7 @@ export default function ThemeBuilder({ initial, canSave }: { initial: Theme; can
             {aiBusy ? "Generating theme…" : "Generate theme with AI"}
           </button>
           {rationale && <div style={{ fontSize: 12, color: "var(--studio-teal-dark)", marginTop: 8, lineHeight: 1.5 }}>✨ {rationale}</div>}
-          <div style={{ fontSize: 11.5, color: "var(--muted)", marginTop: 8 }}>Generates a full palette, font &amp; radius — then fine-tune below.</div>
+          <div style={{ fontSize: 11.5, color: "var(--text-muted)", marginTop: 8 }}>Generates a full palette, font &amp; radius — then fine-tune below.</div>
         </div>
 
         <h3 style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", margin: "0 0 10px" }}>Presets</h3>
@@ -191,14 +195,14 @@ export default function ThemeBuilder({ initial, canSave }: { initial: Theme; can
             <CheckIcon size={16} color="#fff" /> {busy ? "Saving…" : canSave ? "Save theme" : "View only"}
           </button>
         </div>
-        {!canSave && <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 8 }}>You can experiment freely; saving needs a publisher or admin role.</div>}
+        {!canSave && <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 8 }}>You can experiment freely; saving needs a publisher or admin role.</div>}
         {dirty && canSave && !toast && <div style={{ fontSize: 12, color: "var(--studio-teal-dark)", marginTop: 8 }}>Unsaved changes.</div>}
         {toast && <div style={{ fontSize: 12.5, marginTop: 8, color: toast.kind === "ok" ? "var(--studio-teal-dark)" : "#b42318" }}>{toast.msg}</div>}
       </div>
 
       {/* ---- Live preview ---- */}
       <div style={{ position: "sticky", top: 14 }}>
-        <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.08em", color: "var(--muted)", marginBottom: 10 }}>LIVE PREVIEW</div>
+        <div style={{ fontSize: 12, fontWeight: 700, letterSpacing: "0.08em", color: "var(--text-muted)", marginBottom: 10 }}>LIVE PREVIEW</div>
         <div style={{ background: previewBg, color: previewInk, border: "1px solid var(--hairline)", borderRadius: Math.max(12, t.radius), padding: 26, fontFamily: fontStack(t.font), boxShadow: "var(--shadow-card)" }}>
           <div style={{ fontSize: 22, fontWeight: 800, marginBottom: 6 }}>What do you want to create today?</div>
           <div style={{ fontSize: 13.5, color: t.muted, marginBottom: 18 }}>Your theme in action — buttons, inputs, and accents.</div>

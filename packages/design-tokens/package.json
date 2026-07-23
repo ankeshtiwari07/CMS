@@ -3,5 +3,15 @@
   "version": "1.0.0",
   "type": "module",
   "main": "index.ts",
-  "scripts": { "build": "tsc -p tsconfig.json" }
+  "types": "index.ts",
+  "exports": {
+    ".": { "types": "./index.ts", "default": "./index.ts" },
+    "./bridge.css": "./bridge.css"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@humain/foundation": "npm:@humain/ui@2.1.58"
+  }
 }

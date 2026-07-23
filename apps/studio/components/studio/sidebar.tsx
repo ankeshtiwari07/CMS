@@ -242,7 +242,7 @@ export default function Sidebar({
           style={{
             border: "none",
             background: "transparent",
-            color: "var(--muted)",
+            color: "var(--text-muted)",
             display: "grid",
             placeItems: "center",
             padding: 4,
@@ -283,7 +283,7 @@ export default function Sidebar({
                       left: collapsed ? 60 : 0,
                       zIndex: 70,
                       width: 232,
-                      background: "#fff",
+                      background: "var(--card)",
                       border: "1px solid var(--hairline)",
                       borderRadius: 12,
                       boxShadow: "var(--shadow-card)",
@@ -297,7 +297,7 @@ export default function Sidebar({
                           onClick={() => runCreate(o)}
                           style={{ display: "flex", alignItems: "center", gap: 11, width: "100%", padding: "9px 10px", border: "none", background: "transparent", borderRadius: 8, fontSize: 14, color: "var(--ink)", cursor: "pointer", textAlign: "left" }}
                         >
-                          <o.Icon size={17} color="var(--muted)" /> {t(o.tkey)}
+                          <o.Icon size={17} color="var(--text-muted)" /> {t(o.tkey)}
                         </button>
                       </div>
                     ))}
@@ -336,7 +336,7 @@ export default function Sidebar({
               <GridIcon size={21} color={cmsAdminOpen ? "var(--studio-teal-dark)" : "var(--ink)"} />
               <span style={{ fontSize: 14, fontWeight: 600, color: "var(--ink)" }}>CMS Admin</span>
             </span>
-            <ChevronDownIcon size={14} color="var(--muted)" />
+            <ChevronDownIcon size={14} color="var(--text-muted)" />
           </button>
           {cmsAdminOpen && (
             <div style={{ display: "grid", gap: 1, marginTop: 2 }}>
@@ -359,10 +359,10 @@ export default function Sidebar({
                       style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", padding: "7px 10px 7px 16px", border: "none", background: on ? "var(--mint-tint)" : "transparent", borderRadius: 8, cursor: "pointer" }}
                     >
                       <span style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
-                        <g.Icon size={16} color={on ? "var(--studio-teal-dark)" : "var(--muted)"} />
+                        <g.Icon size={16} color={on ? "var(--studio-teal-dark)" : "var(--text-muted)"} />
                         <span style={{ fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>{g.group}</span>
                       </span>
-                      <ChevronDownIcon size={12} color="var(--muted)" />
+                      <ChevronDownIcon size={12} color="var(--text-muted)" />
                     </button>
                     {on && g.items.map((it) => {
                       const k = `cmsadmin:${it.slug}`;
@@ -373,7 +373,7 @@ export default function Sidebar({
                           onMouseEnter={() => setHover(k)}
                           onMouseLeave={() => setHover(null)}
                           title={it.label}
-                          style={{ display: "flex", alignItems: "center", width: "100%", padding: "6px 10px 6px 42px", border: "none", background: hover === k ? "var(--mint-tint)" : "transparent", borderRadius: 8, fontSize: 13, color: "var(--muted)", cursor: "pointer", textAlign: "left" }}
+                          style={{ display: "flex", alignItems: "center", width: "100%", padding: "6px 10px 6px 42px", border: "none", background: hover === k ? "var(--mint-tint)" : "transparent", borderRadius: 8, fontSize: 13, color: "var(--text-muted)", cursor: "pointer", textAlign: "left" }}
                         >
                           {it.label}
                         </button>
@@ -421,7 +421,7 @@ export default function Sidebar({
               borderRadius: "50%",
               flexShrink: 0,
               background: "linear-gradient(135deg, var(--studio-primary), var(--lime))",
-              color: "#fff",
+              color: "var(--primary-foreground)",
               fontWeight: 700,
               fontSize: 13,
               display: "grid",
@@ -436,10 +436,10 @@ export default function Sidebar({
               <span style={{ display: "block", fontSize: 14, fontWeight: 600, color: "var(--ink)", whiteSpace: "nowrap", textOverflow: "ellipsis", overflow: "hidden" }}>
                 {user.name || user.email}
               </span>
-              <span style={{ display: "block", fontSize: 12, color: "var(--muted)" }}>{role}</span>
+              <span style={{ display: "block", fontSize: 12, color: "var(--text-muted)" }}>{role}</span>
             </span>
           )}
-          {!collapsed && <DotsVerticalIcon size={18} color="var(--muted)" />}
+          {!collapsed && <DotsVerticalIcon size={18} color="var(--text-muted)" />}
         </button>
         {menu && (
           <div
@@ -448,7 +448,7 @@ export default function Sidebar({
               bottom: 48,
               left: 0,
               width: 200,
-              background: "#fff",
+              background: "var(--card)",
               border: "1px solid var(--hairline)",
               borderRadius: 12,
               boxShadow: "var(--shadow-card)",
@@ -456,8 +456,8 @@ export default function Sidebar({
               zIndex: 60,
             }}
           >
-            <div style={{ padding: "6px 10px", fontSize: 12, color: "var(--muted)" }}>{user.email}</div>
-            <div style={{ padding: "4px 10px 2px", fontSize: 11, fontWeight: 700, letterSpacing: ".04em", color: "var(--muted)", textTransform: "uppercase" }}>{t("menu.language")}</div>
+            <div style={{ padding: "6px 10px", fontSize: 12, color: "var(--text-muted)" }}>{user.email}</div>
+            <div style={{ padding: "4px 10px 2px", fontSize: 11, fontWeight: 700, letterSpacing: ".04em", color: "var(--text-muted)", textTransform: "uppercase" }}>{t("menu.language")}</div>
             <LanguageSwitcher />
             <div style={{ height: 1, background: "var(--hairline)", margin: "4px 6px" }} />
             <button
@@ -472,7 +472,7 @@ export default function Sidebar({
                 router.replace("/login");
                 router.refresh();
               }}
-              style={{ width: "100%", textAlign: "start", padding: "9px 10px", border: "none", borderRadius: 8, background: "transparent", color: "#b42318", fontSize: 13.5, fontWeight: 600 }}
+              style={{ width: "100%", textAlign: "start", padding: "9px 10px", border: "none", borderRadius: 8, background: "transparent", color: "var(--destructive)", fontSize: 13.5, fontWeight: 600 }}
             >
               {t("menu.signout")}
             </button>

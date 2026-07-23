@@ -26,7 +26,7 @@ export default async function CmsAdminPage({ params }: { params: Promise<{ slug?
   const src = "/admin" + (slug?.length ? "/" + slug.join("/") : "");
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", background: "#eef4f3" }}>
+    <div style={{ display: "flex", minHeight: "100vh", background: "var(--shell-bg)" }}>
       <Sidebar user={{ name: user.name, email: user.email, roles: user.roles }} active="cms" />
       <main style={{ flex: 1, padding: "10px 10px 10px 0" }}>
         <AdminFrame src={src} title={titleFor(slug)} />

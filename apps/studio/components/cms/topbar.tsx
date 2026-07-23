@@ -53,7 +53,7 @@ export default function TopBar({ user }: { user: { name?: string; email: string 
             style={{
               width: 34, height: 34, borderRadius: "50%",
               background: "linear-gradient(135deg, var(--studio-primary), var(--lime))",
-              color: "#fff", fontWeight: 700, fontSize: 12.5, display: "grid", placeItems: "center",
+              color: "var(--primary-foreground)", fontWeight: 700, fontSize: 12.5, display: "grid", placeItems: "center",
             }}
           >
             {initials(user.name, user.email)}
@@ -63,11 +63,11 @@ export default function TopBar({ user }: { user: { name?: string; email: string 
         {menu && (
           <div
             style={{
-              position: "absolute", top: 46, right: 0, width: 200, background: "#fff",
+              position: "absolute", top: 46, right: 0, width: 200, background: "var(--card)",
               border: "1px solid var(--hairline)", borderRadius: 12, boxShadow: "var(--shadow-card)", padding: 8, zIndex: 60,
             }}
           >
-            <div style={{ padding: "6px 10px 8px", fontSize: 12, color: "var(--muted)" }}>{user.email}</div>
+            <div style={{ padding: "6px 10px 8px", fontSize: 12, color: "var(--text-muted)" }}>{user.email}</div>
             {[
               ["Create Studio", "/studio"],
               ["Projects", "/projects"],
@@ -80,7 +80,7 @@ export default function TopBar({ user }: { user: { name?: string; email: string 
             ))}
             <button
               onClick={async () => { await fetch("/api/auth/logout", { method: "POST" }); router.replace("/login"); router.refresh(); }}
-              style={{ width: "100%", textAlign: "left", padding: "9px 10px", border: "none", borderRadius: 8, background: "transparent", color: "#b42318", fontSize: 13.5, fontWeight: 600, cursor: "pointer" }}
+              style={{ width: "100%", textAlign: "left", padding: "9px 10px", border: "none", borderRadius: 8, background: "transparent", color: "var(--destructive)", fontSize: 13.5, fontWeight: 600, cursor: "pointer" }}
             >
               Sign out
             </button>

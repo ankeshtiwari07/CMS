@@ -17,18 +17,18 @@ const CAPS: { label: string; allow: Record<string, boolean> }[] = [
 
 export default function AccessPage() {
   const cell = (on: boolean) => (
-    <td style={{ textAlign: "center", padding: "10px 12px", color: on ? "#1b7f3b" : "var(--hairline)", fontWeight: 700 }}>{on ? "✓" : "·"}</td>
+    <td style={{ textAlign: "center", padding: "10px 12px", color: on ? "var(--success)" : "var(--hairline)", fontWeight: 700 }}>{on ? "✓" : "·"}</td>
   );
   return (
     <>
       <SettingsNav />
       <h2 style={{ margin: "0 0 4px", fontSize: 19, fontWeight: 700, color: "var(--ink)" }}>Access &amp; Roles</h2>
-      <p style={{ margin: "0 0 20px", color: "var(--muted)", fontSize: 13.5 }}>RBAC capability matrix. Roles are assigned per user under Users.</p>
+      <p style={{ margin: "0 0 20px", color: "var(--text-muted)", fontSize: 13.5 }}>RBAC capability matrix. Roles are assigned per user under Users.</p>
 
       <div style={{ border: "1px solid var(--hairline)", borderRadius: 14, overflow: "hidden" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13.5 }}>
           <thead>
-            <tr style={{ background: "#f7faf9", color: "var(--muted)" }}>
+            <tr style={{ background: "var(--soft-bg)", color: "var(--text-muted)" }}>
               <th style={{ textAlign: "left", padding: "12px 14px", fontWeight: 600 }}>Capability</th>
               {ROLES.map((r) => <th key={r} style={{ padding: "12px 12px", fontWeight: 600, textTransform: "capitalize" }}>{r === "siteAdmin" ? "Site Admin" : r}</th>)}
             </tr>

@@ -13,7 +13,7 @@ export default async function UsersPage() {
       {admin ? (
         <UsersClient meId={user!.id} />
       ) : (
-        <div style={{ color: "var(--muted)", padding: 24 }}>User management is restricted to administrators.</div>
+        <div style={{ color: "var(--text-muted)", padding: 24 }}>User management is restricted to administrators.</div>
       )}
     </>
   );

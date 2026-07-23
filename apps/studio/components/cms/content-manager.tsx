@@ -106,7 +106,7 @@ export default function ContentManager({ initialType = "blog", canEdit = true, c
       >
         ← Content Management
       </button>
-      <h1 style={{ color: "#fff", fontSize: 24, fontWeight: 700, margin: 0 }}>{isCore ? "Content Management" : tab.label}</h1>
+      <h1 style={{ color: "var(--primary-foreground)", fontSize: 24, fontWeight: 700, margin: 0 }}>{isCore ? "Content Management" : tab.label}</h1>
       <p style={{ color: "rgba(255,255,255,0.72)", margin: "5px 0 20px", fontSize: 14.5 }}>{tab.subtitle}</p>
 
       {/* Tabs (core content types only) */}
@@ -123,10 +123,10 @@ export default function ContentManager({ initialType = "blog", canEdit = true, c
                   display: "inline-flex", alignItems: "center", gap: 8, height: 42, padding: "0 18px",
                   borderRadius: "var(--r-pill)", border: "none", fontWeight: 600, fontSize: 14.5,
                   background: active ? "var(--lime)" : "var(--deep-teal)",
-                  color: active ? "#0b1416" : "rgba(255,255,255,0.86)",
+                  color: active ? "var(--background)" : "rgba(255,255,255,0.86)",
                 }}
               >
-                <Icon size={17} color={active ? "#0b1416" : "rgba(255,255,255,0.86)"} /> {t.label}
+                <Icon size={17} color={active ? "var(--background)" : "rgba(255,255,255,0.86)"} /> {t.label}
               </button>
             );
           })}
@@ -136,7 +136,7 @@ export default function ContentManager({ initialType = "blog", canEdit = true, c
       {/* Templates */}
       {tab.templates.length > 0 && (
       <div style={{ marginTop: 24 }}>
-        <div style={{ color: "#fff", fontWeight: 600, fontSize: 14.5, marginBottom: 12 }}>Select Template</div>
+        <div style={{ color: "var(--primary-foreground)", fontWeight: 600, fontSize: 14.5, marginBottom: 12 }}>Select Template</div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0,260px))", gap: 16 }}>
           {tab.templates.map((tpl) => {
             const selected = templates[activeKey] === tpl.key;
@@ -165,11 +165,11 @@ export default function ContentManager({ initialType = "blog", canEdit = true, c
                       placeItems: "center",
                     }}
                   >
-                    <StarIcon size={13} color="#0b1416" />
+                    <StarIcon size={13} color="var(--background)" />
                   </span>
                 )}
                 <div style={{ color: "var(--label)", fontWeight: 700, fontSize: 15.5 }}>{tpl.name}</div>
-                <div style={{ color: "var(--muted)", fontSize: 13, margin: "3px 0 12px" }}>{tpl.desc}</div>
+                <div style={{ color: "var(--text-muted)", fontSize: 13, margin: "3px 0 12px" }}>{tpl.desc}</div>
                 <button
                   onClick={() => { setTemplates((s) => ({ ...s, [activeKey]: tpl.key })); suggest({ tpl: tpl.key, auto: true }); }}
                   style={{
@@ -178,7 +178,7 @@ export default function ContentManager({ initialType = "blog", canEdit = true, c
                     borderRadius: "var(--r-pill)",
                     border: "none",
                     background: "var(--lime)",
-                    color: "#0b1416",
+                    color: "var(--on-brand-ink)",
                     fontWeight: 700,
                     fontSize: 12.5,
                     opacity: selected ? 1 : 0.78,
@@ -206,7 +206,7 @@ export default function ContentManager({ initialType = "blog", canEdit = true, c
         <h2 style={{ color: "var(--label)", fontSize: 18, fontWeight: 700, margin: "0 0 14px" }}>{tab.formTitle}</h2>
 
         {!canEdit && (
-          <div style={{ fontSize: 13.5, color: "var(--muted)", background: "#f5f8f8", border: "1px solid var(--hairline)", borderRadius: 12, padding: "12px 14px", marginBottom: 14 }}>
+          <div style={{ fontSize: 13.5, color: "var(--text-muted)", background: "var(--soft-bg)", border: "1px solid var(--hairline)", borderRadius: 12, padding: "12px 14px", marginBottom: 14 }}>
             🔒 You have <b>read-only</b> access. Content authoring is available to editor roles.
           </div>
         )}
@@ -214,25 +214,25 @@ export default function ContentManager({ initialType = "blog", canEdit = true, c
         {/* Agentic prefill — agent proposes a draft, human edits */}
         {canEdit && (
           <>
-            <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 8, padding: "11px 13px", background: "#eef6f5", borderRadius: 12, border: "1px solid var(--hairline)" }}>
+            <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 8, padding: "11px 13px", background: "var(--brand-tint)", borderRadius: 12, border: "1px solid var(--hairline)" }}>
               <span style={{ fontSize: 17, lineHeight: 1 }}>✨</span>
               <input
                 value={brief}
                 onChange={(e) => setBrief(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter" && !suggesting) suggest(); }}
                 placeholder={`Selecting a template auto-drafts. Add a brief to steer it, then re-draft.`}
-                style={{ flex: 1, height: 40, border: "1px solid var(--hairline)", borderRadius: 10, padding: "0 12px", fontSize: 14, color: "var(--ink)", background: "#fff", outline: "none" }}
+                style={{ flex: 1, height: 40, border: "1px solid var(--hairline)", borderRadius: 10, padding: "0 12px", fontSize: 14, color: "var(--ink)", background: "var(--card)", outline: "none" }}
               />
               <button
                 onClick={() => suggest()}
                 disabled={suggesting}
-                style={{ height: 40, padding: "0 18px", borderRadius: "var(--r-pill)", border: "none", background: "var(--studio-primary, #0B7A75)", color: "#fff", fontWeight: 700, fontSize: 13.5, whiteSpace: "nowrap", cursor: "pointer" }}
+                style={{ height: 40, padding: "0 18px", borderRadius: "var(--r-pill)", border: "none", background: "var(--studio-primary, var(--teal-accent))", color: "var(--primary-foreground)", fontWeight: 700, fontSize: 13.5, whiteSpace: "nowrap", cursor: "pointer" }}
               >
                 {suggesting ? "Drafting…" : "✨ Draft with AI"}
               </button>
             </div>
             {aiFilled && (
-              <div style={{ fontSize: 12.5, color: "var(--studio-teal-dark, #0A5C58)", margin: "0 0 16px", display: "flex", alignItems: "center", gap: 6 }}>
+              <div style={{ fontSize: 12.5, color: "var(--studio-teal-dark, var(--deep-teal))", margin: "0 0 16px", display: "flex", alignItems: "center", gap: 6 }}>
                 AI-suggested draft — review &amp; edit every field before saving. Agents propose, you decide.
               </div>
             )}
@@ -247,7 +247,7 @@ export default function ContentManager({ initialType = "blog", canEdit = true, c
 
         {canEdit && (
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 14, marginTop: 26 }}>
-            <span style={{ fontSize: 12.5, color: "var(--muted)" }}>
+            <span style={{ fontSize: 12.5, color: "var(--text-muted)" }}>
               {canPublish
                 ? "You can publish — content still passes the required approval stages first."
                 : "Saved drafts are routed to the Review queue for human approval before publishing."}
@@ -256,7 +256,7 @@ export default function ContentManager({ initialType = "blog", canEdit = true, c
               <button
                 onClick={() => submit("draft")}
                 disabled={busy !== null}
-                style={{ height: 46, padding: "0 30px", borderRadius: 12, border: "none", background: "var(--lime)", color: "#0b1416", fontWeight: 700, fontSize: 15 }}
+                style={{ height: 46, padding: "0 30px", borderRadius: 12, border: "none", background: "var(--lime)", color: "var(--on-brand-ink)", fontWeight: 700, fontSize: 15 }}
               >
                 {busy === "draft" ? "Saving…" : canPublish ? "Save Draft" : "Save & send for review"}
               </button>
@@ -264,7 +264,7 @@ export default function ContentManager({ initialType = "blog", canEdit = true, c
                 <button
                   onClick={() => submit("published")}
                   disabled={busy !== null}
-                  style={{ height: 46, padding: "0 34px", borderRadius: 12, border: "none", background: "var(--publish-blue)", color: "#fff", fontWeight: 700, fontSize: 15 }}
+                  style={{ height: 46, padding: "0 34px", borderRadius: 12, border: "none", background: "var(--publish-blue)", color: "var(--primary-foreground)", fontWeight: 700, fontSize: 15 }}
                 >
                   {busy === "published" ? "Publishing…" : "Publish"}
                 </button>
@@ -282,8 +282,8 @@ export default function ContentManager({ initialType = "blog", canEdit = true, c
             bottom: 24,
             left: "50%",
             transform: "translateX(-50%)",
-            background: toast.kind === "ok" ? "var(--publish-blue)" : "#b42318",
-            color: "#fff",
+            background: toast.kind === "ok" ? "var(--publish-blue)" : "var(--destructive)",
+            color: "var(--primary-foreground)",
             padding: "12px 20px",
             borderRadius: 12,
             fontWeight: 600,
@@ -315,7 +315,7 @@ function Field({ f, value, onChange }: { f: FieldDef; value: string; onChange: (
     fontSize: 14.5,
     color: "var(--ink)",
     outline: "none",
-    background: "#fff",
+    background: "var(--card)",
   };
   const focus = {
     onFocus: (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) =>

@@ -167,8 +167,8 @@ export default function CmsWorkspace({
         </div>
         <button title="Voice" style={{ width: 34, height: 34, borderRadius: R.full, border: "1px solid var(--hc-border)", background: "transparent", color: "var(--hc-fg-muted)", display: "grid", placeItems: "center", cursor: "pointer" }}><MicIcon size={16} /></button>
         <button onClick={busy ? () => abortRef.current?.abort() : submit} disabled={!busy && !prompt.trim()} title={busy ? "Stop" : "Send"}
-          style={{ width: 34, height: 34, borderRadius: R.full, border: "none", background: busy || prompt.trim() ? "var(--hc-primary)" : "var(--hc-muted)", color: "#fff", display: "grid", placeItems: "center", cursor: busy || prompt.trim() ? "pointer" : "default" }}>
-          {busy ? <SquareIcon size={14} color="#fff" /> : <ArrowUpIcon size={17} color="#fff" />}
+          style={{ width: 34, height: 34, borderRadius: R.full, border: "none", background: busy || prompt.trim() ? "var(--hc-primary)" : "var(--hc-muted)", color: "var(--primary-foreground)", display: "grid", placeItems: "center", cursor: busy || prompt.trim() ? "pointer" : "default" }}>
+          {busy ? <SquareIcon size={14} color="var(--primary-foreground)" /> : <ArrowUpIcon size={17} color="var(--primary-foreground)" />}
         </button>
       </div>
     </div>
@@ -193,7 +193,7 @@ export default function CmsWorkspace({
       ))}
       <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 6 }}>
         <button onClick={() => setSetup(null)} style={{ padding: "9px 14px", borderRadius: R.lg, border: "1px solid var(--hc-border)", background: "transparent", color: "var(--hc-fg-muted)", fontWeight: 700, ...TYPE.sm, cursor: "pointer" }}>Cancel</button>
-        <button onClick={runSetup} style={{ padding: "9px 16px", borderRadius: R.lg, border: "none", background: "var(--hc-primary)", color: "#fff", fontWeight: 700, ...TYPE.sm, cursor: "pointer" }}>Generate</button>
+        <button onClick={runSetup} style={{ padding: "9px 16px", borderRadius: R.lg, border: "none", background: "var(--hc-primary)", color: "var(--primary-foreground)", fontWeight: 700, ...TYPE.sm, cursor: "pointer" }}>Generate</button>
       </div>
     </div>
   );

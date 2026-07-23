@@ -27,7 +27,7 @@ export default function Launcher() {
   const [hover, setHover] = useState<string | null>(null);
   return (
     <div style={{ maxWidth: 1180, margin: "0 auto", padding: "40px 28px 60px" }}>
-      <h1 style={{ color: "#fff", fontSize: 24, fontWeight: 700, margin: "0 0 4px" }}>Content Management</h1>
+      <h1 style={{ color: "var(--primary-foreground)", fontSize: 24, fontWeight: 700, margin: "0 0 4px" }}>Content Management</h1>
       <p style={{ color: "rgba(255,255,255,0.72)", margin: "0 0 28px", fontSize: 14.5 }}>
         Choose a content type to create and manage.
       </p>
@@ -51,12 +51,12 @@ export default function Launcher() {
               alignItems: "center",
               justifyContent: "center",
               gap: 14,
-              color: "#0b1416",
+              color: "var(--on-brand-ink)",
               cursor: "pointer",
               padding: 16,
             }}
           >
-            <Icon size={30} color="#0b2a24" />
+            <Icon size={30} color="var(--on-brand-ink)" />
             <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.06em", textAlign: "center", lineHeight: 1.25 }}>{label}</span>
           </button>
         ))}

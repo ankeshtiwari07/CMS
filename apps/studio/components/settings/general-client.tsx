@@ -21,13 +21,13 @@ export default function GeneralClient({ canEdit }: { canEdit: boolean }) {
   }
 
   const field: React.CSSProperties = { width: "100%", height: 42, padding: "0 12px", border: "1px solid var(--hairline)", borderRadius: 10, fontSize: 14.5, outline: "none" };
-  const lbl: React.CSSProperties = { fontSize: 13, fontWeight: 600, color: "var(--label, #0e4049)" };
+  const lbl: React.CSSProperties = { fontSize: 13, fontWeight: 600, color: "var(--label)" };
   const grp: React.CSSProperties = { display: "grid", gap: 6, marginBottom: 16 };
 
   return (
     <div style={{ maxWidth: 640 }}>
       <h2 style={{ margin: "0 0 4px", fontSize: 19, fontWeight: 700, color: "var(--ink)" }}>Site Settings</h2>
-      <p style={{ margin: "0 0 20px", color: "var(--muted)", fontSize: 13.5 }}>Brand, default SEO, and analytics — applied site-wide.</p>
+      <p style={{ margin: "0 0 20px", color: "var(--text-muted)", fontSize: 13.5 }}>Brand, default SEO, and analytics — applied site-wide.</p>
 
       <h3 style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", margin: "0 0 12px" }}>Brand</h3>
       <label style={grp}><span style={lbl}>Site name</span><input style={field} value={s.siteName} onChange={(e) => setS({ ...s, siteName: e.target.value })} /></label>
@@ -44,12 +44,12 @@ export default function GeneralClient({ canEdit }: { canEdit: boolean }) {
       </div>
 
       {canEdit ? (
-        <button onClick={save} disabled={busy} style={{ marginTop: 14, height: 44, padding: "0 24px", border: "none", borderRadius: 999, background: "var(--studio-primary)", color: "#fff", fontWeight: 700 }}>{busy ? "Saving…" : "Save settings"}</button>
+        <button onClick={save} disabled={busy} style={{ marginTop: 14, height: 44, padding: "0 24px", border: "none", borderRadius: 999, background: "var(--studio-primary)", color: "var(--primary-foreground)", fontWeight: 700 }}>{busy ? "Saving…" : "Save settings"}</button>
       ) : (
-        <p style={{ color: "var(--muted)", fontSize: 13 }}>Editing site settings requires the publisher or admin role.</p>
+        <p style={{ color: "var(--text-muted)", fontSize: 13 }}>Editing site settings requires the publisher or admin role.</p>
       )}
 
-      {toast && <div onAnimationEnd={() => setToast(null)} style={{ position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)", background: "var(--studio-teal-dark)", color: "#fff", padding: "12px 20px", borderRadius: 12, fontWeight: 600 }}>{toast}</div>}
+      {toast && <div onAnimationEnd={() => setToast(null)} style={{ position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)", background: "var(--studio-teal-dark)", color: "var(--primary-foreground)", padding: "12px 20px", borderRadius: 12, fontWeight: 600 }}>{toast}</div>}
     </div>
   );
 }

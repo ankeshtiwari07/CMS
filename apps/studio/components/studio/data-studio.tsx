@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 type Row = { id: string | number; title: string; status?: string; updatedAt?: string };
-const TEAL = "#00a18b", INK = "#0b1416", LINE = "#e3ebe9", MUT = "#5a6a6c";
+const TEAL = "var(--primary)", INK = "var(--background)", LINE = "var(--hairline)", MUT = "var(--text-muted)";
 
 // Grouped collection catalogue (mirrors the API allowlist).
 const CATALOG: { group: string; items: { slug: string; label: string }[] }[] = [
@@ -96,12 +96,12 @@ export default function DataStudio({ initialCollection }: { initialCollection: s
     try { const r = await fetch(`/api/manage/global/${globalSlug}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(build()) }); setMsg(r.ok ? "Saved ✓" : "Save failed."); } catch { setMsg("Save failed."); } finally { setBusy(""); }
   }
 
-  const card: React.CSSProperties = { border: `1px solid ${LINE}`, borderRadius: 12, background: "#fff" };
+  const card: React.CSSProperties = { border: `1px solid ${LINE}`, borderRadius: 12, background: "var(--card)" };
   const inp: React.CSSProperties = { width: "100%", padding: "7px 9px", borderRadius: 7, border: `1px solid ${LINE}`, fontSize: 13, outline: "none", color: INK };
-  const btn = (p?: boolean, dis?: boolean): React.CSSProperties => ({ padding: "7px 13px", borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: dis ? "default" : "pointer", border: p ? "none" : `1px solid ${LINE}`, background: p ? TEAL : "#fff", color: p ? "#fff" : INK, opacity: dis ? 0.5 : 1 });
+  const btn = (p?: boolean, dis?: boolean): React.CSSProperties => ({ padding: "7px 13px", borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: dis ? "default" : "pointer", border: p ? "none" : `1px solid ${LINE}`, background: p ? TEAL : "var(--card)", color: p ? "var(--primary-foreground)" : INK, opacity: dis ? 0.5 : 1 });
 
   return (
-    <div style={{ background: "#fff", borderRadius: 16, minHeight: "calc(100vh - 20px)", display: "flex", fontFamily: "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif", color: INK, overflow: "hidden" }}>
+    <div style={{ background: "var(--card)", borderRadius: 16, minHeight: "calc(100vh - 20px)", display: "flex", fontFamily: "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif", color: INK, overflow: "hidden" }}>
       {/* collection rail */}
       <div style={{ width: 220, borderInlineEnd: `1px solid ${LINE}`, padding: "18px 12px", overflowY: "auto", flexShrink: 0 }}>
         <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: ".1em", color: TEAL, textTransform: "uppercase", padding: "0 6px 8px" }}>CMS Data</div>
@@ -109,12 +109,12 @@ export default function DataStudio({ initialCollection }: { initialCollection: s
           <div key={g.group} style={{ marginBottom: 10 }}>
             <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: ".1em", color: MUT, fontWeight: 700, padding: "4px 6px" }}>{g.group}</div>
             {g.items.map((it) => (
-              <div key={it.slug} onClick={() => loadList(it.slug)} style={{ padding: "6px 8px", borderRadius: 7, cursor: "pointer", fontSize: 13, background: coll === it.slug ? "#e7f6ef" : "transparent", color: coll === it.slug ? TEAL : "#334", fontWeight: coll === it.slug ? 700 : 500 }}>{it.label}</div>
+              <div key={it.slug} onClick={() => loadList(it.slug)} style={{ padding: "6px 8px", borderRadius: 7, cursor: "pointer", fontSize: 13, background: coll === it.slug ? "color-mix(in srgb, var(--success) 12%, var(--background))" : "transparent", color: coll === it.slug ? TEAL : "var(--ink)", fontWeight: coll === it.slug ? 700 : 500 }}>{it.label}</div>
             ))}
           </div>
         ))}
         <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: ".1em", color: MUT, fontWeight: 700, padding: "4px 6px" }}>Globals</div>
-        {GLOBALS.map((it) => <div key={it.slug} onClick={() => openGlobal(it.slug)} style={{ padding: "6px 8px", borderRadius: 7, cursor: "pointer", fontSize: 13, background: globalSlug === it.slug ? "#e7f6ef" : "transparent", color: globalSlug === it.slug ? TEAL : "#334", fontWeight: globalSlug === it.slug ? 700 : 500 }}>{it.label}</div>)}
+        {GLOBALS.map((it) => <div key={it.slug} onClick={() => openGlobal(it.slug)} style={{ padding: "6px 8px", borderRadius: 7, cursor: "pointer", fontSize: 13, background: globalSlug === it.slug ? "color-mix(in srgb, var(--success) 12%, var(--background))" : "transparent", color: globalSlug === it.slug ? TEAL : "var(--ink)", fontWeight: globalSlug === it.slug ? 700 : 500 }}>{it.label}</div>)}
       </div>
 
       {/* main */}
@@ -150,7 +150,7 @@ export default function DataStudio({ initialCollection }: { initialCollection: s
             </div>
             <div style={{ display: "flex", gap: 8, marginTop: 14, alignItems: "center" }}>
               <button style={btn(true, !!busy)} disabled={!!busy} onClick={globalSlug ? saveGlobal : save}>{busy === "save" ? "Saving…" : globalSlug ? "Save global" : isNew ? "Create" : "Save"}</button>
-              {!globalSlug && !isNew && <button style={{ ...btn(false), color: "#c0392b", borderColor: "#f0c4bd" }} onClick={() => del(doc.id)}>Delete</button>}
+              {!globalSlug && !isNew && <button style={{ ...btn(false), color: "var(--destructive)", borderColor: "color-mix(in srgb, var(--destructive) 30%, var(--background))" }} onClick={() => del(doc.id)}>Delete</button>}
               {msg && <span style={{ color: MUT, fontSize: 13 }}>{msg}</span>}
             </div>
           </div>
@@ -171,7 +171,7 @@ export default function DataStudio({ initialCollection }: { initialCollection: s
                 <div key={r.id} onClick={() => edit(r.id)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", borderBottom: `1px solid ${LINE}`, cursor: "pointer" }}>
                   <span style={{ fontSize: 11, color: MUT, width: 48, flexShrink: 0 }}>#{r.id}</span>
                   <span style={{ fontSize: 13.5, fontWeight: 500, flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.title}</span>
-                  {r.status && <span style={{ fontSize: 10.5, fontWeight: 700, color: r.status === "published" || r.status === "live" ? "#159a5b" : "#8a5a00", textTransform: "uppercase" }}>{r.status}</span>}
+                  {r.status && <span style={{ fontSize: 10.5, fontWeight: 700, color: r.status === "published" || r.status === "live" ? "var(--success)" : "var(--warning)", textTransform: "uppercase" }}>{r.status}</span>}
                 </div>
               ))}
               {rows.length === 0 && <div style={{ padding: 24, color: MUT, textAlign: "center", fontSize: 13 }}>{busy ? "Loading…" : "No records."}</div>}

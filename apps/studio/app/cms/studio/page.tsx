@@ -28,7 +28,7 @@ export default async function CmsStudioPage() {
   const canPublish = roles.some((r) => ["publisher", "siteAdmin", "admin"].includes(r));
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", background: "#eef4f3" }}>
+    <div style={{ display: "flex", minHeight: "100vh", background: "var(--shell-bg)" }}>
       <Sidebar user={{ name: user.name, email: user.email, roles }} active="cms" />
       <main style={{ flex: 1, padding: "10px 10px 10px 0" }}>
         <CmsWorkspace

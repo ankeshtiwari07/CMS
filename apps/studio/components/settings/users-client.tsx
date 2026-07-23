@@ -99,18 +99,18 @@ export default function UsersClient({ meId }: { meId: string | number }) {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
         <div>
           <h2 style={{ margin: 0, fontSize: 19, fontWeight: 700, color: "var(--ink)" }}>Users</h2>
-          <p style={{ margin: "2px 0 0", color: "var(--muted)", fontSize: 13.5 }}>{users.length} users · RBAC roles + ABAC scope (site / department / locale)</p>
+          <p style={{ margin: "2px 0 0", color: "var(--text-muted)", fontSize: 13.5 }}>{users.length} users · RBAC roles + ABAC scope (site / department / locale)</p>
         </div>
-        <button onClick={openNew} style={{ height: 42, padding: "0 18px", border: "none", borderRadius: 999, background: "var(--studio-primary)", color: "#fff", fontWeight: 700, fontSize: 14.5 }}>+ New user</button>
+        <button onClick={openNew} style={{ height: 42, padding: "0 18px", border: "none", borderRadius: 999, background: "var(--studio-primary)", color: "var(--primary-foreground)", fontWeight: 700, fontSize: 14.5 }}>+ New user</button>
       </div>
 
       {loading ? (
-        <div style={{ color: "var(--muted)", padding: 24 }}>Loading…</div>
+        <div style={{ color: "var(--text-muted)", padding: 24 }}>Loading…</div>
       ) : (
         <div style={{ border: "1px solid var(--hairline)", borderRadius: 14, overflow: "hidden" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 14 }}>
             <thead>
-              <tr style={{ background: "#f7faf9", textAlign: "left", color: "var(--muted)" }}>
+              <tr style={{ background: "var(--soft-bg)", textAlign: "left", color: "var(--text-muted)" }}>
                 <th style={{ padding: "12px 14px", fontWeight: 600 }}>User</th>
                 <th style={{ padding: "12px 14px", fontWeight: 600 }}>Roles</th>
                 <th style={{ padding: "12px 14px", fontWeight: 600 }}>Department</th>
@@ -125,21 +125,21 @@ export default function UsersClient({ meId }: { meId: string | number }) {
                 <tr key={u.id} style={{ borderTop: "1px solid var(--hairline)" }}>
                   <td style={{ padding: "12px 14px" }}>
                     <div style={{ fontWeight: 600, color: "var(--ink)" }}>{u.name || "—"}</div>
-                    <div style={{ color: "var(--muted)", fontSize: 12.5 }}>{u.email}</div>
+                    <div style={{ color: "var(--text-muted)", fontSize: 12.5 }}>{u.email}</div>
                   </td>
                   <td style={{ padding: "12px 14px" }}>{(u.roles || []).map((r) => pill(r))}</td>
                   <td style={{ padding: "12px 14px", color: "var(--ink)" }}>{u.department || "—"}</td>
-                  <td style={{ padding: "12px 14px", color: "var(--muted)", fontSize: 12.5 }}>
+                  <td style={{ padding: "12px 14px", color: "var(--text-muted)", fontSize: 12.5 }}>
                     {(u.sites || []).length ? `${u.sites!.length} site(s)` : "all sites"}
                     {(u.locales || []).length ? ` · ${(u.locales || []).join("/")}` : ""}
                   </td>
                   <td style={{ padding: "12px 14px" }}>
-                    {u.active !== false ? pill("active", "#e3f5e8", "#1b7f3b") : pill("disabled", "#fdecec", "#b42318")}
+                    {u.active !== false ? pill("active", "color-mix(in srgb, var(--success) 12%, var(--background))", "var(--success)") : pill("disabled", "color-mix(in srgb, var(--destructive) 10%, var(--background))", "var(--destructive)")}
                   </td>
-                  <td style={{ padding: "12px 14px", color: "var(--muted)", fontSize: 12.5, whiteSpace: "nowrap" }}>{fmtDate(u.createdAt)}</td>
+                  <td style={{ padding: "12px 14px", color: "var(--text-muted)", fontSize: 12.5, whiteSpace: "nowrap" }}>{fmtDate(u.createdAt)}</td>
                   <td style={{ padding: "12px 14px", textAlign: "right", whiteSpace: "nowrap" }}>
                     <button onClick={() => openEdit(u)} style={{ border: "none", background: "transparent", color: "var(--studio-primary)", fontWeight: 600, cursor: "pointer", marginRight: 10 }}>Edit</button>
-                    {String(u.id) !== String(meId) && <button onClick={() => remove(u)} style={{ border: "none", background: "transparent", color: "#b42318", fontWeight: 600, cursor: "pointer" }}>Delete</button>}
+                    {String(u.id) !== String(meId) && <button onClick={() => remove(u)} style={{ border: "none", background: "transparent", color: "var(--destructive)", fontWeight: 600, cursor: "pointer" }}>Delete</button>}
                   </td>
                 </tr>
               ))}
@@ -150,10 +150,10 @@ export default function UsersClient({ meId }: { meId: string | number }) {
 
       {editing && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(11,20,22,0.45)", display: "grid", placeItems: "center", zIndex: 100, padding: 20 }} onClick={() => setEditing(null)}>
-          <div onClick={(e) => e.stopPropagation()} style={{ width: "100%", maxWidth: 560, maxHeight: "90vh", overflow: "auto", background: "#fff", borderRadius: 18, padding: 26, boxShadow: "var(--shadow-card)" }}>
+          <div onClick={(e) => e.stopPropagation()} style={{ width: "100%", maxWidth: 560, maxHeight: "90vh", overflow: "auto", background: "var(--card)", borderRadius: 18, padding: 26, boxShadow: "var(--shadow-card)" }}>
             <h3 style={{ margin: "0 0 4px", fontSize: 18, fontWeight: 700, color: "var(--ink)" }}>{editing._new ? "New user" : "Edit user"}</h3>
             {!editing._new && editing.createdAt && (
-              <p style={{ margin: "0 0 16px", fontSize: 12.5, color: "var(--muted)" }}>Created {fmtDate(editing.createdAt)}</p>
+              <p style={{ margin: "0 0 16px", fontSize: 12.5, color: "var(--text-muted)" }}>Created {fmtDate(editing.createdAt)}</p>
             )}
             {editing._new && <div style={{ marginBottom: 14 }} />}
             <div style={{ display: "grid", gap: 14 }}>
@@ -192,7 +192,7 @@ export default function UsersClient({ meId }: { meId: string | number }) {
                 <span style={lbl}>Site scope (ABAC) — empty = all sites</span>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 6 }}>
                   {sites.map((s) => <button key={s.id} onClick={() => setEditing((prev: any) => ({ ...prev, sites: toggle(prev.sites.map(String), String(s.id)) }))} style={selChip(editing.sites.map(String).includes(String(s.id)))}>{s.name}</button>)}
-                  {!sites.length && <span style={{ color: "var(--muted)", fontSize: 13 }}>No sites yet</span>}
+                  {!sites.length && <span style={{ color: "var(--text-muted)", fontSize: 13 }}>No sites yet</span>}
                 </div>
               </div>
               <label style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -215,21 +215,21 @@ export default function UsersClient({ meId }: { meId: string | number }) {
                     ))}
                   </select>
                 </div>
-                <p style={{ fontSize: 11.5, color: "var(--muted)", margin: "6px 0 0" }}>While “out of office” is on, your delegate inherits your approval authority so reviews don’t stall.</p>
+                <p style={{ fontSize: 11.5, color: "var(--text-muted)", margin: "6px 0 0" }}>While “out of office” is on, your delegate inherits your approval authority so reviews don’t stall.</p>
               </div>
 
-              {err && <div style={{ background: "#fdecec", color: "#b42318", borderRadius: 10, padding: "9px 12px", fontSize: 13.5 }}>{err}</div>}
+              {err && <div style={{ background: "color-mix(in srgb, var(--destructive) 10%, var(--background))", color: "var(--destructive)", borderRadius: 10, padding: "9px 12px", fontSize: 13.5 }}>{err}</div>}
             </div>
             <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, marginTop: 22 }}>
-              <button onClick={() => setEditing(null)} style={{ height: 42, padding: "0 18px", border: "1px solid var(--hairline)", borderRadius: 999, background: "#fff", fontWeight: 600 }}>Cancel</button>
-              <button onClick={save} disabled={busy} style={{ height: 42, padding: "0 22px", border: "none", borderRadius: 999, background: "var(--studio-primary)", color: "#fff", fontWeight: 700 }}>{busy ? "Saving…" : "Save"}</button>
+              <button onClick={() => setEditing(null)} style={{ height: 42, padding: "0 18px", border: "1px solid var(--hairline)", borderRadius: 999, background: "var(--card)", fontWeight: 600 }}>Cancel</button>
+              <button onClick={save} disabled={busy} style={{ height: 42, padding: "0 22px", border: "none", borderRadius: 999, background: "var(--studio-primary)", color: "var(--primary-foreground)", fontWeight: 700 }}>{busy ? "Saving…" : "Save"}</button>
             </div>
           </div>
         </div>
       )}
 
       {toast && (
-        <div onAnimationEnd={() => setToast(null)} style={{ position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)", background: "var(--studio-teal-dark)", color: "#fff", padding: "12px 20px", borderRadius: 12, fontWeight: 600, zIndex: 120 }}>
+        <div onAnimationEnd={() => setToast(null)} style={{ position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)", background: "var(--studio-teal-dark)", color: "var(--primary-foreground)", padding: "12px 20px", borderRadius: 12, fontWeight: 600, zIndex: 120 }}>
           {toast}
         </div>
       )}
@@ -237,9 +237,9 @@ export default function UsersClient({ meId }: { meId: string | number }) {
   );
 }
 
-const lbl: React.CSSProperties = { fontSize: 13, fontWeight: 600, color: "var(--label, #0e4049)" };
+const lbl: React.CSSProperties = { fontSize: 13, fontWeight: 600, color: "var(--label)" };
 const selChip = (on: boolean): React.CSSProperties => ({
   height: 32, padding: "0 13px", borderRadius: 999, fontSize: 13, fontWeight: 600, cursor: "pointer",
   border: `1px solid ${on ? "var(--studio-primary)" : "var(--hairline)"}`,
-  background: on ? "var(--mint-pill)" : "#fff", color: on ? "var(--studio-teal-dark)" : "var(--ink)",
+  background: on ? "var(--mint-pill)" : "var(--card)", color: on ? "var(--studio-teal-dark)" : "var(--ink)",
 });

@@ -7,7 +7,11 @@ import { handleServerFunctions, RootLayout } from "@payloadcms/next/layouts";
 import React from "react";
 
 import { importMap } from "./admin/importMap.js";
+// Canonical HUMAIN tokens first, then our Payload-token mapping on top.
+import "@humain/foundation/tokens.css";
+import "@humain/design-tokens/bridge.css";
 import "./custom.scss";
+import ThemeClassBridge from "./theme-class-bridge";
 
 type Args = {
   children: React.ReactNode;
@@ -24,6 +28,7 @@ const serverFunction: ServerFunctionClient = async function (args) {
 
 const Layout = ({ children }: Args) => (
   <RootLayout config={config} importMap={importMap} serverFunction={serverFunction}>
+    <ThemeClassBridge />
     {children}
   </RootLayout>
 );

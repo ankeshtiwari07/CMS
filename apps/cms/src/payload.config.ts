@@ -27,18 +27,31 @@ const dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Only wire S3 when an endpoint is configured; otherwise Payload falls back to
 // local-disk uploads (keeps local boot working without MinIO).
-const storagePlugins = process.env.S3_ENDPOINT
+//
+// CRITICAL: also include the plugin during the build-time importMap generation
+// (CMS_BUILD=1). The admin importMap is baked into the image at build time,
+// when .env.production — and therefore S3_ENDPOINT — is NOT present. Without
+// this, the plugin's `S3ClientUploadHandler` admin component is omitted from
+// the map, but at runtime S3_ENDPOINT *is* set, so the plugin loads and
+// references that component. Payload then fails to resolve it
+// (`getFromImportMap: PayloadComponent not found`) and the ENTIRE admin renders
+// blank. Keying on CMS_BUILD makes the build-time component set match runtime.
+// The placeholder credentials are used only for codegen (the plugin is never
+// contacted during importMap generation); real values come from env at runtime.
+const s3Configured = !!process.env.S3_ENDPOINT;
+const includeS3 = s3Configured || process.env.CMS_BUILD === "1";
+const storagePlugins = includeS3
   ? [
       s3Storage({
         collections: { media: true },
-        bucket: process.env.S3_BUCKET as string,
+        bucket: process.env.S3_BUCKET || "build-placeholder-bucket",
         config: {
-          endpoint: process.env.S3_ENDPOINT,
+          endpoint: process.env.S3_ENDPOINT || "https://s3.build-placeholder.invalid",
           region: process.env.S3_REGION || "me-central-1",
           forcePathStyle: true,
           credentials: {
-            accessKeyId: process.env.S3_ACCESS_KEY as string,
-            secretAccessKey: process.env.S3_SECRET_KEY as string,
+            accessKeyId: process.env.S3_ACCESS_KEY || "build-placeholder",
+            secretAccessKey: process.env.S3_SECRET_KEY || "build-placeholder",
           },
         },
       }),

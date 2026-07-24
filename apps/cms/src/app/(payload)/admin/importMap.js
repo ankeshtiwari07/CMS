@@ -29,6 +29,7 @@ import { default as default_5d45c4b991097e440df54fb4f60780bc } from '../../../co
 import { default as default_c6286fbc7f62f2ce3ef9c604e9c02147 } from '../../../components/graphics/Icon'
 import { default as default_e577ad08317d2e8977edf3e679038fc8 } from '../../../components/graphics/Logo'
 import { CollectionCards as CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1 } from '@payloadcms/next/rsc'
+import { S3ClientUploadHandler as S3ClientUploadHandler_storage_s3 } from '@payloadcms/storage-s3/client'
 
 /** @type import('payload').ImportMap */
 export const importMap = {
@@ -62,5 +63,6 @@ export const importMap = {
   "/components/AiSiteAssist#default": default_5d45c4b991097e440df54fb4f60780bc,
   "/components/graphics/Icon#default": default_c6286fbc7f62f2ce3ef9c604e9c02147,
   "/components/graphics/Logo#default": default_e577ad08317d2e8977edf3e679038fc8,
-  "@payloadcms/next/rsc#CollectionCards": CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1
+  "@payloadcms/next/rsc#CollectionCards": CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1,
+  "@payloadcms/storage-s3/client#S3ClientUploadHandler": S3ClientUploadHandler_storage_s3
 }

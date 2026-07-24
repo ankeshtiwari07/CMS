@@ -52,7 +52,7 @@ export function LanguageSwitcher() {
       {open && (
         <>
           <div onClick={() => setOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 40 }} />
-          <div style={{ position: "absolute", bottom: "calc(100% + 6px)", left: 0, right: 0, maxHeight: 280, overflowY: "auto", background: "#fff", border: "1px solid var(--hairline)", borderRadius: 11, boxShadow: "var(--shadow-card, 0 8px 24px rgba(0,0,0,0.12))", zIndex: 41, padding: 5 }}
+          <div style={{ position: "absolute", bottom: "calc(100% + 6px)", left: 0, right: 0, maxHeight: 280, overflowY: "auto", background: "var(--card)", border: "1px solid var(--hairline)", borderRadius: 11, boxShadow: "var(--shadow-card, 0 8px 24px rgba(0,0,0,0.12))", zIndex: 41, padding: 5 }}
           >
             {LOCALES.map((l) => (
               <button

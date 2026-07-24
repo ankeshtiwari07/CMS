@@ -125,7 +125,7 @@ export default function ThemeBuilder({ initial, canSave }: { initial: Theme; can
             onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); generate(); } }}
             placeholder="e.g. a bold fintech look — deep navy, electric lime accent, sharp corners, dark mode"
             rows={2}
-            style={{ width: "100%", border: "1px solid var(--hairline)", borderRadius: 10, padding: "9px 11px", fontSize: 13.5, color: "var(--ink)", outline: "none", resize: "vertical", background: "#fff" }}
+            style={{ width: "100%", border: "1px solid var(--hairline)", borderRadius: 10, padding: "9px 11px", fontSize: 13.5, color: "var(--ink)", outline: "none", resize: "vertical", background: "var(--card)" }}
           />
           <button onClick={generate} disabled={aiBusy || !aiPrompt.trim()}
             style={{ width: "100%", height: 40, marginTop: 8, borderRadius: 10, border: "none", background: "var(--studio-primary)", color: "#fff", fontSize: 14, fontWeight: 700, cursor: aiBusy || !aiPrompt.trim() ? "default" : "pointer", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
@@ -139,7 +139,7 @@ export default function ThemeBuilder({ initial, canSave }: { initial: Theme; can
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: 22 }}>
           {PRESETS.map((p) => (
             <button key={p.name} onClick={() => setT((s) => ({ ...s, ...p.t }))}
-              style={{ display: "inline-flex", alignItems: "center", gap: 7, height: 34, padding: "0 12px", borderRadius: 999, border: "1px solid var(--hairline)", background: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>
+              style={{ display: "inline-flex", alignItems: "center", gap: 7, height: 34, padding: "0 12px", borderRadius: 999, border: "1px solid var(--hairline)", background: "var(--card)", cursor: "pointer", fontSize: 13, fontWeight: 600, color: "var(--ink)" }}>
               <span style={{ display: "inline-flex" }}>
                 {[p.t.primary, p.t.accent, p.t.canvas].map((c, i) => (
                   <span key={i} style={{ width: 12, height: 12, borderRadius: "50%", background: c as string, border: "1px solid rgba(0,0,0,0.1)", marginLeft: i ? -4 : 0 }} />
@@ -167,7 +167,7 @@ export default function ThemeBuilder({ initial, canSave }: { initial: Theme; can
 
         <h3 style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", margin: "0 0 10px" }}>Typography</h3>
         <select value={t.font} onChange={(e) => set("font", e.target.value)}
-          style={{ width: "100%", border: "1px solid var(--hairline)", borderRadius: 10, padding: "10px 12px", fontSize: 14, color: "var(--ink)", background: "#fff", marginBottom: 22, cursor: "pointer" }}>
+          style={{ width: "100%", border: "1px solid var(--hairline)", borderRadius: 10, padding: "10px 12px", fontSize: 14, color: "var(--ink)", background: "var(--card)", marginBottom: 22, cursor: "pointer" }}>
           {FONTS.map((f) => <option key={f} value={f}>{f}</option>)}
         </select>
 
@@ -179,7 +179,7 @@ export default function ThemeBuilder({ initial, canSave }: { initial: Theme; can
         <div style={{ display: "flex", gap: 8, marginBottom: 24 }}>
           {(["light", "dark"] as const).map((m) => (
             <button key={m} onClick={() => set("mode", m)}
-              style={{ flex: 1, height: 38, borderRadius: 10, border: `1px solid ${t.mode === m ? "var(--studio-primary)" : "var(--hairline)"}`, background: t.mode === m ? "var(--mint-pill)" : "#fff", color: t.mode === m ? "var(--studio-teal-dark)" : "var(--ink)", fontSize: 13.5, fontWeight: 600, cursor: "pointer", textTransform: "capitalize" }}>
+              style={{ flex: 1, height: 38, borderRadius: 10, border: `1px solid ${t.mode === m ? "var(--studio-primary)" : "var(--hairline)"}`, background: t.mode === m ? "var(--mint-pill)" : "var(--card)", color: t.mode === m ? "var(--studio-teal-dark)" : "var(--ink)", fontSize: 13.5, fontWeight: 600, cursor: "pointer", textTransform: "capitalize" }}>
               {m}
             </button>
           ))}
@@ -187,7 +187,7 @@ export default function ThemeBuilder({ initial, canSave }: { initial: Theme; can
 
         <div style={{ display: "flex", gap: 10 }}>
           <button onClick={() => setT({ ...DEFAULT_THEME })}
-            style={{ height: 44, padding: "0 16px", borderRadius: 10, border: "1px solid var(--hairline)", background: "#fff", color: "var(--ink)", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
+            style={{ height: 44, padding: "0 16px", borderRadius: 10, border: "1px solid var(--hairline)", background: "var(--card)", color: "var(--ink)", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
             Reset
           </button>
           <button onClick={save} disabled={busy || !canSave} title={canSave ? "" : "Requires publisher/admin"}

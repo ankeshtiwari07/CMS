@@ -42,7 +42,7 @@ function CityCard() {
 function EmailCard() {
   return (
     <div style={{ width: "100%", height: "100%", background: "linear-gradient(135deg,#eaf7e6,#d6efd0)", padding: 11 }}>
-      <div style={{ background: "var(--card)", borderRadius: 8, height: "100%", padding: 10 }}>
+      <div style={{ background: "#fff", borderRadius: 8, height: "100%", padding: 10 }}>
         <div style={{ fontSize: 7.5, color: "#9aa" }}>Tue 11, 2022, 9:10 PM</div>
         <div style={{ fontSize: 10, fontWeight: 800, color: "#12313a", margin: "4px 0 5px", lineHeight: 1.2 }}>Q4 Project Alpha — Update</div>
         <div style={{ fontSize: 8, color: "#2f9e5a", fontWeight: 700 }}>From: Janet Chen</div>

@@ -102,12 +102,13 @@ export default function ContentManager({ initialType = "blog", canEdit = true, c
     <div style={{ maxWidth: 1180, margin: "0 auto", padding: "26px 28px 60px" }}>
       <button
         onClick={() => router.push("/cms")}
-        style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "transparent", border: "none", color: "rgba(255,255,255,0.6)", fontSize: 13, marginBottom: 8, cursor: "pointer" }}
+        style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "transparent", border: "none", color: "var(--muted-foreground)", fontSize: 13, marginBottom: 8, cursor: "pointer" }}
       >
         ← Content Management
       </button>
-      <h1 style={{ color: "var(--primary-foreground)", fontSize: 24, fontWeight: 700, margin: 0 }}>{isCore ? "Content Management" : tab.label}</h1>
-      <p style={{ color: "rgba(255,255,255,0.72)", margin: "5px 0 20px", fontSize: 14.5 }}>{tab.subtitle}</p>
+      {/* Header sits on the light AppShell canvas now — theme-aware text, not white. */}
+      <h1 style={{ color: "var(--foreground)", fontSize: 24, fontWeight: 700, margin: 0 }}>{isCore ? "Content Management" : tab.label}</h1>
+      <p style={{ color: "var(--muted-foreground)", margin: "5px 0 20px", fontSize: 14.5 }}>{tab.subtitle}</p>
 
       {/* Tabs (core content types only) */}
       {isCore && (
@@ -123,10 +124,12 @@ export default function ContentManager({ initialType = "blog", canEdit = true, c
                   display: "inline-flex", alignItems: "center", gap: 8, height: 42, padding: "0 18px",
                   borderRadius: "var(--r-pill)", border: "none", fontWeight: 600, fontSize: 14.5,
                   background: active ? "var(--lime)" : "var(--deep-teal)",
-                  color: active ? "var(--background)" : "rgba(255,255,255,0.86)",
+                  // Active pill is lime (theme-invariant) -> ink must not flip;
+                  // inactive pill is deep-teal (dark in both themes) -> white is fine.
+                  color: active ? "var(--on-brand-ink)" : "rgba(255,255,255,0.86)",
                 }}
               >
-                <Icon size={17} color={active ? "var(--background)" : "rgba(255,255,255,0.86)"} /> {t.label}
+                <Icon size={17} color={active ? "var(--on-brand-ink)" : "rgba(255,255,255,0.86)"} /> {t.label}
               </button>
             );
           })}
@@ -136,7 +139,7 @@ export default function ContentManager({ initialType = "blog", canEdit = true, c
       {/* Templates */}
       {tab.templates.length > 0 && (
       <div style={{ marginTop: 24 }}>
-        <div style={{ color: "var(--primary-foreground)", fontWeight: 600, fontSize: 14.5, marginBottom: 12 }}>Select Template</div>
+        <div style={{ color: "var(--foreground)", fontWeight: 600, fontSize: 14.5, marginBottom: 12 }}>Select Template</div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0,260px))", gap: 16 }}>
           {tab.templates.map((tpl) => {
             const selected = templates[activeKey] === tpl.key;

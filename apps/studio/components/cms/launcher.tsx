@@ -27,8 +27,10 @@ export default function Launcher() {
   const [hover, setHover] = useState<string | null>(null);
   return (
     <div style={{ maxWidth: 1180, margin: "0 auto", padding: "40px 28px 60px" }}>
-      <h1 style={{ color: "var(--primary-foreground)", fontSize: 24, fontWeight: 700, margin: "0 0 4px" }}>Content Management</h1>
-      <p style={{ color: "rgba(255,255,255,0.72)", margin: "0 0 28px", fontSize: 14.5 }}>
+      {/* Text now sits on the light AppShell canvas (the old dark CMS gradient
+          is gone), so header colours use theme-aware tokens, not white. */}
+      <h1 style={{ color: "var(--foreground)", fontSize: 24, fontWeight: 700, margin: "0 0 4px" }}>Content Management</h1>
+      <p style={{ color: "var(--muted-foreground)", margin: "0 0 28px", fontSize: 14.5 }}>
         Choose a content type to create and manage.
       </p>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 18 }}>

@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { cookies, headers } from "next/headers";
 import { getCurrentUser, payloadFetch } from "@/lib/payload";
 import { tr, LOCALES, type Locale } from "@/lib/i18n";
-import Sidebar from "@/components/studio/sidebar";
+import { StudioPanel, StudioPageCard } from "@/components/studio/studio-app-shell";
 import StudioWorkspace from "@/components/studio/studio-workspace";
 import { type Project } from "@/components/studio/continue-creating";
 
@@ -27,6 +27,10 @@ async function recentProjects(): Promise<Project[]> {
   }
 }
 
+// The sidebar and the shell now come from the route-group layout, on the
+// @humain/ui AppShell; this page supplies only its panel. The getCurrentUser
+// guard stays because the page passes the user down — the layout's redirect is
+// the gate, this narrows the type.
 export default async function StudioHome() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
@@ -35,22 +39,17 @@ export default async function StudioHome() {
   const locale: Locale = (LOCALES.find((l) => l.code === raw)?.code || "en") as Locale;
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", background: "var(--shell-bg)" }}>
-      <Sidebar user={{ name: user.name, email: user.email, roles: user.roles }} active="create" />
-
-      <main style={{ flex: 1, padding: "10px 10px 10px 0" }}>
-        <div
-          style={{
-            minHeight: "calc(100vh - 20px)",
-            borderRadius: 22,
-            background: "linear-gradient(180deg, var(--mint-tint) 0%, var(--hero-mid) 7%, var(--hero-end) 16%, var(--hero-end) 100%)",
-            border: "1px solid var(--hairline)",
-            padding: "72px 40px 56px",
-          }}
-        >
-          <StudioWorkspace greeting={`${greeting(user.name, locale)} ${tr(locale, "home.q")}`} projects={projects} user={{ name: user.name, email: user.email, roles: user.roles }} />
-        </div>
-      </main>
-    </div>
+    <StudioPanel label="Create">
+      <StudioPageCard
+        padding="72px 40px 56px"
+        background="linear-gradient(180deg, var(--mint-tint) 0%, var(--hero-mid) 7%, var(--hero-end) 16%, var(--hero-end) 100%)"
+      >
+        <StudioWorkspace
+          greeting={`${greeting(user.name, locale)} ${tr(locale, "home.q")}`}
+          projects={projects}
+          user={{ name: user.name, email: user.email, roles: user.roles }}
+        />
+      </StudioPageCard>
+    </StudioPanel>
   );
 }

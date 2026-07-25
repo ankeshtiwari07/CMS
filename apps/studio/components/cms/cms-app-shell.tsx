@@ -19,6 +19,7 @@ import {
   ShieldCheck,
   Sparkles,
 } from "lucide-react";
+import SidebarAccountMenu, { type ShellUser } from "@/components/studio/sidebar-account-menu";
 
 /* =============================================================================
    HUMAIN CMS shell — the canonical @humain/ui app layout.
@@ -40,7 +41,7 @@ import {
    pages should not override it.
    ============================================================================= */
 
-export type CmsUser = { name?: string; email: string; roles?: string[] };
+export type CmsUser = ShellUser;
 
 const NAV = [
   { href: "/cms", label: "Overview", Icon: Home, exact: true },
@@ -88,12 +89,13 @@ export default function CmsAppShell({
                 />
               ))}
             </AppSidebar.Nav>
-            <AppSidebar.Account
-              name={user.name || user.email}
-              subtitle={user.email}
-              isOnline
-              onExpand={() => router.push("/settings")}
-            />
+            {/* Was a bare AppSidebar.Account whose only action was onExpand ->
+                /settings, which left /cms with no sign-out, theme or language.
+                It now shares the studio shell's account menu, so both sidebars
+                offer the same four things. */}
+            <AppSidebar.Footer>
+              <SidebarAccountMenu user={user} />
+            </AppSidebar.Footer>
           </AppSidebar>
         </SidebarProvider>
       </AppShell.Sidebar>

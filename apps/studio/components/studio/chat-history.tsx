@@ -1,20 +1,35 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { AppSidebar, chatItemVariants, cn } from "@humain/ui";
+import { Pencil, Trash2 } from "lucide-react";
 import { useT } from "@/lib/i18n-client";
-import { TrashIcon, PencilIcon } from "@/components/icons";
 
 type Chat = { id: string | number; title: string; mode?: string; pinned?: boolean; updatedAt?: string };
 
-// Per-user chat history in the sidebar. Lists the signed-in user's saved
-// conversations (topics); clicking one reopens the thread in the composer.
-// The list refreshes whenever a thread is saved (humain:chatsaved).
-export default function ChatHistory({ collapsed }: { collapsed: boolean }) {
+/* =============================================================================
+   Per-user chat history in the sidebar. Lists the signed-in user's saved
+   conversations (topics); clicking one reopens the thread in the composer.
+   The list refreshes whenever a thread is saved (humain:chatsaved).
+
+   Now rendered inside the package's AppSidebar.ChatList, which owns the section
+   label, the scroll region and — importantly — the collapsed behaviour: it
+   returns null on the icon rail, which is what the old hand-rolled list did with
+   its own `collapsed` prop. That prop is therefore gone; the shell no longer has
+   to tell this component how wide the sidebar is.
+
+   The rows are NOT AppSidebar.ChatItem. ChatItem renders a single <button> with
+   no action slot, so per-row rename/delete could only be reached through its
+   onContextMenu — and the package's ContextMenu.Trigger is itself a <button>,
+   which would nest interactive elements. Instead the rows use the package's
+   exported `chatItemVariants` (the same styling ChatItem uses) so the chrome is
+   identical while rename/delete stay as real sibling buttons.
+   ============================================================================= */
+export default function ChatHistory() {
   const t = useT();
   const router = useRouter();
   const [chats, setChats] = useState<Chat[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
-  const [hover, setHover] = useState<string | null>(null);
   const loaded = useRef(false);
 
   async function load() {
@@ -67,51 +82,54 @@ export default function ChatHistory({ collapsed }: { collapsed: boolean }) {
     await fetch(`/api/conversations/${c.id}`, { method: "DELETE" }).catch(() => {});
   }
 
-  // Collapsed rail hides the list (it needs width for titles).
-  if (collapsed) return null;
-
   return (
-    <div style={{ marginTop: 10, maxHeight: "38vh", flexShrink: 1, minHeight: 0, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-      <div style={{ padding: "4px 14px 6px", fontSize: 11, fontWeight: 700, letterSpacing: ".05em", color: "var(--text-muted)", textTransform: "uppercase" }}>
-        {t("chats.title")}
-      </div>
-      <div style={{ overflowY: "auto", paddingRight: 2 }}>
-        {chats.length === 0 ? (
-          <div style={{ padding: "4px 14px", fontSize: 13, color: "var(--text-muted)" }}>{t("chats.empty")}</div>
-        ) : (
-          chats.map((c) => {
-            const on = activeId === String(c.id);
-            const hot = hover === String(c.id);
-            return (
-              <div
-                key={c.id}
-                onMouseEnter={() => setHover(String(c.id))}
-                onMouseLeave={() => setHover(null)}
-                style={{ display: "flex", alignItems: "center", gap: 4, borderRadius: 10, background: on ? "var(--mint-pill)" : "transparent" }}
-              >
-                <button
-                  onClick={() => open(c.id)}
-                  title={c.title}
-                  style={{ flex: 1, minWidth: 0, textAlign: "start", border: "none", background: "transparent", cursor: "pointer", padding: "8px 6px 8px 14px", fontSize: 13.5, fontWeight: on ? 700 : 500, color: on ? "var(--studio-teal-dark)" : "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
-                >
-                  {c.title || "—"}
-                </button>
-                {hot && (
-                  <span style={{ display: "flex", gap: 2, paddingRight: 6 }}>
-                    <button aria-label={t("chats.rename")} title={t("chats.rename")} onClick={() => rename(c)} style={iconBtn}><PencilIcon size={14} /></button>
-                    <button aria-label={t("chats.delete")} title={t("chats.delete")} onClick={() => remove(c)} style={{ ...iconBtn, color: "var(--destructive)" }}><TrashIcon size={14} /></button>
-                  </span>
+    <AppSidebar.ChatList label={t("chats.title")}>
+      {chats.length === 0 ? (
+        <p className="px-3 py-1 text-sm text-muted-foreground">{t("chats.empty")}</p>
+      ) : (
+        chats.map((c) => {
+          const on = activeId === String(c.id);
+          return (
+            <div
+              key={c.id}
+              role="listitem"
+              className={cn(chatItemVariants({ state: on ? "selected" : "default" }), "group/chat")}
+            >
+              <button
+                type="button"
+                onClick={() => open(c.id)}
+                title={c.title}
+                className={cn(
+                  "min-w-0 flex-1 cursor-pointer truncate text-start text-sm",
+                  on ? "font-semibold text-primary" : "text-sidebar-foreground",
                 )}
-              </div>
-            );
-          })
-        )}
-      </div>
-    </div>
+              >
+                {c.title || "—"}
+              </button>
+              <span className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover/chat:opacity-100 focus-within:opacity-100 motion-reduce:transition-none">
+                <button
+                  type="button"
+                  aria-label={t("chats.rename")}
+                  title={t("chats.rename")}
+                  onClick={() => rename(c)}
+                  className="grid size-6 cursor-pointer place-items-center rounded-sm text-muted-foreground hover:bg-background focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                >
+                  <Pencil className="size-3.5" />
+                </button>
+                <button
+                  type="button"
+                  aria-label={t("chats.delete")}
+                  title={t("chats.delete")}
+                  onClick={() => remove(c)}
+                  className="grid size-6 cursor-pointer place-items-center rounded-sm text-destructive hover:bg-background focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                >
+                  <Trash2 className="size-3.5" />
+                </button>
+              </span>
+            </div>
+          );
+        })
+      )}
+    </AppSidebar.ChatList>
   );
 }
-
-const iconBtn: React.CSSProperties = {
-  border: "none", background: "transparent", color: "var(--text-muted)", cursor: "pointer",
-  width: 24, height: 24, borderRadius: 6, display: "grid", placeItems: "center",
-};

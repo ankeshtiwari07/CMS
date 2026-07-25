@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser, payloadFetch } from "@/lib/payload";
-import Sidebar from "@/components/studio/sidebar";
+import { StudioPanel, StudioPageCard } from "@/components/studio/studio-app-shell";
 import ProjectsGrid, { type Project } from "@/components/studio/projects-grid";
 
 export const metadata = { title: "Projects · HUMAIN" };
@@ -36,18 +36,15 @@ export default async function ProjectsPage() {
   }
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", background: "var(--shell-bg)" }}>
-      <Sidebar user={{ name: user.name, email: user.email, roles: user.roles }} active="projects" />
-      <main style={{ flex: 1, padding: "10px 10px 10px 0" }}>
-        <div style={{ minHeight: "calc(100vh - 20px)", borderRadius: 22, background: "var(--card)", border: "1px solid var(--hairline)", padding: "36px 40px" }}>
-          <h1 style={{ fontSize: 24, fontWeight: 700, color: "var(--ink)", margin: 0 }}>Projects</h1>
-          <p style={{ color: "var(--text-muted)", fontSize: 13.5, margin: "4px 0 24px" }}>
-            {projects.length} project{projects.length === 1 ? "" : "s"} · click <strong style={{ color: "var(--studio-teal-dark)" }}>New project</strong> to create one with Claude or start blank.
-          </p>
+    <StudioPanel label="Projects">
+      <StudioPageCard padding="36px 40px">
+        <h1 style={{ fontSize: 24, fontWeight: 700, color: "var(--ink)", margin: 0 }}>Projects</h1>
+        <p style={{ color: "var(--text-muted)", fontSize: 13.5, margin: "4px 0 24px" }}>
+          {projects.length} project{projects.length === 1 ? "" : "s"} · click <strong style={{ color: "var(--studio-teal-dark)" }}>New project</strong> to create one with Claude or start blank.
+        </p>
 
-          <ProjectsGrid projects={projects} />
-        </div>
-      </main>
-    </div>
+        <ProjectsGrid projects={projects} />
+      </StudioPageCard>
+    </StudioPanel>
   );
 }

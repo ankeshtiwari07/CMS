@@ -55,6 +55,7 @@ export const DICT: Record<string, Tr> = {
   "menu.settings": { en: "Settings", ar: "الإعدادات", fr: "Paramètres", de: "Einstellungen", es: "Ajustes", pl: "Ustawienia" },
   "menu.signout": { en: "Sign out", ar: "تسجيل الخروج", fr: "Se déconnecter", de: "Abmelden", es: "Cerrar sesión", pl: "Wyloguj" },
   "menu.language": { en: "Language", ar: "اللغة", fr: "Langue", de: "Sprache", es: "Idioma", pl: "Język" },
+  "menu.theme": { en: "Theme", ar: "المظهر", fr: "Thème", de: "Erscheinungsbild", es: "Tema", pl: "Motyw" },
   "lang.en": { en: "English", ar: "English" },
   "lang.ar": { en: "العربية", ar: "العربية" },
   // home

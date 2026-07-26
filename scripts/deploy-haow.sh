@@ -23,8 +23,13 @@ if [[ ! -f .env.production ]]; then
 fi
 
 echo "==> Ensuring app dir + repo on $VM"
+# Reset to FETCH_HEAD, not origin/$BRANCH: the VM's clone is shallow and was made
+# with `-b main`, so its refspec only tracks main. `git fetch origin <branch>`
+# updates FETCH_HEAD but creates no origin/<branch> ref, which made any non-main
+# BRANCH= deploy die with "ambiguous argument 'origin/<branch>'". FETCH_HEAD is
+# what was just fetched, so it is correct for every branch including main.
 "${SSH[@]}" "sudo mkdir -p $APP_DIR && sudo chown \$(whoami) $APP_DIR && \
-  if [ -d $APP_DIR/.git ]; then cd $APP_DIR && git fetch --depth 1 origin $BRANCH && git reset --hard origin/$BRANCH; \
+  if [ -d $APP_DIR/.git ]; then cd $APP_DIR && git fetch --depth 1 origin $BRANCH && git reset --hard FETCH_HEAD; \
   else git clone --depth 1 -b $BRANCH $REPO $APP_DIR; fi"
 
 echo "==> Copying .env.production (also used as compose .env for interpolation)"

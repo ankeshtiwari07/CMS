@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { cookies, headers } from "next/headers";
-import { Inter, IBM_Plex_Sans_Arabic } from "next/font/google";
+import localFont from "next/font/local";
 // Canonical HUMAIN design system, then the legacy-name bridge, then our globals.
 // Order matters: globals.css and every component read the vars these define.
 // `styles.css` is a strict superset of `tokens.css` — same 908 token vars plus
@@ -14,12 +14,33 @@ import { LOCALES, isRtl, type Locale } from "@/lib/i18n";
 import ThemeRoot from "@/components/studio/theme-sync";
 import { themeInitScript } from "@/lib/theme";
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
-const plexAr = IBM_Plex_Sans_Arabic({
-  subsets: ["arabic"],
-  weight: ["400", "500", "600", "700"],
+// SELF-HOSTED, not next/font/google.
+//
+// next/font/google fetches the font files at BUILD time. The VM's Docker build
+// started failing on exactly that — "Failed to fetch `Inter` from Google Fonts"
+// — which fails the whole image build and blocks every deploy, even though the
+// VM host itself can reach fonts.googleapis.com fine. Depending on an outbound
+// fetch to build a container is fragile regardless of the cause.
+//
+// @humain/ui ships NO @font-face; it only references `"Inter", system-ui`, so
+// the app is responsible for actually providing the face. These are the same
+// Google-served woff2 files, committed under app/fonts (~192KB total).
+const inter = localFont({
+  src: [{ path: "./fonts/Inter-Variable.woff2", weight: "100 900", style: "normal" }],
+  variable: "--font-inter",
+  display: "swap",
+  fallback: ["system-ui", "sans-serif"],
+});
+const plexAr = localFont({
+  src: [
+    { path: "./fonts/PlexArabic-400.woff2", weight: "400", style: "normal" },
+    { path: "./fonts/PlexArabic-500.woff2", weight: "500", style: "normal" },
+    { path: "./fonts/PlexArabic-600.woff2", weight: "600", style: "normal" },
+    { path: "./fonts/PlexArabic-700.woff2", weight: "700", style: "normal" },
+  ],
   variable: "--font-plex-ar",
   display: "swap",
+  fallback: ["system-ui", "sans-serif"],
 });
 
 export const metadata: Metadata = {

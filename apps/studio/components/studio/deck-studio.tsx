@@ -412,21 +412,33 @@ export default function DeckStudio({ deckId, userName }: { deckId: string | null
               {/* Native <select> x4 -> the package's flat Select API. The old
                   ones were styled as pills with emoji glyphs baked into the
                   option text, which no assistive tech could make sense of. */}
-              <Select value={deckType} onValueChange={(v) => setDeckType(String(v) as any)}>
-                <SelectItem value="HTML">HTML</SelectItem>
-                <SelectItem value="Images">Images</SelectItem>
-              </Select>
-              <Select value={themeId} onValueChange={(v) => setThemeId(String(v))}>
-                {themes.map((th) => <SelectItem key={th.id} value={th.id}>{th.name}</SelectItem>)}
-              </Select>
-              <Select value={style} onValueChange={(v) => setStyle(String(v))}>
-                {["Story Telling", "Data-driven", "Minimal", "Persuasive", "Technical"].map((sv) => (
-                  <SelectItem key={sv} value={sv}>{sv}</SelectItem>
-                ))}
-              </Select>
-              <Select value={String(slideCount)} onValueChange={(v) => setSlideCount(Number(v))}>
-                {[6, 8, 10, 12, 15].map((n) => <SelectItem key={n} value={String(n)}>{n} slides</SelectItem>)}
-              </Select>
+              {/* Each Select is boxed to a fixed width: the package's Select is a
+                  form field and defaults to w-full, so in a flex row they each
+                  took the whole line and stacked vertically instead of sitting
+                  inline as a control strip. */}
+              <div className="w-32">
+                <Select value={deckType} onValueChange={(v) => setDeckType(String(v) as any)}>
+                  <SelectItem value="HTML">HTML</SelectItem>
+                  <SelectItem value="Images">Images</SelectItem>
+                </Select>
+              </div>
+              <div className="w-44">
+                <Select value={themeId} onValueChange={(v) => setThemeId(String(v))}>
+                  {themes.map((th) => <SelectItem key={th.id} value={th.id}>{th.name}</SelectItem>)}
+                </Select>
+              </div>
+              <div className="w-40">
+                <Select value={style} onValueChange={(v) => setStyle(String(v))}>
+                  {["Story Telling", "Data-driven", "Minimal", "Persuasive", "Technical"].map((sv) => (
+                    <SelectItem key={sv} value={sv}>{sv}</SelectItem>
+                  ))}
+                </Select>
+              </div>
+              <div className="w-32">
+                <Select value={String(slideCount)} onValueChange={(v) => setSlideCount(Number(v))}>
+                  {[6, 8, 10, 12, 15].map((n) => <SelectItem key={n} value={String(n)}>{n} slides</SelectItem>)}
+                </Select>
+              </div>
               <div className="flex-1" />
               <Badge variant="soft" color="primary" size="sm">Claude Opus 4.8</Badge>
               <Button

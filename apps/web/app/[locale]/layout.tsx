@@ -1,13 +1,28 @@
 import Script from "next/script";
-import { Inter, IBM_Plex_Sans_Arabic } from "next/font/google";
+import localFont from "next/font/local";
 import { getSettings } from "../../lib/cms";
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
-const plexAr = IBM_Plex_Sans_Arabic({
-  subsets: ["arabic"],
-  weight: ["400", "500", "600", "700"],
+// SELF-HOSTED, for the same reason as apps/studio: next/font/google fetches at
+// BUILD time, and one unreachable request fails the whole image build. The
+// Dockerfile builds cms, web, studio, ai-service and mcp-server in one RUN, so a
+// font fetch in ANY of them blocks every deploy — fixing only studio left this
+// one still failing.
+const inter = localFont({
+  src: [{ path: "../fonts/Inter-Variable.woff2", weight: "100 900", style: "normal" }],
+  variable: "--font-inter",
+  display: "swap",
+  fallback: ["system-ui", "sans-serif"],
+});
+const plexAr = localFont({
+  src: [
+    { path: "../fonts/PlexArabic-400.woff2", weight: "400", style: "normal" },
+    { path: "../fonts/PlexArabic-500.woff2", weight: "500", style: "normal" },
+    { path: "../fonts/PlexArabic-600.woff2", weight: "600", style: "normal" },
+    { path: "../fonts/PlexArabic-700.woff2", weight: "700", style: "normal" },
+  ],
   variable: "--font-plex-ar",
   display: "swap",
+  fallback: ["system-ui", "sans-serif"],
 });
 
 export function generateStaticParams() {

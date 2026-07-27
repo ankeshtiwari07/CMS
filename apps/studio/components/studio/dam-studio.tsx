@@ -5,7 +5,6 @@ import {
   AppShellCard,
   Badge,
   Button,
-  Card,
   Dialog,
   EmptyState,
   Field,
@@ -33,9 +32,10 @@ import { Copy, FileText, Images, Search, Trash2, Upload } from "lucide-react";
    message, same alt-text PATCH with its dirty check, same delete, same search
    filter, same rendition list and clipboard copy.
 
-   The clickable tile is a Button wrapping a Card rather than a div with an
-   onClick: the package has no interactive-card primitive, and this keeps real
-   button semantics (focus ring, Enter/Space) instead of hand-rolling them.
+   The clickable tile is an outline Button, NOT a Card: it sits inside an
+   AppShellCard and the skill is explicit that a Card nested in a Card is never
+   correct. Button also gives real semantics (focus ring, Enter/Space) that a div
+   with onClick would not.
    ============================================================================= */
 
 type Rendition = { name: string; url: string; width?: number; height?: number; filesize?: number };
@@ -161,14 +161,14 @@ export default function DamStudio() {
           {shown.map((a) => (
             <Button
               key={a.id}
-              appearance="ghost"
+              appearance="outline"
               variant="secondary"
               onClick={() => open(a)}
               aria-label={`Open ${a.filename}`}
-              className="block h-auto w-full p-0 text-start"
+              className="block h-auto w-full overflow-hidden p-0 text-start"
             >
-              <Card padding="none" className="overflow-hidden">
-                <div className="grid h-32 place-items-center border-b border-border bg-muted">
+              <span className="block">
+                <span className="grid h-32 place-items-center border-b border-border bg-muted">
                   {isImg(a.mimeType) ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
@@ -179,17 +179,17 @@ export default function DamStudio() {
                   ) : (
                     <FileText className="size-8 text-muted-foreground" />
                   )}
-                </div>
-                <Card.Content className="p-3">
-                  <div className="truncate text-xs font-semibold text-foreground">{a.filename}</div>
-                  <div className="mt-0.5 text-xs text-secondary-foreground">
+                </span>
+                <span className="block p-3">
+                  <span className="block truncate text-xs font-semibold text-foreground">{a.filename}</span>
+                  <span className="mt-0.5 block text-xs text-secondary-foreground">
                     {a.width && a.height ? `${a.width}×${a.height} · ` : ""}{kb(a.filesize)}
-                  </div>
+                  </span>
                   {a.alt && (
                     <Badge variant="soft" color="success" size="xs" className="mt-1.5">AI alt-text</Badge>
                   )}
-                </Card.Content>
-              </Card>
+                </span>
+              </span>
             </Button>
           ))}
         </div>

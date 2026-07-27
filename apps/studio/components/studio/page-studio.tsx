@@ -1,16 +1,46 @@
 "use client";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import {
+  AppShellCard,
+  Badge,
+  Button,
+  Dialog,
+  EmptyState,
+  Field,
+  Input,
+  Select,
+  SelectItem,
+  Separator,
+  Textarea,
+} from "@humain/ui";
+import { Blocks, ChevronDown, ChevronUp, Pencil, Plus, Trash2 } from "lucide-react";
+
+/* =============================================================================
+   Library Page Builder.
+
+   Migrated onto @humain/ui per adoption.md §4 and the package skill:
+     <select>            -> Select + SelectItem (flat API)
+     <input>/<textarea>  -> Input / Textarea in Field
+     <button> x9 + minis -> Button / icon Buttons with aria-labels
+     source pills        -> Badge with semantic colour
+     hand-rolled overlay -> Dialog (the library picker)
+     bordered tiles      -> outline Buttons, NOT Card: these sit inside an
+                            AppShellCard and the skill is explicit that a Card
+                            inside a Card is never correct
+
+   Behaviour untouched: compose/save/publish endpoints, the delegation summary,
+   block CRUD and reordering, library add, and the approval-gated publish path.
+   ============================================================================= */
 
 type Block = { id?: string; kind: string; brief?: string; html: string; componentKey?: string | null; componentSource?: string };
 type LibComp = { id: string; name: string; key: string; type: string; status: string; html: string };
 type Item = { id: string; title: string; contentType: string; status: string; blocks: number; updatedAt: string };
 
-const TEAL = "var(--primary)", INK = "var(--ink)", LINE = "var(--hairline)", MUT = "var(--text-muted)";
 const TYPES = [{ v: "page", l: "Page" }, { v: "blog", l: "Blog" }, { v: "post", l: "Post" }, { v: "article", l: "Article" }, { v: "pressRelease", l: "Press Release" }, { v: "webinar", l: "Webinar" }, { v: "event", l: "Event" }];
-const sourceBadge = (b: Block) =>
-  b.componentSource === "library" ? { t: `◆ Reused · ${b.componentKey}`, c: "var(--success)", bg: "color-mix(in srgb, var(--success) 12%, var(--background))" }
-  : b.componentSource === "delegated" ? { t: `✦ AI-delegated · ${b.componentKey || ""}`, c: "var(--warning)", bg: "var(--soft-warning)" }
-  : { t: "◇ Generated", c: MUT, bg: "var(--surface-2)" };
+const sourceBadge = (b: Block): { t: string; color: "success" | "warning" | "secondary" } =>
+  b.componentSource === "library" ? { t: `Reused · ${b.componentKey}`, color: "success" }
+  : b.componentSource === "delegated" ? { t: `AI-delegated · ${b.componentKey || ""}`, color: "warning" }
+  : { t: "Generated", color: "secondary" };
 
 function assemble(blocks: Block[]): string {
   return `<!doctype html><html><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:-apple-system,Segoe UI,Roboto,sans-serif;background:#fff}img{max-width:100%}</style></head><body>${blocks.map((b) => b.html).join("\n")}</body></html>`;
@@ -67,103 +97,199 @@ export default function PageStudio() {
   const addFromLib = (c: LibComp) => { setBlocks((b) => [...b, { kind: c.type, html: c.html, componentKey: c.key, componentSource: "library" }]); setPicker(false); };
 
   const previewDoc = useMemo(() => assemble(blocks), [blocks]);
-  const card: React.CSSProperties = { border: `1px solid ${LINE}`, borderRadius: 12, background: "var(--card)" };
-  const btn = (p?: boolean, dis?: boolean): React.CSSProperties => ({ padding: "8px 13px", borderRadius: 9, fontWeight: 700, fontSize: 13, cursor: dis ? "default" : "pointer", border: p ? "none" : `1px solid ${LINE}`, background: p ? TEAL : "var(--card)", color: p ? "var(--primary-foreground)" : INK, opacity: dis ? 0.55 : 1 });
 
   return (
-    <div style={{ background: "var(--card)", borderRadius: 16, minHeight: "100%", padding: "22px 26px", fontFamily: "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif", color: INK }}>
-      <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: ".12em", color: TEAL, textTransform: "uppercase" }}>Pages · Blogs · Posts</div>
-      <h1 style={{ margin: "6px 0 4px", fontSize: 26, letterSpacing: "-.01em" }}>Library Page Builder</h1>
-      <p style={{ color: MUT, margin: 0, maxWidth: "72ch", fontSize: 14.5 }}>Generate a page, blog or post <b>composed from your component library</b> — the builder reuses live components and delegates any gaps to the Component Agent. Then reorder, edit, add or remove blocks (full CRUD) and publish through the approval flow.</p>
+    <AppShellCard>
+      <AppShellCard.Toolbar>
+        <AppShellCard.Header>
+          <AppShellCard.Title>Library Page Builder</AppShellCard.Title>
+          <AppShellCard.Subtitle>
+            Generate a page, blog or post composed from your component library — the builder reuses
+            live components and delegates any gaps to the Component Agent. Then reorder, edit, add or
+            remove blocks and publish through the approval flow.
+          </AppShellCard.Subtitle>
+        </AppShellCard.Header>
+        {blocks.length > 0 && (
+          <AppShellCard.Actions>
+            <Button appearance="outline" variant="secondary" disabled={!!busy} onClick={save}>Save</Button>
+            <Button loading={busy === "pub"} disabled={!!busy} onClick={publish}>Publish</Button>
+          </AppShellCard.Actions>
+        )}
+      </AppShellCard.Toolbar>
 
-      {/* compose */}
-      <div style={{ display: "flex", gap: 10, marginTop: 16, flexWrap: "wrap", alignItems: "center" }}>
-        <select value={contentType} onChange={(e) => setContentType(e.target.value)} style={{ padding: "9px 11px", borderRadius: 9, border: `1px solid ${LINE}`, fontSize: 13.5 }}>{TYPES.map((t) => <option key={t.v} value={t.v}>{t.l}</option>)}</select>
-        <input value={prompt} onChange={(e) => setPrompt(e.target.value)} onKeyDown={(e) => e.key === "Enter" && generate()} placeholder={`Describe the ${contentType} to compose…`} style={{ flex: 1, minWidth: 260, padding: "9px 12px", borderRadius: 9, border: `1px solid ${LINE}`, fontSize: 13.5, outline: "none" }} />
-        <button style={btn(true, !!busy)} disabled={!!busy} onClick={generate}>{busy === "gen" ? "Composing…" : "Compose from library"}</button>
-        {msg && <span style={{ color: MUT, fontSize: 13 }}>{msg}</span>}
+      {/* Compose */}
+      <div className="flex flex-wrap items-end gap-3">
+        <Field>
+          <Field.Label>Type</Field.Label>
+          <Select value={contentType} onValueChange={setContentType}>
+            {TYPES.map((t) => <SelectItem key={t.v} value={t.v}>{t.l}</SelectItem>)}
+          </Select>
+        </Field>
+        <Field className="min-w-64 flex-1">
+          <Field.Label>Brief</Field.Label>
+          <Input
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && generate()}
+            placeholder={`Describe the ${contentType} to compose…`}
+          />
+        </Field>
+        <Button loading={busy === "gen"} disabled={!!busy} onClick={generate}>
+          {busy === "gen" ? "Composing…" : "Compose from library"}
+        </Button>
+        {msg && <span className="text-sm text-secondary-foreground">{msg}</span>}
       </div>
-      {delegation && <div style={{ marginTop: 8, fontSize: 12.5, color: MUT }}>Reused <b style={{ color: "var(--success)" }}>{delegation.reused?.length || 0}</b> live component(s) · <b style={{ color: "var(--warning)" }}>{delegation.created?.length || 0}</b> new component(s) delegated{delegation.gated ? " (draft, pending approval)" : ""}.</div>}
+
+      {delegation && (
+        <div className="mt-2 text-sm text-secondary-foreground">
+          Reused <b className="text-success">{delegation.reused?.length || 0}</b> live component(s) ·{" "}
+          <b className="text-warning">{delegation.created?.length || 0}</b> new component(s) delegated
+          {delegation.gated ? " (draft, pending approval)" : ""}.
+        </div>
+      )}
 
       {blocks.length > 0 && (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 16, alignItems: "start" }}>
-          {/* blocks CRUD */}
-          <div style={{ ...card, padding: 14 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
-              <input value={title} onChange={(e) => setTitle(e.target.value)} style={{ fontWeight: 800, fontSize: 15, border: "none", outline: "none", flex: 1, color: INK }} />
-              <span style={{ fontSize: 11, color: MUT }}>{blocks.length} blocks</span>
+        <div className="mt-4 grid items-start gap-4 lg:grid-cols-2">
+          {/* Blocks */}
+          <div>
+            <div className="mb-2 flex items-center gap-2">
+              <Field className="flex-1">
+                <Field.Label>Title</Field.Label>
+                <Input value={title} onChange={(e) => setTitle(e.target.value)} />
+              </Field>
+              <Badge variant="soft" color="secondary" size="sm" className="mt-6">{blocks.length} blocks</Badge>
             </div>
-            <div style={{ display: "grid", gap: 8, maxHeight: 460, overflow: "auto" }}>
-              {blocks.map((b, i) => { const sb = sourceBadge(b); return (
-                <div key={i} style={{ border: `1px solid ${LINE}`, borderRadius: 10, padding: "9px 11px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <span style={{ fontSize: 11, fontWeight: 700, color: INK, textTransform: "capitalize" }}>{b.kind}</span>
-                    <span style={{ fontSize: 10, fontWeight: 800, color: sb.c, background: sb.bg, padding: "1px 7px", borderRadius: 5 }}>{sb.t}</span>
-                    <span style={{ marginInlineStart: "auto", display: "flex", gap: 4 }}>
-                      <button title="Up" onClick={() => move(i, -1)} style={mini}>↑</button>
-                      <button title="Down" onClick={() => move(i, 1)} style={mini}>↓</button>
-                      <button title="Edit HTML" onClick={() => setEditing(editing === i ? null : i)} style={mini}>✎</button>
-                      <button title="Delete" onClick={() => del(i)} style={{ ...mini, color: "var(--destructive)" }}>🗑</button>
-                    </span>
+
+            <div className="grid max-h-96 gap-3 overflow-auto">
+              {blocks.map((b, i) => {
+                const sb = sourceBadge(b);
+                return (
+                  <div key={i}>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-semibold capitalize text-foreground">{b.kind}</span>
+                      <Badge variant="soft" color={sb.color} size="xs">{sb.t}</Badge>
+                      <span className="ms-auto flex gap-1">
+                        <Button appearance="ghost" variant="secondary" size="icon-xs" aria-label="Move block up" title="Move up" onClick={() => move(i, -1)}>
+                          <ChevronUp className="size-3.5" />
+                        </Button>
+                        <Button appearance="ghost" variant="secondary" size="icon-xs" aria-label="Move block down" title="Move down" onClick={() => move(i, 1)}>
+                          <ChevronDown className="size-3.5" />
+                        </Button>
+                        <Button appearance="ghost" variant="secondary" size="icon-xs" aria-label="Edit block HTML" title="Edit HTML" onClick={() => setEditing(editing === i ? null : i)}>
+                          <Pencil className="size-3.5" />
+                        </Button>
+                        <Button appearance="ghost" variant="destructive" size="icon-xs" aria-label="Delete block" title="Delete" onClick={() => del(i)}>
+                          <Trash2 className="size-3.5" />
+                        </Button>
+                      </span>
+                    </div>
+                    {editing === i ? (
+                      <Textarea
+                        value={b.html}
+                        aria-label={`Block ${i + 1} HTML`}
+                        rows={5}
+                        className="mt-2 font-mono"
+                        onChange={(e) => editBlock(i, e.target.value)}
+                      />
+                    ) : (
+                      <iframe
+                        title={`b${i}`}
+                        srcDoc={b.html}
+                        className="pointer-events-none mt-2 w-full rounded-lg border border-border bg-card"
+                        style={{ height: 90 }}
+                      />
+                    )}
+                    <Separator className="mt-3" />
                   </div>
-                  {editing === i
-                    ? <textarea value={b.html} onChange={(e) => editBlock(i, e.target.value)} rows={5} style={{ width: "100%", marginTop: 7, fontFamily: "ui-monospace,monospace", fontSize: 11, border: `1px solid ${LINE}`, borderRadius: 7, padding: 7 }} />
-                    : <iframe title={`b${i}`} srcDoc={b.html} style={{ width: "100%", height: 90, border: `1px solid ${LINE}`, borderRadius: 7, marginTop: 7, background: "var(--card)", pointerEvents: "none" }} />}
-                </div>
-              ); })}
+                );
+              })}
             </div>
-            <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
-              <button style={btn(false)} onClick={() => setPicker(true)}>+ Add block from library</button>
-              <button style={btn(false, !!busy)} disabled={!!busy} onClick={save}>Save</button>
-              <button style={btn(true, !!busy)} disabled={!!busy} onClick={publish}>Publish</button>
-            </div>
+
+            <Button
+              appearance="outline"
+              variant="secondary"
+              size="sm"
+              className="mt-3"
+              startIcon={<Plus className="size-4" />}
+              onClick={() => setPicker(true)}
+            >
+              Add block from library
+            </Button>
           </div>
-          {/* live preview */}
-          <div style={{ ...card, padding: 14 }}>
-            <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: ".1em", color: MUT, fontWeight: 700, marginBottom: 8 }}>Live preview</div>
-            <iframe title="preview" srcDoc={previewDoc} style={{ width: "100%", height: 520, border: `1px solid ${LINE}`, borderRadius: 10, background: "var(--card)" }} />
+
+          {/* Live preview */}
+          <div>
+            <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-secondary-foreground">Live preview</div>
+            <iframe
+              title="preview"
+              srcDoc={previewDoc}
+              className="w-full rounded-xl border border-border bg-card"
+              style={{ height: 520 }}
+            />
           </div>
         </div>
       )}
 
-      {/* existing content */}
+      {/* Existing content */}
       {items.length > 0 && (
-        <div style={{ marginTop: 22 }}>
-          <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: ".1em", color: MUT, fontWeight: 700, marginBottom: 8 }}>Your pages / blogs / posts</div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(240px,1fr))", gap: 10 }}>
+        <>
+          <Separator className="my-5" label="Your pages / blogs / posts" />
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {items.map((it) => (
-              <div key={it.id} onClick={() => load(it)} style={{ ...card, padding: "11px 13px", cursor: "pointer" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <span style={{ fontSize: 10, fontWeight: 800, color: TEAL, textTransform: "uppercase" }}>{it.contentType}</span>
-                  <span style={{ fontSize: 10, fontWeight: 700, color: it.status === "published" ? "var(--success)" : "var(--warning)" }}>{it.status}</span>
-                </div>
-                <div style={{ fontSize: 13.5, fontWeight: 600, marginTop: 4, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{it.title}</div>
-                <div style={{ fontSize: 11, color: MUT, marginTop: 2 }}>{it.blocks} blocks</div>
-              </div>
+              <Button
+                key={it.id}
+                appearance="outline"
+                variant="secondary"
+                onClick={() => load(it)}
+                aria-label={`Open ${it.title}`}
+                className="block h-auto w-full p-3 text-start"
+              >
+                <span className="flex items-center justify-between gap-2">
+                  <Badge variant="soft" color="primary" size="xs">{it.contentType}</Badge>
+                  <Badge variant="soft" color={it.status === "published" ? "success" : "warning"} size="xs">{it.status}</Badge>
+                </span>
+                <span className="mt-1 block truncate text-sm font-semibold text-foreground">{it.title}</span>
+                <span className="mt-0.5 block text-xs text-secondary-foreground">{it.blocks} blocks</span>
+              </Button>
             ))}
           </div>
-        </div>
+        </>
       )}
 
-      {/* library picker */}
-      {picker && (
-        <div onClick={() => setPicker(false)} style={{ position: "fixed", inset: 0, background: "rgba(6,16,12,.5)", zIndex: 60, display: "grid", placeItems: "center", padding: 20 }}>
-          <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--card)", borderRadius: 14, maxWidth: 720, width: "100%", maxHeight: "80vh", overflow: "auto", padding: 20 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}><b>Add a live library component</b><button onClick={() => setPicker(false)} style={mini}>✕</button></div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(200px,1fr))", gap: 10 }}>
-              {lib.map((c) => (
-                <div key={c.id} onClick={() => addFromLib(c)} style={{ border: `1px solid ${LINE}`, borderRadius: 10, padding: 10, cursor: "pointer" }}>
-                  <div style={{ fontSize: 13, fontWeight: 700 }}>{c.name}</div>
-                  <div style={{ fontSize: 11, color: MUT }}>{c.type} · {c.key}</div>
-                </div>
-              ))}
-              {lib.length === 0 && <div style={{ color: MUT, fontSize: 13 }}>No live components in the library yet.</div>}
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+      {/* Library picker */}
+      <Dialog open={picker} onOpenChange={setPicker}>
+        <Dialog.Popup size="lg">
+          <Dialog.Header>
+            <Dialog.Title>Add a live library component</Dialog.Title>
+            <Dialog.Description>Only components marked live are available to compose with.</Dialog.Description>
+          </Dialog.Header>
+          <Dialog.Body>
+            {lib.length === 0 ? (
+              <EmptyState
+                title="No live components yet"
+                description="Publish a component in Component Studio and it becomes available here."
+                media="featured-icon"
+                icon={<Blocks />}
+              />
+            ) : (
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {lib.map((c) => (
+                  <Button
+                    key={c.id}
+                    appearance="outline"
+                    variant="secondary"
+                    onClick={() => addFromLib(c)}
+                    className="block h-auto w-full p-3 text-start"
+                  >
+                    <span className="block text-sm font-semibold text-foreground">{c.name}</span>
+                    <span className="mt-0.5 block text-xs text-secondary-foreground">{c.type} · {c.key}</span>
+                  </Button>
+                ))}
+              </div>
+            )}
+          </Dialog.Body>
+        </Dialog.Popup>
+      </Dialog>
+    </AppShellCard>
   );
 }
-
-const mini: React.CSSProperties = { border: `1px solid ${LINE}`, background: "var(--card)", borderRadius: 6, width: 24, height: 24, cursor: "pointer", fontSize: 12, lineHeight: 1, color: "var(--ink)" };

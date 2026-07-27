@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/payload";
-import { ConsolePanel } from "@/components/studio/console-shell";
+import { CmsPanel } from "@/components/cms/cms-app-shell";
 import CmsWorkspace from "@/components/cms/cms-workspace";
 import type { Tier } from "@/components/cms/cms-preview";
 
@@ -30,13 +30,13 @@ export default async function CmsPage() {
   const canPublish = roles.some((r) => ["publisher", "siteAdmin", "admin"].includes(r));
 
   return (
-    <ConsolePanel label="CMS">
+    <CmsPanel label="CMS">
       <CmsWorkspace
         user={{ name: user.name, email: user.email, roles }}
         canEdit={canEdit}
         canPublish={canPublish}
         tier={tierFor(roles)}
       />
-    </ConsolePanel>
+    </CmsPanel>
   );
 }

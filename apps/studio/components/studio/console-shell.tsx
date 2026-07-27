@@ -13,11 +13,9 @@ import {
 } from "@humain/ui";
 import {
   Bell,
-  Blocks,
   Bookmark,
   Check,
   Clock,
-  Database,
   FileText,
   FolderClosed,
   Globe,
@@ -30,15 +28,10 @@ import {
   Monitor,
   Moon,
   Palette,
-  PanelsTopLeft,
   Paperclip,
   Plus,
-  Presentation,
   Search,
-  ShieldCheck,
-  Sparkles,
   Sun,
-  UserCircle,
 } from "lucide-react";
 import { HumainWordmark } from "@/components/brand";
 import { ChatNavItems, ManageChatsDialog, useChats } from "@/components/studio/chat-history";
@@ -46,7 +39,7 @@ import NotificationsPanel from "@/components/notifications/notifications-bell";
 import SidebarAccountMenu, { type ShellUser } from "@/components/studio/sidebar-account-menu";
 import { useSidebarPref } from "@/components/studio/use-sidebar-pref";
 import { useT } from "@/lib/i18n-client";
-import { PREF_KEY, THEME_EVENT, readPref } from "@/lib/theme";
+import { PREF_KEY, THEME_EVENT } from "@/lib/theme";
 
 /* =============================================================================
    The console shell — ONE sidebar for Create Studio and the CMS.
@@ -60,8 +53,11 @@ import { PREF_KEY, THEME_EVENT, readPref } from "@/lib/theme";
    but not composition, which is how they kept drifting apart. There is now one.
 
    Nothing was dropped to hit the design:
-   - Pages, Data and Governance leave the top level but become children of the
-     CMS row, so they live "inside the CMS section" and are one click away.
+   - Pages, Data and Governance leave the top level and move into the CMS
+     section's own navigation (CmsSectionNav, rendered inside the CMS panel).
+     They were briefly children of the CMS row, but the row auto-expands when
+     active and a 10-item tree pushed the rest of the sidebar off-screen the
+     moment you entered the CMS — and the design shows CMS flat.
    - Chats collapses, and because AppSidebar.NavSub carries no per-row actions,
      rename/delete move into a Manage-chats dialog rather than disappearing.
    - The Dark mode row toggles light/dark. The app's tri-state choice (including
@@ -83,8 +79,8 @@ const NAV = [
 ] as const;
 
 /** The CMS section's own navigation — this is where Pages, Data and Governance
-    now live, as children of the CMS row. */
-const CMS_SECTION = [
+    live now, rendered inside the CMS panel rather than in the sidebar. */
+export const CMS_SECTION = [
   { href: "/cms", label: "Overview" },
   { href: "/cms/studio", label: "Studio" },
   { href: "/cms/pages", label: "Pages" },
@@ -252,7 +248,6 @@ export default function ConsoleShell({
   const [notifOpen, setNotifOpen] = useState(false);
 
   const items = NAV.filter((n) => !("approverOnly" in n) || roles.some((r) => APPROVER_ROLES.includes(r)));
-  const inCms = pathname.startsWith("/cms");
 
   function openChat(id: string | number) {
     setActiveId(String(id));
@@ -284,30 +279,20 @@ export default function ConsoleShell({
                 <AppSidebar.Nav aria-label="Console">
                   <CreateMenu />
 
-                  {items.map(({ key, Icon, href }) =>
-                    key === "cms" ? (
-                      // Pages / Data / Governance live here now — inside the CMS
-                      // section rather than at the top level.
-                      <AppSidebar.NavItem key={key} icon={<Icon />} label={t("nav.cms")} isActive={activeKey === "cms"}>
-                        {CMS_SECTION.map((sub) => (
-                          <AppSidebar.NavSub
-                            key={sub.href}
-                            label={sub.label}
-                            isActive={inCms && pathname === sub.href}
-                            onClick={() => router.push(sub.href)}
-                          />
-                        ))}
-                      </AppSidebar.NavItem>
-                    ) : (
-                      <AppSidebar.NavItem
-                        key={key}
-                        icon={<Icon />}
-                        label={t(`nav.${key}`)}
-                        isActive={key === activeKey}
-                        onClick={() => router.push(href)}
-                      />
-                    ),
-                  )}
+                  {/* CMS is a FLAT row, matching the design. Its section pages
+                      are navigated from inside the CMS itself (CmsSectionNav),
+                      which is also where the user asked Pages/Data/Governance to
+                      live — not as a 10-item tree that pushes the rest of the
+                      sidebar off-screen whenever you are in the CMS. */}
+                  {items.map(({ key, Icon, href }) => (
+                    <AppSidebar.NavItem
+                      key={key}
+                      icon={<Icon />}
+                      label={key === "cms" ? t("nav.cms") : t(`nav.${key}`)}
+                      isActive={key === activeKey}
+                      onClick={() => router.push(href)}
+                    />
+                  ))}
 
                   {isAdmin && (
                     <AppSidebar.NavItem

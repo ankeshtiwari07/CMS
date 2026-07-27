@@ -1,5 +1,7 @@
 "use client";
-import { AppShell, AppShellCard } from "@humain/ui";
+import { usePathname, useRouter } from "next/navigation";
+import { AppShell, AppShellCard, Button } from "@humain/ui";
+import { CMS_SECTION } from "@/components/studio/console-shell";
 import type { ShellUser } from "@/components/studio/sidebar-account-menu";
 
 /* =============================================================================
@@ -14,14 +16,47 @@ export type CmsUser = ShellUser;
 export { default } from "@/components/studio/console-shell";
 
 /**
+ * The CMS section's own navigation.
+ *
+ * The sidebar shows CMS as a single flat row, per the design, so the section's
+ * pages — Pages, Content, Website, Decks, Components, Data, Assets, Governance —
+ * are navigated from here. Rendering it inside CmsPanel means every /cms surface
+ * gets it from one place rather than each page wiring its own.
+ */
+export function CmsSectionNav() {
+  const pathname = usePathname() || "";
+  const router = useRouter();
+  return (
+    <nav aria-label="CMS sections" className="mb-3 flex flex-wrap gap-1">
+      {CMS_SECTION.map((s) => {
+        const active = s.href === "/cms" ? pathname === "/cms" : pathname.startsWith(s.href);
+        return (
+          <Button
+            key={s.href}
+            size="sm"
+            appearance={active ? "soft" : "ghost"}
+            variant={active ? "primary" : "secondary"}
+            onClick={() => router.push(s.href)}
+          >
+            {s.label}
+          </Button>
+        );
+      })}
+    </nav>
+  );
+}
+
+/**
  * A bare AppShell.Panel: every CMS workspace already draws its own card chrome
  * and is a full-height flex layout with internal scrollers, so wrapping it in
  * AppShellCard would nest card-in-card and mis-compute those scroll regions.
+ * The section nav sits above as a fixed row; the workspace takes the remainder.
  */
 export function CmsPanel({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <AppShell.Panel flex={1} label={label}>
-      {children}
+      <CmsSectionNav />
+      <div className="min-h-0 flex-1">{children}</div>
     </AppShell.Panel>
   );
 }
@@ -42,6 +77,7 @@ export function CmsCardPanel({
 }) {
   return (
     <AppShell.Panel flex={1} label={label ?? title}>
+      <CmsSectionNav />
       <AppShellCard bodyPadding={bodyPadding}>
         <AppShellCard.Header>
           <AppShellCard.Title>{title}</AppShellCard.Title>

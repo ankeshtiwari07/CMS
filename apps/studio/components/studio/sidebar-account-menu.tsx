@@ -68,14 +68,14 @@ export default function SidebarAccountMenu({ user }: { user: ShellUser }) {
       <NavAccountMenuTrigger
         avatar={<Avatar fallback={name} alt={name} size="sm" indicator="online" />}
         name={name}
-        email={user.email}
+        email={roleLabel(user)}
         compact={collapsed}
       />
       <NavAccountMenuContent side="right" align="end">
-        {/* Role lives here rather than on the trigger: the trigger's second line
-            is the account identity (email), which is what the CMS shell already
-            showed, so the two shells agree. */}
-        <NavAccountMenuHeader title={name} subtitle={roleLabel(user)} />
+        {/* The trigger's second line is the ROLE, per the target design; the
+            email moves into the menu header so the identity is still one click
+            away rather than gone. */}
+        <NavAccountMenuHeader title={name} subtitle={user.email} />
         <NavAccountMenuSeparator />
 
         {/* Language — the existing switcher navigates to the /<locale>/… URL so

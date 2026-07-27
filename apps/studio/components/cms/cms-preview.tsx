@@ -11,8 +11,8 @@ import {
   SelectItem,
   Separator,
 } from "@humain/ui";
-import { Baseline, FileText, Monitor, Redo2, Undo2 } from "lucide-react";
-import { MonitorIcon, GridIcon, SparkIcon, CheckIcon, ClockIcon, ImageIcon, GlobeIcon, VideoIcon, PencilIcon, XIcon } from "@/components/icons";
+import { Baseline, Code2, Download, FileText, Image as ImageIcon, Maximize2, Monitor, Redo2, Smartphone, Sparkles, Undo2, X } from "lucide-react";
+import { MonitorIcon, GridIcon, SparkIcon, CheckIcon, ClockIcon, GlobeIcon, VideoIcon, PencilIcon, XIcon } from "@/components/icons";
 
 export type Artifact =
   | { kind: "html"; html: string; title?: string }
@@ -417,8 +417,8 @@ function PublishView({ artifact, canPublish }: { artifact: Artifact | null; canP
       </div>
 
       <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
-        <button onClick={() => send(false)} disabled={!can || busy} style={{ padding: "10px 16px", borderRadius: R.lg, border: "none", background: primary, color: "var(--hc-primary-fg)", fontWeight: 700, cursor: can && !busy ? "pointer" : "not-allowed", opacity: can && !busy ? 1 : 0.5 }}>{busy ? "Sending…" : "Send for review"}</button>
-        <button onClick={() => send(true)} disabled={!can || busy || !sched} title={!sched ? "Pick a date first" : undefined} style={{ padding: "10px 16px", borderRadius: R.lg, border: `1px solid ${border}`, background: card, color: fg, fontWeight: 700, cursor: can && sched && !busy ? "pointer" : "not-allowed", opacity: can && sched && !busy ? 1 : 0.5 }}>Schedule</button>
+        <Button loading={busy} disabled={!can || busy} onClick={() => send(false)}>{busy ? "Sending…" : "Send for review"}</Button>
+        <Button appearance="outline" variant="secondary" disabled={!can || busy || !sched} title={!sched ? "Pick a date first" : undefined} onClick={() => send(true)}>Schedule</Button>
       </div>
 
       {msg && <div style={{ marginTop: 16, padding: "10px 14px", borderRadius: R.lg, background: msg.ok ? pill : "rgba(220,38,38,0.08)", color: msg.ok ? primary : "var(--hc-destructive)", ...TYPE.sm, display: "flex", alignItems: "center", gap: 10 }}>
@@ -506,7 +506,7 @@ function VersionsView({ artifact, onRestore }: { artifact: Artifact | null; onRe
     <div style={{ padding: 28, overflow: "auto" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4, gap: 12 }}>
         <div style={{ fontWeight: 800, color: fg, ...TYPE.base }}>Version history</div>
-        <button onClick={saveNow} disabled={!artifact || busy === "save"} style={{ padding: "6px 12px", borderRadius: R.lg, border: "none", background: primary, color: "var(--primary-foreground)", fontWeight: 700, fontSize: 13, cursor: artifact ? "pointer" : "not-allowed", opacity: artifact ? 1 : 0.5 }}>{busy === "save" ? "Saving…" : "Save version"}</button>
+        <Button size="sm" loading={busy === "save"} disabled={!artifact || busy === "save"} onClick={saveNow}>{busy === "save" ? "Saving…" : "Save version"}</Button>
       </div>
       <div style={{ color: muted, ...TYPE.sm, marginBottom: 16 }}>Snapshots are captured automatically as you edit (and whenever you save a checkpoint). Restore any version into the editor, or download it as a standalone file.</div>
       {msg && <div style={{ marginBottom: 12, padding: "8px 12px", borderRadius: R.lg, background: pill, color: primary, ...TYPE.sm }}>{msg}</div>}
@@ -519,8 +519,8 @@ function VersionsView({ artifact, onRestore }: { artifact: Artifact | null; onRe
                 <div style={{ fontSize: 12.5, color: muted }}>{relTime(r.createdAt)}{r.by ? ` · ${r.by}` : ""}</div>
               </div>
               <div style={{ display: "flex", gap: 8, flexShrink: 0 }}>
-                <button onClick={() => download(r.id, r.title)} disabled={busy === `d${r.id}`} title="Download this version" style={{ padding: "6px 10px", borderRadius: R.lg, border: `1px solid ${border}`, background: card, color: fg, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>{busy === `d${r.id}` ? "…" : "Download"}</button>
-                <button onClick={() => restore(r.id)} disabled={busy === `r${r.id}`} style={{ padding: "6px 12px", borderRadius: R.lg, border: `1px solid ${primary}`, background: pill, color: primary, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>{busy === `r${r.id}` ? "Restoring…" : "Restore"}</button>
+                <Button appearance="outline" variant="secondary" size="sm" disabled={busy === `d${r.id}`} title="Download this version" onClick={() => download(r.id, r.title)}>{busy === `d${r.id}` ? "…" : "Download"}</Button>
+                <Button appearance="soft" variant="primary" size="sm" disabled={busy === `r${r.id}`} onClick={() => restore(r.id)}>{busy === `r${r.id}` ? "Restoring…" : "Restore"}</Button>
               </div>
             </div>
           ))}
@@ -621,10 +621,24 @@ export default function CmsPreview({
         <span style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 10px", borderRadius: R.full, background: pill, color: primary, fontWeight: 700, fontSize: 12 }}>
           <span style={{ width: 7, height: 7, borderRadius: "50%", background: statusBg }} /> {status}
         </span>
-        {isHtml && <button onClick={() => setSrcOpen((v) => !v)} title="HTML source" style={{ width: 30, height: 30, borderRadius: R.lg, border: "none", background: srcOpen ? pill : "transparent", color: srcOpen ? primary : muted, display: "grid", placeItems: "center", cursor: "pointer" }}><CodeIcon size={16} color={srcOpen ? primary : muted} /></button>}
-        {showCanvas && <button title="Download HTML" onClick={() => downloadHtml(htmlOf(artifact), `${slugify(titleOf(artifact))}.html`)} disabled={!canDownload} style={{ width: 30, height: 30, borderRadius: R.lg, border: "none", background: "transparent", color: muted, display: "grid", placeItems: "center", cursor: canDownload ? "pointer" : "not-allowed", opacity: canDownload ? 1 : 0.4 }}><DownloadIcon s={16} /></button>}
-        {showCanvas && <button title="Open full page in a new tab" onClick={() => openHtml(htmlOf(artifact))} disabled={!canDownload} style={{ width: 30, height: 30, borderRadius: R.lg, border: "none", background: "transparent", color: muted, display: "grid", placeItems: "center", cursor: canDownload ? "pointer" : "not-allowed", opacity: canDownload ? 1 : 0.4 }}><ExpandIcon s={15} /></button>}
-        <button onClick={onClose} title="Close" style={{ width: 30, height: 30, borderRadius: R.lg, border: "none", background: "transparent", color: muted, display: "grid", placeItems: "center", cursor: "pointer" }}><XIcon size={16} /></button>
+        {isHtml && (
+          <Button appearance={srcOpen ? "soft" : "ghost"} variant={srcOpen ? "primary" : "secondary"} size="icon-sm" title="HTML source" aria-label="HTML source" onClick={() => setSrcOpen((v) => !v)}>
+            <Code2 className="size-4" />
+          </Button>
+        )}
+        {showCanvas && (
+          <Button appearance="ghost" variant="secondary" size="icon-sm" title="Download HTML" aria-label="Download HTML" disabled={!canDownload} onClick={() => downloadHtml(htmlOf(artifact), `${slugify(titleOf(artifact))}.html`)}>
+            <Download className="size-4" />
+          </Button>
+        )}
+        {showCanvas && (
+          <Button appearance="ghost" variant="secondary" size="icon-sm" title="Open full page in a new tab" aria-label="Open full page in a new tab" disabled={!canDownload} onClick={() => openHtml(htmlOf(artifact))}>
+            <Maximize2 className="size-4" />
+          </Button>
+        )}
+        <Button appearance="ghost" variant="secondary" size="icon-sm" title="Close" aria-label="Close preview" onClick={onClose}>
+          <X className="size-4" />
+        </Button>
       </div>
 
       {phase === "setup" && !artifact ? <SetupState />
@@ -634,7 +648,15 @@ export default function CmsPreview({
             {/* Tab bar */}
             <div style={{ display: "flex", alignItems: "center", gap: 2, padding: "6px 10px", borderBottom: `1px solid ${border}` }}>
               {tabs.map(({ key, label, Icon }) => (
-                <button key={key} onClick={() => setTab(key)} style={{ display: "inline-flex", alignItems: "center", gap: 7, height: 32, padding: "0 11px", borderRadius: R.lg, border: "none", background: tab === key ? pill : "transparent", color: tab === key ? primary : muted, fontWeight: 700, fontSize: 13, cursor: "pointer" }}><Icon size={16} color={tab === key ? primary : muted} /> {label}</button>
+                <Button
+                  key={key}
+                  size="sm"
+                  appearance={tab === key ? "soft" : "ghost"}
+                  variant={tab === key ? "primary" : "secondary"}
+                  onClick={() => setTab(key)}
+                >
+                  <Icon size={16} /> {label}
+                </Button>
               ))}
               <div style={{ flex: 1 }} />
               {editable && (
@@ -645,7 +667,19 @@ export default function CmsPreview({
               )}
               {tab === "preview" && (
                 <div style={{ display: "inline-flex", background: soft, borderRadius: R.lg, padding: 3 }}>
-                  {(["desktop", "mobile"] as const).map((d) => (<button key={d} onClick={() => setDevice(d)} title={d} style={{ width: 34, height: 28, borderRadius: R.md, border: "none", background: device === d ? card : "transparent", color: device === d ? primary : muted, cursor: "pointer", display: "grid", placeItems: "center", boxShadow: device === d ? "var(--hc-shadow-sm)" : "none" }}><MonitorIcon size={d === "mobile" ? 13 : 16} /></button>))}
+                  {(["desktop", "mobile"] as const).map((d) => (
+                    <Button
+                      key={d}
+                      size="icon-sm"
+                      appearance={device === d ? "soft" : "ghost"}
+                      variant={device === d ? "primary" : "secondary"}
+                      title={d}
+                      aria-label={`${d} preview`}
+                      onClick={() => setDevice(d)}
+                    >
+                      {d === "mobile" ? <Smartphone className="size-4" /> : <Monitor className="size-4" />}
+                    </Button>
+                  ))}
                 </div>
               )}
             </div>
@@ -656,9 +690,13 @@ export default function CmsPreview({
                 <span style={{ fontWeight: 700, color: primary }}>&lt;{sel.tag}&gt;</span>
                 <span style={{ color: muted, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", flex: 1 }}>{sel.tag === "img" ? "(image selected — regenerate it with AI)" : sel.text.slice(0, 70) || "(selected — type to edit inline)"}</span>
                 {sel.tag === "img" && (
-                  <button onClick={regenImage} disabled={imgBusy} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 11px", borderRadius: R.lg, border: "none", background: imgBusy ? soft : primary, color: "var(--primary-foreground)", fontWeight: 700, fontSize: 12.5, cursor: imgBusy ? "default" : "pointer" }}><ImageIcon size={13} color="var(--primary-foreground)" /> {imgBusy ? "Generating…" : "Regenerate image"}</button>
+                  <Button size="xs" loading={imgBusy} disabled={imgBusy} startIcon={<ImageIcon className="size-3.5" />} onClick={regenImage}>
+                    {imgBusy ? "Generating…" : "Regenerate image"}
+                  </Button>
                 )}
-                <button onClick={() => onAskAboutSelection(sel.text)} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 11px", borderRadius: R.lg, border: "none", background: primary, color: "var(--primary-foreground)", fontWeight: 700, fontSize: 12.5, cursor: "pointer" }}><SparkIcon size={13} color="var(--primary-foreground)" /> Ask AI to change this</button>
+                <Button size="xs" startIcon={<Sparkles className="size-3.5" />} onClick={() => onAskAboutSelection(sel.text)}>
+                  Ask AI to change this
+                </Button>
               </div>
             )}
 
@@ -679,7 +717,9 @@ export default function CmsPreview({
                 <div style={{ width: 340, flexShrink: 0, borderLeft: `1px solid ${border}`, display: "flex", flexDirection: "column", background: card }}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 12px", borderBottom: `1px solid ${border}` }}>
                     <span style={{ fontWeight: 700, color: fg, fontSize: 12, letterSpacing: ".05em" }}>HTML SOURCE</span>
-                    <button onClick={() => setSrcOpen(false)} style={{ width: 26, height: 26, borderRadius: R.md, border: "none", background: "transparent", color: muted, display: "grid", placeItems: "center", cursor: "pointer" }}><XIcon size={14} /></button>
+                    <Button appearance="ghost" variant="secondary" size="icon-xs" aria-label="Close source view" onClick={() => setSrcOpen(false)}>
+                      <X className="size-3.5" />
+                    </Button>
                   </div>
                   <textarea value={artifact.html} onChange={(e) => onEditHtml(e.target.value)} spellCheck={false}
                     style={{ flex: 1, border: "none", outline: "none", resize: "none", padding: 12, background: "var(--hc-muted)", color: fg, fontFamily: "ui-monospace, Menlo, monospace", fontSize: 12, lineHeight: 1.5 }} />

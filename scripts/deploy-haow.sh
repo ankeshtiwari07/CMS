@@ -38,7 +38,13 @@ gcloud compute scp --zone="$ZONE" --tunnel-through-iap .env.production "$VM:$APP
 # (port, passwords). Keep it identical to the container env_file.
 "${SSH[@]}" "cp $APP_DIR/.env.production $APP_DIR/.env"
 
-COMPOSE="docker compose -f docker-compose.prod.yml"
+# The full -f chain, not prod.yml alone. docker-compose.mcp.yml overrides the
+# mcp service's command: that server speaks stdio, so `pnpm start` with no stdin
+# attached exits 0 immediately and the container restart-loops forever with no
+# error in its logs. The override parks it on `tail -f /dev/null` so it stays
+# resident for `docker exec -i` clients. Omitting this file is silent — nothing
+# fails, the deploy reports success, and mcp just quietly never runs.
+COMPOSE="docker compose -f docker-compose.prod.yml -f docker-compose.mcp.yml"
 [[ -n "$PROFILE" ]] && COMPOSE="$COMPOSE --profile $PROFILE"
 
 echo "==> Building + starting stack ($COMPOSE)"

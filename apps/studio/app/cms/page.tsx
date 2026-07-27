@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/payload";
-import { CmsPanel } from "@/components/cms/cms-app-shell";
 import CmsWorkspace from "@/components/cms/cms-workspace";
 import type { Tier } from "@/components/cms/cms-preview";
 
@@ -29,14 +28,17 @@ export default async function CmsPage() {
   const canEdit = roles.some((r) => ["author", "reviewer", "publisher", "brand", "siteAdmin", "admin"].includes(r));
   const canPublish = roles.some((r) => ["publisher", "siteAdmin", "admin"].includes(r));
 
+  // CmsWorkspace returns the two sibling panels itself — the conversation rail
+  // and the generated-output card — which is the shape the package prescribes
+  // for a chat workspace that produces output.
   return (
-    <CmsPanel label="CMS">
+    <>
       <CmsWorkspace
         user={{ name: user.name, email: user.email, roles }}
         canEdit={canEdit}
         canPublish={canPublish}
         tier={tierFor(roles)}
       />
-    </CmsPanel>
+    </>
   );
 }

@@ -1,21 +1,58 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import Markdown from "@/components/studio/markdown";
 import CmsPreview, { type Artifact, type CmsTab, type Phase } from "@/components/cms/cms-preview";
-import { cmsVars, appBg, R, TYPE, type Theme } from "@/components/cms/cms-tokens";
-import { ArrowUpIcon, SquareIcon, SparkIcon, LayersIcon, GlobeIcon, MegaphoneIcon, QuestionIcon, MicIcon, TranslateIcon, GridIcon, PlusIcon, ChevronDownIcon, ClockIcon } from "@/components/icons";
+import {
+  AIContainer,
+  AIEmptyState,
+  AIMessage,
+  AIPromptSuggestion,
+  AppShell,
+  AppShellCard,
+  Badge,
+  Button,
+  DropdownMenu,
+} from "@humain/ui";
+import {
+  Grid2x2, Globe, Languages, Layers, Megaphone, CircleHelp, Sparkles, Square,
+} from "lucide-react";
+import { CmsSectionNav } from "@/components/cms/cms-app-shell";
+
+/* =============================================================================
+   The CMS agent workspace — the /cms landing.
+
+   Restructured to the shape the package skill prescribes for a chat application
+   that produces generated output: TWO sibling AppShell.Panels, an AIContainer
+   living directly in the left conversation rail and the generated output in a
+   right AppShellCard. It previously hand-rolled both halves inside one div,
+   with its own transcript bubbles, its own composer and its own token wrapper.
+
+     transcript bubbles -> AIMessage (markdown rendering included)
+     starters           -> AIPromptSuggestion inside AIEmptyState
+     composer           -> AIContainer.Input
+     model picker       -> DropdownMenu
+     chips              -> Badge / Button
+     --hc-* wrapper     -> gone; AppShell owns the canvas
+
+   REMOVED: this surface's own light/dark toggle. It is not a lost feature — the
+   console sidebar now owns the theme with a Dark mode row, and keeping a second
+   control here meant two switches disagreeing about the same state.
+
+   Unchanged: the /api/chat SSE contract and every event it handles, the guided
+   setup questions, the tier gating on starters, the artifact plumbing into
+   CmsPreview and the edit_site round-trip through siteRef.
+   ============================================================================= */
 
 type Turn = { role: "user" | "assistant"; text: string; streaming?: boolean; made?: string; time?: string };
 type Tier = "Standard" | "Marketer" | "Editor" | "Admin";
 type ModelOpt = { id: string; label: string; family: string; configured: boolean };
 
 const STARTERS: { label: string; prompt: string; Icon: any; minTier: Tier; guided?: boolean }[] = [
-  { label: "Create a landing page", prompt: "Create a landing page for our new campaign", Icon: GlobeIcon, minTier: "Standard", guided: true },
-  { label: "Product page from brand", prompt: "Generate a product page using our brand guidelines", Icon: GridIcon, minTier: "Standard", guided: true },
-  { label: "Add an FAQ section", prompt: "Write an FAQ section for our product with 6 common questions. Build it now.", Icon: QuestionIcon, minTier: "Standard" },
-  { label: "Improve SEO", prompt: "Improve the SEO for this page — propose a stronger title, meta description and keywords.", Icon: SparkIcon, minTier: "Marketer" },
-  { label: "Translate to Arabic", prompt: "Translate the homepage into Arabic, keeping it on-brand and RTL-correct.", Icon: TranslateIcon, minTier: "Standard" },
-  { label: "Campaign microsite", prompt: "Create a campaign microsite for our product launch", Icon: MegaphoneIcon, minTier: "Marketer", guided: true },
+  { label: "Create a landing page", prompt: "Create a landing page for our new campaign", Icon: Globe, minTier: "Standard", guided: true },
+  { label: "Product page from brand", prompt: "Generate a product page using our brand guidelines", Icon: Grid2x2, minTier: "Standard", guided: true },
+  { label: "Add an FAQ section", prompt: "Write an FAQ section for our product with 6 common questions. Build it now.", Icon: CircleHelp, minTier: "Standard" },
+  { label: "Improve SEO", prompt: "Improve the SEO for this page — propose a stronger title, meta description and keywords.", Icon: Sparkles, minTier: "Marketer" },
+  { label: "Translate to Arabic", prompt: "Translate the homepage into Arabic, keeping it on-brand and RTL-correct.", Icon: Languages, minTier: "Standard" },
+  { label: "Campaign microsite", prompt: "Create a campaign microsite for our product launch", Icon: Megaphone, minTier: "Marketer", guided: true },
 ];
 const TIER_RANK: Record<Tier, number> = { Standard: 0, Marketer: 1, Editor: 2, Admin: 3 };
 const clock = () => new Date().toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
@@ -27,24 +64,12 @@ const SETUP = [
   { key: "locale", q: "Language?", opts: ["English", "Arabic", "Bilingual EN/AR"] },
 ] as const;
 
-function ThemeToggle({ theme, onToggle }: { theme: Theme; onToggle: () => void }) {
-  return (
-    <button onClick={onToggle} title={theme === "dark" ? "Switch to light" : "Switch to dark"}
-      style={{ width: 34, height: 34, borderRadius: R.lg, border: "1px solid var(--hc-border)", background: "var(--hc-card)", color: "var(--hc-fg-muted)", display: "grid", placeItems: "center", cursor: "pointer" }}>
-      {theme === "dark"
-        ? <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" /></svg>
-        : <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z" /></svg>}
-    </button>
-  );
-}
-
 export default function CmsWorkspace({
   user, canEdit, canPublish, tier,
 }: {
   user: { name?: string; email: string; roles?: string[] };
   canEdit: boolean; canPublish: boolean; tier: Tier;
 }) {
-  const [theme, setTheme] = useState<Theme>("light");
   const [turns, setTurns] = useState<Turn[]>([]);
   const [prompt, setPrompt] = useState("");
   const [busy, setBusy] = useState(false);
@@ -63,12 +88,10 @@ export default function CmsWorkspace({
   const siteRef = useRef<{ title?: string; brand?: any; sections?: any[] } | null>(null); // current built site → edit_site edits in place
   const started = turns.length > 0 || !!setup;
 
-  useEffect(() => { setTheme((localStorage.getItem("humain-cms-theme") as Theme) || "light"); }, []);
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "auto", block: "end" }); }, [turns, setup]);
   useEffect(() => {
     (async () => { try { const r = await fetch("/api/models"); const j = await r.json(); const ms: ModelOpt[] = (j.models || []).filter((m: any) => m.configured); setModels(ms); setModelId(ms[0]?.id || ""); } catch {} })();
   }, []);
-  function toggleTheme() { setTheme((t) => { const n = t === "dark" ? "light" : "dark"; localStorage.setItem("humain-cms-theme", n); return n; }); }
 
   const phase: Phase = busy && !artifact ? "generating" : setup ? "setup" : artifact ? "ready" : turns.length ? "ready" : "setup";
   const modelLabel = models.find((m) => m.id === modelId)?.label || "Auto";
@@ -128,153 +151,169 @@ export default function CmsWorkspace({
   }
   function submit() { const t = prompt.trim(); if (!t || busy) return; setPrompt(""); send(locale === "AR" ? `${t} (in Arabic)` : t); }
 
-  // ---------- Composer (Decks-style: + · chips · model · mic · send) ----------
-  const chipStyle = (active = false): React.CSSProperties => ({ display: "inline-flex", alignItems: "center", gap: 6, height: 30, padding: "0 11px", borderRadius: R.full, border: "1px solid var(--hc-border)", background: active ? "var(--hc-primary-10)" : "transparent", color: active ? "var(--hc-primary)" : "var(--hc-fg-muted)", ...TYPE.sm, fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" });
 
-  const composer = (
-    <div style={{ width: "100%", maxWidth: started ? "none" : 772, margin: started ? 0 : "0 auto", background: "var(--hc-card)", border: "1px solid var(--hc-border)", borderRadius: R.x2, boxShadow: focus ? "var(--hc-shadow-lg)" : "var(--hc-shadow-md)", padding: 12, transition: "box-shadow .15s", position: "relative" }}>
-      <textarea id="cms-prompt" value={prompt} onChange={(e) => setPrompt(e.target.value)} onFocus={() => setFocus(true)} onBlur={() => setFocus(false)}
-        onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submit(); } }}
-        placeholder={started ? "Refine this page, a section, or create a new one…" : "Describe what you want to create…"}
-        rows={started ? 1 : 2}
-        style={{ width: "100%", border: "none", outline: "none", resize: "none", background: "transparent", color: "var(--hc-fg)", ...TYPE.base, fontFamily: "inherit" }} />
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8 }}>
-        {/* + menu */}
-        <div style={{ position: "relative" }}>
-          <button onClick={() => setAddOpen((v) => !v)} title="Add" style={{ width: 32, height: 32, borderRadius: R.lg, border: "1px solid var(--hc-border)", background: "transparent", color: "var(--hc-fg-muted)", display: "grid", placeItems: "center", cursor: "pointer" }}><PlusIcon size={17} /></button>
-          {addOpen && (
-            <div style={{ position: "absolute", top: "calc(100% + 6px)", left: 0, zIndex: 40, width: 190, background: "var(--hc-card)", border: "1px solid var(--hc-border)", borderRadius: R.xl, boxShadow: "var(--hc-shadow-lg)", padding: 6 }} onMouseLeave={() => setAddOpen(false)}>
-              {[["New page", GlobeIcon], ["Recent", ClockIcon]].map(([l, Ic]: any, i) => (
-                <button key={i} onClick={() => { setAddOpen(false); }} style={{ display: "flex", alignItems: "center", gap: 10, width: "100%", padding: "8px 10px", border: "none", background: "transparent", borderRadius: R.md, color: "var(--hc-fg)", ...TYPE.sm, cursor: "pointer", textAlign: "left" }}><Ic size={16} color="var(--hc-fg-muted)" /> {l}</button>
-              ))}
-            </div>
-          )}
-        </div>
-        {/* config chips */}
-        <span style={chipStyle(false)}><SparkIcon size={13} color="var(--hc-primary)" /> HUMAIN Brand</span>
-        <button onClick={() => setLocale((l) => (l === "EN" ? "AR" : "EN"))} style={chipStyle(true)}><TranslateIcon size={13} /> {locale === "EN" ? "English" : "العربية"}</button>
-        <div style={{ flex: 1 }} />
-        {/* model selector */}
-        <div style={{ position: "relative" }}>
-          <button onClick={() => setModelOpen((v) => !v)} style={{ ...chipStyle(false), background: "var(--hc-primary-10)", color: "var(--hc-primary)", border: "none" }}>{modelLabel} <ChevronDownIcon size={13} /></button>
-          {modelOpen && (
-            <div style={{ position: "absolute", top: "calc(100% + 6px)", right: 0, zIndex: 40, width: 200, maxHeight: 260, overflowY: "auto", background: "var(--hc-card)", border: "1px solid var(--hc-border)", borderRadius: R.xl, boxShadow: "var(--hc-shadow-lg)", padding: 6 }} onMouseLeave={() => setModelOpen(false)}>
-              {models.map((m) => (
-                <button key={m.id} onClick={() => { setModelId(m.id); setModelOpen(false); }} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", padding: "8px 10px", border: "none", background: m.id === modelId ? "var(--hc-primary-10)" : "transparent", borderRadius: R.md, color: "var(--hc-fg)", ...TYPE.sm, cursor: "pointer" }}>{m.label}<span style={{ color: "var(--hc-fg-muted)", fontSize: 11 }}>{m.family}</span></button>
-              ))}
-            </div>
-          )}
-        </div>
-        <button title="Voice" style={{ width: 34, height: 34, borderRadius: R.full, border: "1px solid var(--hc-border)", background: "transparent", color: "var(--hc-fg-muted)", display: "grid", placeItems: "center", cursor: "pointer" }}><MicIcon size={16} /></button>
-        <button onClick={busy ? () => abortRef.current?.abort() : submit} disabled={!busy && !prompt.trim()} title={busy ? "Stop" : "Send"}
-          style={{ width: 34, height: 34, borderRadius: R.full, border: "none", background: busy || prompt.trim() ? "var(--hc-primary)" : "var(--hc-muted)", color: "var(--primary-foreground)", display: "grid", placeItems: "center", cursor: busy || prompt.trim() ? "pointer" : "default" }}>
-          {busy ? <SquareIcon size={14} color="var(--primary-foreground)" /> : <ArrowUpIcon size={17} color="var(--primary-foreground)" />}
-        </button>
-      </div>
-    </div>
-  );
-
-  // ---------- Setup question card (Decks clarifying step) ----------
-  const setupCard = setup && (
-    <div style={{ background: "var(--hc-card)", border: "1px solid var(--hc-border)", borderRadius: R.x2, boxShadow: "var(--hc-shadow-md)", padding: 16, marginTop: 8 }}>
-      <div style={{ fontWeight: 800, color: "var(--hc-fg)", ...TYPE.base, marginBottom: 2 }}>Set up</div>
-      <div style={{ color: "var(--hc-fg-muted)", ...TYPE.sm, marginBottom: 14 }}>Answer a few quick questions so I can tailor it.</div>
-      {SETUP.map((g) => (
-        <div key={g.key} style={{ marginBottom: 12 }}>
-          <div style={{ ...TYPE.sm, fontWeight: 700, color: "var(--hc-fg)", marginBottom: 6 }}>{g.q}</div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-            {g.opts.map((o) => {
-              const on = setup.answers[g.key] === o;
-              return <button key={o} onClick={() => setSetup((s) => (s ? { ...s, answers: { ...s.answers, [g.key]: o } } : s))}
-                style={{ padding: "7px 13px", borderRadius: R.full, border: `1px solid ${on ? "var(--hc-primary)" : "var(--hc-border)"}`, background: on ? "var(--hc-primary-10)" : "transparent", color: on ? "var(--hc-primary)" : "var(--hc-fg)", ...TYPE.sm, fontWeight: 600, cursor: "pointer" }}>{o}</button>;
-            })}
-          </div>
-        </div>
-      ))}
-      <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 6 }}>
-        <button onClick={() => setSetup(null)} style={{ padding: "9px 14px", borderRadius: R.lg, border: "1px solid var(--hc-border)", background: "transparent", color: "var(--hc-fg-muted)", fontWeight: 700, ...TYPE.sm, cursor: "pointer" }}>Cancel</button>
-        <button onClick={runSetup} style={{ padding: "9px 16px", borderRadius: R.lg, border: "none", background: "var(--hc-primary)", color: "var(--primary-foreground)", fontWeight: 700, ...TYPE.sm, cursor: "pointer" }}>Generate</button>
-      </div>
-    </div>
-  );
+  // The transcript, mapped onto the package's chat primitives.
+  const transcript = turns.map((t, i) => (
+    <AIMessage
+      key={i}
+      type={t.role === "user" ? "sent" : "received"}
+      content={t.text || (t.streaming ? "" : " ")}
+      senderName={t.role === "user" ? "You" : "HUMAIN"}
+      isAgent={t.role !== "user"}
+      isTyping={!!t.streaming && !t.text}
+      timestamp={t.time}
+    />
+  ));
 
   return (
-    <div style={{ ...cmsVars(theme), height: "100%", minHeight: 0, borderRadius: R.x3, border: "1px solid var(--hc-border)", overflow: "hidden", display: "flex", color: "var(--hc-fg)", backgroundColor: "var(--hc-bg)", backgroundImage: appBg(theme) } as any}>
-      {/* LEFT — CMS Agent conversation */}
-      <section style={{ width: started ? 440 : "100%", flexShrink: 0, display: "flex", flexDirection: "column", padding: started ? "16px 16px 16px 20px" : "0 24px", minWidth: 0 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: started ? "2px 2px 14px" : "20px 2px 0" }}>
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 9, padding: "6px 12px", borderRadius: R.full, background: "var(--hc-primary-10)", color: "var(--hc-primary)", fontWeight: 700, ...TYPE.sm }}>
-            <LayersIcon size={15} color="var(--hc-primary)" /> HUMAIN CMS · {tier}
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            {user.roles?.includes("admin") && (
-              <>
-                <a href="/cms/build"
-                  title="Component Studio — drag-and-drop page builder + AI components"
-                  style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "6px 12px", borderRadius: R.full, background: "var(--hc-primary-10)", color: "var(--hc-primary)", fontWeight: 700, textDecoration: "none", border: "1px solid transparent", ...TYPE.sm }}>
-                  <LayersIcon size={14} color="var(--hc-primary)" /> Builder
-                </a>
-                <a href="/cms/admin/collections/components"
-                  title="Manage the CMS — components, pages, navigation, media & more (inside HUMAIN)"
-                  style={{ display: "inline-flex", alignItems: "center", gap: 7, padding: "6px 12px", borderRadius: R.full, background: "var(--hc-ghost)", color: "var(--hc-fg)", fontWeight: 700, textDecoration: "none", border: "1px solid var(--hc-border)", ...TYPE.sm }}>
-                  <GridIcon size={14} color="var(--hc-primary)" /> Manage CMS
-                </a>
-              </>
-            )}
-            <ThemeToggle theme={theme} onToggle={toggleTheme} />
-          </div>
-        </div>
+    <>
+      {/* LEFT — conversation rail. AIContainer sits directly in the panel, per
+          references/recipes/chat.md; it is not wrapped in a card. */}
+      <AppShell.Panel minWidth={360} label="CMS agent">
+        <CmsSectionNav />
+        <div className="min-h-0 flex-1">
+          <AIContainer>
+            <AIContainer.Messages
+              autoScrollKey={turns.at(-1)?.text?.length ?? null}
+              emptyContent={
+                <AIEmptyState title={`What would you like to manage${user.name ? `, ${user.name.split(" ")[0]}` : ""}?`}>
+                  {STARTERS.filter((st) => TIER_RANK[tier] >= TIER_RANK[st.minTier]).map((st) => (
+                    <AIPromptSuggestion key={st.label} onClick={() => (st.guided ? startGuided(st.prompt) : send(st.prompt))}>
+                      {st.label}
+                    </AIPromptSuggestion>
+                  ))}
+                </AIEmptyState>
+              }
+            >
+              {transcript}
 
-        {!started ? (
-          <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", maxWidth: 772, margin: "0 auto", width: "100%" }}>
-            <h1 style={{ fontSize: 32, lineHeight: "38px", fontWeight: 800, color: "var(--hc-fg)", margin: "0 0 10px" }}>What would you like to manage{user.name ? `, ${user.name.split(" ")[0]}` : ""}?</h1>
-            <p style={{ color: "var(--hc-fg-muted)", ...TYPE.base, margin: "0 0 24px" }}>Describe it in plain language. The CMS agent creates pages, content and campaigns — with a live, editable preview on the right.</p>
-            {composer}
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 9, marginTop: 18 }}>
-              {STARTERS.filter((s) => TIER_RANK[tier] >= TIER_RANK[s.minTier]).map((s) => (
-                <button key={s.label} onClick={() => (s.guided ? startGuided(s.prompt) : send(s.prompt))}
-                  style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "9px 14px", borderRadius: R.full, border: "1px solid var(--hc-border)", background: "var(--hc-card)", color: "var(--hc-fg)", ...TYPE.sm, fontWeight: 600, cursor: "pointer", boxShadow: "var(--hc-shadow-sm)" }}>
-                  <s.Icon size={15} color="var(--hc-primary)" /> {s.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        ) : (
-          <>
-            <div style={{ flex: 1, overflow: "auto", paddingRight: 4, display: "flex", flexDirection: "column", gap: 10 }}>
-              {turns.map((t, i) => (
-                <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: t.role === "user" ? "flex-end" : "flex-start" }}>
-                  <div style={{ maxWidth: t.role === "user" ? 325 : 370, background: t.role === "user" ? "var(--hc-primary)" : "var(--hc-ghost)", color: t.role === "user" ? "var(--hc-primary-fg)" : "var(--hc-fg)", padding: "10px 14px", borderRadius: t.role === "user" ? `${R.x2}px ${R.x2}px ${R.base}px ${R.x2}px` : `${R.x2}px ${R.x2}px ${R.x2}px ${R.base}px` }}>
-                    {/* Decks bubble header: name + timestamp */}
-                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 3 }}>
-                      <span style={{ fontWeight: 700, fontSize: 12.5, opacity: t.role === "user" ? 0.92 : 1, color: t.role === "user" ? "var(--hc-primary-fg)" : "var(--hc-fg)" }}>{t.role === "user" ? "You" : "HUMAIN"}</span>
-                      {t.time && <span style={{ fontSize: 11.5, opacity: 0.7 }}>{t.time}</span>}
+              {/* Guided setup — the clarifying step before generation. */}
+              {setup && (
+                <div className="rounded-xl border border-border p-4">
+                  <div className="text-sm font-bold text-foreground">Set up</div>
+                  <div className="mb-3 text-sm text-secondary-foreground">
+                    Answer a few quick questions so I can tailor it.
+                  </div>
+                  {SETUP.map((g) => (
+                    <div key={g.key} className="mb-3">
+                      <div className="mb-1.5 text-sm font-semibold text-foreground">{g.q}</div>
+                      <div className="flex flex-wrap gap-2">
+                        {g.opts.map((o) => {
+                          const on = setup.answers[g.key] === o;
+                          return (
+                            <Button
+                              key={o}
+                              size="sm"
+                              shape="round"
+                              appearance={on ? "soft" : "outline"}
+                              variant={on ? "primary" : "secondary"}
+                              onClick={() => setSetup((sx) => (sx ? { ...sx, answers: { ...sx.answers, [g.key]: o } } : sx))}
+                            >
+                              {o}
+                            </Button>
+                          );
+                        })}
+                      </div>
                     </div>
-                    <div style={{ ...TYPE.sm }}>{t.role === "user" ? t.text : <Markdown text={t.text || (t.streaming ? "…" : "")} />}</div>
-                    {t.made && <div style={{ display: "inline-flex", alignItems: "center", gap: 7, marginTop: 8, padding: "5px 11px", borderRadius: R.full, background: "var(--hc-primary-10)", color: "var(--hc-primary)", fontSize: 12.5, fontWeight: 700 }}><SparkIcon size={13} color="var(--hc-primary)" /> {t.made} ready in preview →</div>}
+                  ))}
+                  <div className="mt-2 flex justify-end gap-2">
+                    <Button appearance="outline" variant="secondary" size="sm" onClick={() => setSetup(null)}>Cancel</Button>
+                    <Button size="sm" onClick={runSetup}>Generate</Button>
                   </div>
                 </div>
-              ))}
-              {setupCard}
-              <div ref={endRef} />
-            </div>
-            <div style={{ marginTop: 10 }}>{composer}</div>
-          </>
-        )}
-      </section>
+              )}
+            </AIContainer.Messages>
 
-      {/* RIGHT — live preview (state-driven, Decks chrome) */}
-      {started && (
-        <section style={{ flex: 1, minWidth: 0, padding: "14px 14px 14px 0" }}>
-          <CmsPreview
-            phase={phase} artifact={artifact} tab={tab} setTab={setTab} device={device} setDevice={setDevice}
-            canEdit={canEdit} canPublish={canPublish} tier={tier}
-            onClose={() => setArtifact(null)}
-            onEditHtml={(html) => setArtifact((a) => (a && a.kind === "html" ? { ...a, html } : a))}
-            onAskAboutSelection={(text) => { setPrompt(`Update the selected element ("${text.slice(0, 120)}") — `); setTimeout(() => document.getElementById("cms-prompt")?.focus(), 30); }}
-          />
-        </section>
-      )}
-    </div>
+            <AIContainer.Input
+              before={
+                <div className="mb-2 flex flex-wrap items-center gap-2">
+                  <Badge variant="soft" color="primary" size="sm">
+                    <Sparkles className="me-1 inline size-3 align-middle" /> HUMAIN Brand
+                  </Badge>
+                  <Button
+                    size="xs"
+                    shape="round"
+                    appearance="soft"
+                    variant="primary"
+                    startIcon={<Languages className="size-3.5" />}
+                    onClick={() => setLocale((l) => (l === "EN" ? "AR" : "EN"))}
+                  >
+                    {locale === "EN" ? "English" : "العربية"}
+                  </Button>
+                  <div className="flex-1" />
+                  {models.length > 0 && (
+                    <DropdownMenu>
+                      <DropdownMenu.Trigger
+                        render={<Button size="xs" shape="round" appearance="soft" variant="primary" />}
+                      >
+                        {modelLabel}
+                      </DropdownMenu.Trigger>
+                      <DropdownMenu.Popup align="end" width="md">
+                        {models.map((m) => (
+                          <DropdownMenu.Item key={m.id} onClick={() => setModelId(m.id)}>
+                            {m.id === modelId ? `✓ ${m.label}` : m.label}
+                          </DropdownMenu.Item>
+                        ))}
+                      </DropdownMenu.Popup>
+                    </DropdownMenu>
+                  )}
+                  {busy && (
+                    <Button
+                      appearance="ghost"
+                      variant="secondary"
+                      size="icon-xs"
+                      aria-label="Stop generating"
+                      title="Stop"
+                      onClick={() => abortRef.current?.abort()}
+                    >
+                      <Square className="size-3.5" />
+                    </Button>
+                  )}
+                </div>
+              }
+              inputProps={{
+                value: prompt,
+                onChange: setPrompt,
+                onSubmit: submit,
+                disabled: busy,
+                placeholder: started
+                  ? "Refine this page, a section, or create a new one…"
+                  : "Describe what you want to create…",
+              }}
+            />
+          </AIContainer>
+        </div>
+      </AppShell.Panel>
+
+      {/* RIGHT — generated output, in its own card as the recipe requires. */}
+      <AppShell.Panel minWidth="45%" label="Preview">
+        <AppShellCard bodyPadding="none">
+          <AppShellCard.Header>
+            <AppShellCard.Title>Preview</AppShellCard.Title>
+            <AppShellCard.Subtitle>
+              {artifact ? "Live and editable — publish when it is ready." : `HUMAIN CMS · ${tier}`}
+            </AppShellCard.Subtitle>
+          </AppShellCard.Header>
+          <div className="min-h-0 flex-1">
+            <CmsPreview
+              phase={phase}
+              artifact={artifact}
+              tab={tab}
+              setTab={setTab}
+              device={device}
+              setDevice={setDevice}
+              canEdit={canEdit}
+              canPublish={canPublish}
+              tier={tier}
+              onClose={() => setArtifact(null)}
+              onEditHtml={(html) => setArtifact((a) => (a && a.kind === "html" ? { ...a, html } : a))}
+              onAskAboutSelection={(text) => {
+                setPrompt(`Update the selected element ("${text.slice(0, 120)}") — `);
+              }}
+            />
+          </div>
+        </AppShellCard>
+      </AppShell.Panel>
+    </>
   );
 }

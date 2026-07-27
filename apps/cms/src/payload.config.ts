@@ -40,6 +40,18 @@ const dirname = path.dirname(fileURLToPath(import.meta.url));
 // contacted during importMap generation); real values come from env at runtime.
 const s3Configured = !!process.env.S3_ENDPOINT;
 const includeS3 = s3Configured || process.env.CMS_BUILD === "1";
+
+// The local-disk fallback is silent, and silently wrong the moment anything has
+// ever been uploaded to the bucket: media docs keep their filenames, Payload
+// looks for them on the container filesystem, and every asset 500s with
+// "missing on the disk". Say so at boot instead of leaving it to be discovered
+// as broken thumbnails.
+if (!s3Configured && process.env.CMS_BUILD !== "1") {
+  console.warn(
+    "[media] S3_ENDPOINT is empty — uploads use LOCAL DISK. Any media already " +
+      "stored in the object store will 500 until it is set (see .env.production.example).",
+  );
+}
 const storagePlugins = includeS3
   ? [
       s3Storage({

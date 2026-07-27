@@ -3,6 +3,15 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Markdown from "@/components/studio/markdown";
 import ContentManager from "@/components/cms/content-manager";
 import { R, TYPE } from "@/components/cms/cms-tokens";
+import {
+  Button,
+  EmptyState,
+  LoadingIndicator,
+  Select,
+  SelectItem,
+  Separator,
+} from "@humain/ui";
+import { Baseline, FileText, Monitor, Redo2, Undo2 } from "lucide-react";
 import { MonitorIcon, GridIcon, SparkIcon, CheckIcon, ClockIcon, ImageIcon, GlobeIcon, VideoIcon, PencilIcon, XIcon } from "@/components/icons";
 
 export type Artifact =
@@ -19,32 +28,31 @@ export type Phase = "setup" | "generating" | "ready";
 
 function SetupState() {
   return (
-    <div style={{ flex: 1, display: "grid", placeItems: "center", padding: 40, background: "var(--hc-card)" }}>
-      <div style={{ textAlign: "center", maxWidth: 420 }}>
-        <div style={{ color: "var(--hc-primary)", fontWeight: 800, ...TYPE.base, marginBottom: 18 }}>Content</div>
-        <div style={{ border: "1.5px dashed var(--hc-border)", borderRadius: R.x2, padding: 22, margin: "0 auto 18px", width: 260 }}>
-          <div style={{ height: 46, borderRadius: R.lg, background: "var(--hc-muted)", marginBottom: 10 }} />
-          <div style={{ height: 8, borderRadius: R.full, background: "var(--hc-muted)", marginBottom: 7 }} />
-          <div style={{ height: 8, borderRadius: R.full, background: "var(--hc-muted)", width: "75%", marginBottom: 7 }} />
-          <div style={{ height: 8, borderRadius: R.full, background: "var(--hc-primary)", width: "40%", opacity: 0.7 }} />
-        </div>
-        <div style={{ color: "var(--hc-fg-muted)", ...TYPE.sm }}>Describe what to create — or answer the setup questions — and I’ll start drafting here.</div>
-      </div>
+    <div className="grid flex-1 place-items-center p-10">
+      <EmptyState
+        title="Nothing drafted yet"
+        description="Describe what to create — or answer the setup questions — and I’ll start drafting here."
+        media="featured-icon"
+        icon={<FileText />}
+      />
     </div>
   );
 }
+
 function GeneratingState() {
   return (
-    <div style={{ flex: 1, display: "grid", placeItems: "center", padding: 40, background: "var(--hc-card)" }}>
-      <div style={{ textAlign: "center" }}>
-        <div style={{ width: 40, height: 40, margin: "0 auto 14px", borderRadius: "50%", border: "3px solid var(--hc-muted)", borderTopColor: "var(--hc-primary)", animation: "hcspin 0.8s linear infinite" }} />
-        <div style={{ color: "var(--hc-fg)", fontWeight: 700, ...TYPE.sm }}>Generating…</div>
-        <div style={{ color: "var(--hc-fg-muted)", ...TYPE.sm, marginTop: 4 }}>The CMS agent is drafting your content.</div>
-        <style>{`@keyframes hcspin{to{transform:rotate(360deg)}}`}</style>
+    <div className="grid flex-1 place-items-center p-10">
+      <div className="grid justify-items-center gap-3 text-center">
+        {/* LoadingIndicator replaces a hand-rolled spinner that injected its own
+            @keyframes into the document from inside render. */}
+        <LoadingIndicator />
+        <div className="text-sm font-semibold text-foreground">Generating…</div>
+        <div className="text-sm text-secondary-foreground">The CMS agent is drafting your content.</div>
       </div>
     </div>
   );
 }
+
 const DownloadIcon = ({ s = 16 }: { s?: number }) => (<svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v12m0 0 4-4m-4 4-4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" /></svg>);
 const ExpandIcon = ({ s = 16 }: { s?: number }) => (<svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3m8 0h3a2 2 0 0 0 2-2v-3" /></svg>);
 const CodeIcon = ({ size = 16, color = "currentColor" }: { size?: number; color?: string }) => (<svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="m8 6-6 6 6 6M16 6l6 6-6 6" /></svg>);
@@ -136,26 +144,41 @@ function renameSection(html: string, i: number, label: string): string {
 
 const FONT_SIZES = [{ v: "2", px: 13 }, { v: "3", px: 16 }, { v: "4", px: 18 }, { v: "5", px: 24 }, { v: "6", px: 32 }, { v: "7", px: 48 }];
 function EditToolbar({ onCmd }: { onCmd: (c: string, v?: string) => void }) {
-  const btn: React.CSSProperties = { width: 32, height: 30, borderRadius: R.md, border: "none", background: "transparent", color: fg, cursor: "pointer", fontWeight: 700, display: "grid", placeItems: "center" };
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 4, padding: "6px 12px", borderBottom: `1px solid ${border}`, background: card }}>
-      <select onChange={(e) => onCmd("fontSize", e.target.value)} defaultValue="3" style={{ height: 30, borderRadius: R.md, border: `1px solid ${border}`, background: "transparent", color: fg, fontSize: 13, padding: "0 6px", cursor: "pointer" }}>
-        {FONT_SIZES.map((f) => <option key={f.v} value={f.v}>{f.px}</option>)}
-      </select>
-      <span style={{ width: 1, height: 20, background: border, margin: "0 4px" }} />
-      <button style={btn} title="Bold" onClick={() => onCmd("bold")}>B</button>
-      <button style={{ ...btn, fontStyle: "italic" }} title="Italic" onClick={() => onCmd("italic")}>I</button>
-      <button style={{ ...btn, textDecoration: "underline" }} title="Underline" onClick={() => onCmd("underline")}>U</button>
-      <span style={{ width: 1, height: 20, background: border, margin: "0 4px" }} />
-      <label title="Text color" style={{ ...btn, position: "relative" }}>
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M4 20h16M6 16 12 4l6 12M8.5 12h7" /></svg>
-        <input type="color" onChange={(e) => onCmd("foreColor", e.target.value)} style={{ position: "absolute", inset: 0, opacity: 0, cursor: "pointer" }} />
+    <div className="flex items-center gap-1 border-b border-border px-3 py-1.5">
+      <Select defaultValue="3" onValueChange={(v) => onCmd("fontSize", String(v))}>
+        {FONT_SIZES.map((f) => <SelectItem key={f.v} value={f.v}>{String(f.px)}</SelectItem>)}
+      </Select>
+      <Separator orientation="vertical" className="mx-1 h-5" />
+      <Button appearance="ghost" variant="secondary" size="icon-sm" title="Bold" aria-label="Bold" onClick={() => onCmd("bold")}>
+        <span className="font-bold">B</span>
+      </Button>
+      <Button appearance="ghost" variant="secondary" size="icon-sm" title="Italic" aria-label="Italic" onClick={() => onCmd("italic")}>
+        <span className="italic">I</span>
+      </Button>
+      <Button appearance="ghost" variant="secondary" size="icon-sm" title="Underline" aria-label="Underline" onClick={() => onCmd("underline")}>
+        <span className="underline">U</span>
+      </Button>
+      <Separator orientation="vertical" className="mx-1 h-5" />
+      {/* Native colour input: the package ships no colour picker. */}
+      <label title="Text colour" className="relative grid size-8 cursor-pointer place-items-center rounded-md text-secondary-foreground hover:bg-muted">
+        <Baseline className="size-4" />
+        <input
+          type="color"
+          aria-label="Text colour"
+          onChange={(e) => onCmd("foreColor", e.target.value)}
+          className="absolute inset-0 cursor-pointer opacity-0"
+        />
       </label>
-      <span style={{ width: 1, height: 20, background: border, margin: "0 4px" }} />
-      <button style={btn} title="Undo" onClick={() => onCmd("undo")}>↶</button>
-      <button style={btn} title="Redo" onClick={() => onCmd("redo")}>↷</button>
-      <div style={{ flex: 1 }} />
-      <span style={{ color: muted, fontSize: 12 }}>Select text in the page, then format</span>
+      <Separator orientation="vertical" className="mx-1 h-5" />
+      <Button appearance="ghost" variant="secondary" size="icon-sm" title="Undo" aria-label="Undo" onClick={() => onCmd("undo")}>
+        <Undo2 className="size-4" />
+      </Button>
+      <Button appearance="ghost" variant="secondary" size="icon-sm" title="Redo" aria-label="Redo" onClick={() => onCmd("redo")}>
+        <Redo2 className="size-4" />
+      </Button>
+      <div className="flex-1" />
+      <span className="text-xs text-secondary-foreground">Select text in the page, then format</span>
     </div>
   );
 }
@@ -195,14 +218,15 @@ function SectionRail({ head, sections, onScroll, onReorder }: { head: string; se
   );
 }
 
-function EmptyState() {
+function PreviewEmptyState() {
   return (
-    <div style={{ flex: 1, display: "grid", placeItems: "center", color: muted, textAlign: "center", padding: 40 }}>
-      <div>
-        <div style={{ width: 56, height: 56, borderRadius: R.x2, margin: "0 auto 16px", display: "grid", placeItems: "center", background: pill }}><MonitorIcon size={26} color={primary} /></div>
-        <div style={{ fontWeight: 700, color: fg, ...TYPE.base }}>Live preview will appear here</div>
-        <div style={{ ...TYPE.sm, marginTop: 6, maxWidth: 340 }}>Ask the CMS agent to create a page, generate content, or build a campaign — it appears here instantly, ready to refine.</div>
-      </div>
+    <div className="grid flex-1 place-items-center p-10">
+      <EmptyState
+        title="Live preview will appear here"
+        description="Ask the CMS agent to create a page, generate content, or build a campaign — it appears here instantly, ready to refine."
+        media="featured-icon"
+        icon={<Monitor />}
+      />
     </div>
   );
 }
@@ -266,7 +290,7 @@ function ImageArt({ a }: { a: Extract<Artifact, { kind: "image" }> }) {
 function PreviewBody({ artifact, device, editMode, onEditHtml, onSelect }: {
   artifact: Artifact | null; device: "desktop" | "mobile"; editMode: boolean; onEditHtml: (html: string) => void; onSelect: (s: { tag: string; text: string; src?: string }) => void;
 }) {
-  if (!artifact) return <EmptyState />;
+  if (!artifact) return <PreviewEmptyState />;
   if (artifact.kind === "html") return <HtmlPreview html={artifact.html} device={device} editMode={editMode} onEditHtml={onEditHtml} onSelect={onSelect} />;
   if (artifact.kind === "doc") {
     const d = artifact.doc || {};

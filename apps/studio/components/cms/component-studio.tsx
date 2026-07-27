@@ -1,8 +1,43 @@
 "use client";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { cmsVars, appBg, R, TYPE, type Theme } from "@/components/cms/cms-tokens";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import {
+  Alert,
+  AppShellCard,
+  Badge,
+  Button,
+  Dialog,
+  EmptyState,
+  Field,
+  Input,
+  Select,
+  SelectItem,
+  Textarea,
+} from "@humain/ui";
+import { Check, Globe, Layers, Pencil, Plus, Sparkles, Trash2 } from "lucide-react";
 import { standaloneDocCss } from "@humain/design-tokens";
-import { LayersIcon, PlusIcon, SparkIcon, TrashIcon, GlobeIcon, XIcon, CheckIcon } from "@/components/icons";
+
+/* =============================================================================
+   Component Studio — drag blocks onto a canvas, or generate one with AI.
+
+   Migrated onto @humain/ui per adoption.md §4 and the package skill:
+     <button> x11 + minis -> Button / icon Buttons with aria-labels
+     <input>/<textarea>/<select> -> Input / Textarea / Select in Field
+     hand-rolled overlay  -> Dialog
+     toast div            -> Alert
+     status + type pills  -> Badge
+     empty canvas / empty library -> EmptyState
+     bordered tiles       -> outline Buttons, not Card (no Card inside a Card)
+
+   The --hc-* wrapper is gone: it aliased Foundation vars, but the surface now
+   sits in an AppShellCard which already owns the canvas.
+
+   Drag-and-drop is unchanged (draggable + dataTransfer), as are every endpoint,
+   the AI generation flow and the approval-gated save.
+
+   pageDoc() keeps standaloneDocCss and literal values on purpose: an
+   <iframe srcDoc> is a separate document that inherits none of the host's custom
+   properties, so tokens must be declared inside it.
+   ============================================================================= */
 
 type Comp = { id: string | number; name: string; key?: string; type: string; category?: string; status: string; html?: string; description?: string };
 type Block = { uid: string; comp: Comp };
@@ -73,7 +108,6 @@ function renderTemplate(html?: string): string {
 }
 
 export default function ComponentStudio({ user, canPublish }: { user: { name?: string; email: string; roles?: string[] }; canPublish: boolean }) {
-  const [theme, setTheme] = useState<Theme>("light");
   const [lib, setLib] = useState<Comp[]>([]);
   const [blocks, setBlocks] = useState<Block[]>([]);
   const [filter, setFilter] = useState("");
@@ -88,7 +122,6 @@ export default function ComponentStudio({ user, canPublish }: { user: { name?: s
   const [aiPrompt, setAiPrompt] = useState("");
   const uidRef = useRef(0);
 
-  useEffect(() => { setTheme((localStorage.getItem("humain-cms-theme") as Theme) || "light"); }, []);
   const flash = (m: string) => { setToast(m); setTimeout(() => setToast(null), 2600); };
 
   async function loadLib() {
@@ -141,80 +174,157 @@ export default function ComponentStudio({ user, canPublish }: { user: { name?: s
   }
 
   const isAdmin = (user.roles || []).includes("admin");
-  const card = { background: "var(--hc-card)", border: "1px solid var(--hc-border)", borderRadius: R.x2, boxShadow: "var(--hc-shadow-sm)" } as const;
-
   return (
-    <div style={{ ...cmsVars(theme), height: "100%", minHeight: 0, borderRadius: R.x3, border: "1px solid var(--hc-border)", overflow: "hidden", display: "flex", flexDirection: "column", color: "var(--hc-fg)", backgroundColor: "var(--hc-bg)", backgroundImage: appBg(theme) } as any}>
-      {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 18px", borderBottom: "1px solid var(--hc-border)" }}>
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 9, padding: "6px 12px", borderRadius: R.full, background: "var(--hc-primary-10)", color: "var(--hc-primary)", fontWeight: 700, ...TYPE.sm }}><LayersIcon size={15} color="var(--hc-primary)" /> Component Studio</span>
-        <span style={{ color: "var(--hc-fg-muted)", ...TYPE.sm }}>Drag blocks onto the canvas — or generate one with AI</span>
-        <div style={{ flex: 1 }} />
-        <button onClick={previewPage} disabled={!blocks.length} style={btn(false, !blocks.length)}>Preview</button>
-        <button onClick={downloadPage} disabled={!blocks.length} style={btn(false, !blocks.length)}>Download</button>
-      </div>
+    <AppShellCard bodyPadding="none">
+      <AppShellCard.Toolbar>
+        <AppShellCard.Header>
+          <AppShellCard.Title>Component Studio</AppShellCard.Title>
+          <AppShellCard.Subtitle>Drag blocks onto the canvas — or generate one with AI.</AppShellCard.Subtitle>
+        </AppShellCard.Header>
+        <AppShellCard.Actions>
+          <Button appearance="outline" variant="secondary" disabled={!blocks.length} onClick={previewPage}>Preview</Button>
+          <Button appearance="outline" variant="secondary" disabled={!blocks.length} onClick={downloadPage}>Download</Button>
+        </AppShellCard.Actions>
+      </AppShellCard.Toolbar>
 
-      <div style={{ flex: 1, display: "flex", minHeight: 0 }}>
+      {toast && (
+        <div className="px-6 pt-4">
+          <Alert variant="success">{toast}</Alert>
+        </div>
+      )}
+
+      <div className="flex min-h-0 flex-1">
         {/* LEFT — library palette */}
-        <aside style={{ width: 300, flexShrink: 0, borderRight: "1px solid var(--hc-border)", display: "flex", flexDirection: "column", padding: 14, gap: 10, minHeight: 0 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <span style={{ fontWeight: 800, ...TYPE.sm }}>Component Library</span>
-            {isAdmin && <button onClick={() => { setFormErr(null); setEditingId(null); setForm({ name: "", type: "section", status: "live", html: "", description: "" }); setShowNew(true); }} style={{ ...btn(true, false), padding: "5px 10px" }}><PlusIcon size={13} color="var(--primary-foreground)" /> New</button>}
+        <aside className="flex w-72 shrink-0 flex-col gap-2.5 border-e border-border p-4" aria-label="Component library">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-bold text-foreground">Component Library</span>
+            {isAdmin && (
+              <Button
+                size="sm"
+                startIcon={<Plus className="size-4" />}
+                onClick={() => { setFormErr(null); setEditingId(null); setForm({ name: "", type: "section", status: "live", html: "", description: "" }); setShowNew(true); }}
+              >
+                New
+              </Button>
+            )}
           </div>
-          <input value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="Search components…" style={{ padding: "8px 11px", borderRadius: R.lg, border: "1px solid var(--hc-input)", background: "var(--hc-card)", color: "var(--hc-fg)", ...TYPE.sm, outline: "none" }} />
+
+          <Input
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            placeholder="Search components…"
+            aria-label="Search components"
+            size="sm"
+          />
+
           {isAdmin && (
-            <div style={{ display: "flex", gap: 6 }}>
-              <input value={aiPrompt} onChange={(e) => setAiPrompt(e.target.value)} onKeyDown={(e) => e.key === "Enter" && aiGenerate(aiPrompt)} placeholder="Generate a component with AI…" style={{ flex: 1, padding: "8px 11px", borderRadius: R.lg, border: "1px solid var(--hc-input)", background: "var(--hc-card)", color: "var(--hc-fg)", ...TYPE.sm, outline: "none" }} />
-              <button onClick={() => aiGenerate(aiPrompt)} disabled={busy || !aiPrompt.trim()} title="Generate with AI" style={{ ...btn(true, busy || !aiPrompt.trim()), padding: "0 11px" }}><SparkIcon size={15} color="var(--primary-foreground)" /></button>
+            <div className="flex gap-1.5">
+              <Input
+                value={aiPrompt}
+                onChange={(e) => setAiPrompt(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && aiGenerate(aiPrompt)}
+                placeholder="Generate a component with AI…"
+                aria-label="Generate a component with AI"
+                size="sm"
+                className="flex-1"
+              />
+              <Button
+                size="icon-sm"
+                disabled={busy || !aiPrompt.trim()}
+                aria-label="Generate with AI"
+                title="Generate with AI"
+                onClick={() => aiGenerate(aiPrompt)}
+              >
+                <Sparkles className="size-4" />
+              </Button>
             </div>
           )}
-          <div style={{ flex: 1, overflowY: "auto", display: "grid", gap: 8, alignContent: "start", paddingRight: 2 }}>
-            {shown.length === 0 && <div style={{ color: "var(--hc-fg-muted)", ...TYPE.sm, padding: 8 }}>No components yet. Create one with “New”, or generate with AI.</div>}
+
+          <div className="grid min-h-0 flex-1 content-start gap-2 overflow-y-auto pe-1">
+            {shown.length === 0 && (
+              <EmptyState
+                title="No components yet"
+                description="Create one with New, or generate one with AI."
+                media="featured-icon"
+                icon={<Layers />}
+                size="sm"
+              />
+            )}
             {shown.map((c) => (
-              <div key={c.id} draggable onDragStart={(e) => e.dataTransfer.setData("text/plain", String(c.id))} onClick={() => addBlock(c)} title="Drag onto the canvas, or click to add"
-                style={{ ...card, padding: 12, cursor: "grab", display: "grid", gap: 8, alignContent: "start" }}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-                  <span style={{ fontWeight: 700, ...TYPE.sm }}>{c.name}</span>
-                  <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    {isAdmin && <button onClick={(e) => { e.stopPropagation(); startEdit(c); }} title="Edit component" style={{ border: "none", background: "transparent", cursor: "pointer", color: "var(--hc-fg-muted)", padding: 0, fontSize: 13 }}>✎</button>}
-                    <span style={{ fontSize: 10.5, fontWeight: 700, color: c.status === "live" ? "var(--hc-success)" : "var(--hc-warning)" }}>{c.status}</span>
-                  </span>
-                </div>
-                <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 6 }}>
-                  <span style={pill()}>{c.type}</span>
-                  {c.category && <span style={pill()}>{c.category}</span>}
-                </div>
-              </div>
+              <Button
+                key={c.id}
+                appearance="outline"
+                variant="secondary"
+                draggable
+                onDragStart={(e: React.DragEvent<HTMLButtonElement>) => e.dataTransfer.setData("text/plain", String(c.id))}
+                onClick={() => addBlock(c)}
+                title="Drag onto the canvas, or click to add"
+                className="block h-auto w-full cursor-grab p-3 text-start"
+              >
+                <span className="flex items-center justify-between gap-2">
+                  <span className="text-sm font-semibold text-foreground">{c.name}</span>
+                  <Badge variant="soft" color={c.status === "live" ? "success" : "warning"} size="xs">{c.status}</Badge>
+                </span>
+                <span className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                  <Badge variant="soft" color="primary" size="xs">{c.type}</Badge>
+                  {c.category && <Badge variant="outline" color="secondary" size="xs">{c.category}</Badge>}
+                </span>
+              </Button>
             ))}
           </div>
+
+          {isAdmin && shown.length > 0 && (
+            <div className="text-xs text-secondary-foreground">Tip: use Edit on a component from the canvas header.</div>
+          )}
         </aside>
 
         {/* CENTER — page canvas */}
-        <section style={{ flex: 1, minWidth: 0, padding: 16, overflowY: "auto" }}
-          onDragOver={(e) => { e.preventDefault(); setDragOver(true); }} onDragLeave={() => setDragOver(false)}
-          onDrop={(e) => { e.preventDefault(); setDragOver(false); const id = e.dataTransfer.getData("text/plain"); const c = lib.find((x) => String(x.id) === id); if (c) addBlock(c); }}>
+        <section
+          className="min-w-0 flex-1 overflow-y-auto p-4"
+          onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={(e) => { e.preventDefault(); setDragOver(false); const id = e.dataTransfer.getData("text/plain"); const c = lib.find((x) => String(x.id) === id); if (c) addBlock(c); }}
+        >
           {blocks.length === 0 ? (
-            <div style={{ height: "100%", minHeight: 300, border: `2px dashed ${dragOver ? "var(--hc-primary)" : "var(--hc-border)"}`, borderRadius: R.x2, display: "grid", placeItems: "center", color: "var(--hc-fg-muted)", textAlign: "center", padding: 24 }}>
-              <div>
-                <GlobeIcon size={26} color="var(--hc-fg-muted)" />
-                <div style={{ fontWeight: 700, marginTop: 10, ...TYPE.base }}>Build a page</div>
-                <div style={{ ...TYPE.sm, marginTop: 4 }}>Drag components from the left, or click one to add it here.</div>
-              </div>
+            <div className={dragOver ? "rounded-2xl border-2 border-dashed border-primary p-6" : "rounded-2xl border-2 border-dashed border-border p-6"}>
+              <EmptyState
+                title="Build a page"
+                description="Drag components from the left, or click one to add it here."
+                media="featured-icon"
+                icon={<Globe />}
+              />
             </div>
           ) : (
-            <div style={{ display: "grid", gap: 12, maxWidth: 1040, margin: "0 auto" }}>
+            <div className="mx-auto grid max-w-5xl gap-3">
               {blocks.map((b, i) => (
-                <div key={b.uid} style={{ ...card, overflow: "hidden", position: "relative" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", borderBottom: "1px solid var(--hc-border)", background: "var(--hc-ghost)" }}>
-                    <LayersIcon size={13} color="var(--hc-primary)" />
-                    <span style={{ fontWeight: 700, ...TYPE.sm }}>{b.comp.name}</span>
-                    <span style={pill()}>{b.comp.type}</span>
-                    <div style={{ flex: 1 }} />
-                    <button onClick={() => move(i, -1)} disabled={i === 0} style={miniBtn(i === 0)} title="Move up">↑</button>
-                    <button onClick={() => move(i, 1)} disabled={i === blocks.length - 1} style={miniBtn(i === blocks.length - 1)} title="Move down">↓</button>
-                    <button onClick={() => remove(b.uid)} style={miniBtn(false)} title="Remove"><TrashIcon size={13} color="var(--hc-destructive)" /></button>
+                <div key={b.uid} className="overflow-hidden rounded-xl border border-border">
+                  <div className="flex items-center gap-2 border-b border-border bg-muted px-3 py-2">
+                    <Layers className="size-3.5 text-primary" />
+                    <span className="text-sm font-semibold text-foreground">{b.comp.name}</span>
+                    <Badge variant="soft" color="primary" size="xs">{b.comp.type}</Badge>
+                    <span className="ms-auto flex gap-1">
+                      {isAdmin && (
+                        <Button appearance="ghost" variant="secondary" size="icon-xs" aria-label={`Edit ${b.comp.name}`} title="Edit component" onClick={() => startEdit(b.comp)}>
+                          <Pencil className="size-3.5" />
+                        </Button>
+                      )}
+                      <Button appearance="ghost" variant="secondary" size="icon-xs" disabled={i === 0} aria-label="Move block up" title="Move up" onClick={() => move(i, -1)}>
+                        <span aria-hidden>↑</span>
+                      </Button>
+                      <Button appearance="ghost" variant="secondary" size="icon-xs" disabled={i === blocks.length - 1} aria-label="Move block down" title="Move down" onClick={() => move(i, 1)}>
+                        <span aria-hidden>↓</span>
+                      </Button>
+                      <Button appearance="ghost" variant="destructive" size="icon-xs" aria-label={`Remove ${b.comp.name}`} title="Remove" onClick={() => remove(b.uid)}>
+                        <Trash2 className="size-3.5" />
+                      </Button>
+                    </span>
                   </div>
-                  <iframe title={b.comp.name} srcDoc={pageDoc(renderTemplate(b.comp.html) || `<section style="padding:40px;text-align:center;color:var(--text-muted)">${b.comp.name} — no HTML yet</section>`)} style={{ width: "100%", height: 240, border: "none", background: "var(--card)", display: "block" }} />
+                  <iframe
+                    title={b.comp.name}
+                    srcDoc={pageDoc(renderTemplate(b.comp.html) || `<section style="padding:40px;text-align:center">${b.comp.name} — no HTML yet</section>`)}
+                    className="block w-full border-0 bg-card"
+                    style={{ height: 240 }}
+                  />
                 </div>
               ))}
             </div>
@@ -222,43 +332,62 @@ export default function ComponentStudio({ user, canPublish }: { user: { name?: s
         </section>
       </div>
 
-      {toast && <div style={{ position: "fixed", bottom: 26, left: "50%", transform: "translateX(-50%)", background: "var(--hc-fg)", color: "var(--hc-bg)", padding: "10px 18px", borderRadius: R.full, ...TYPE.sm, fontWeight: 600, boxShadow: "var(--hc-shadow-lg)", zIndex: 200 }}>{toast}</div>}
-
-      {/* New / AI-review component modal */}
-      {showNew && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.45)", display: "grid", placeItems: "center", zIndex: 100 }} onClick={() => setShowNew(false)}>
-          <div onClick={(e) => e.stopPropagation()} style={{ ...cmsVars(theme), width: 620, maxWidth: "92vw", maxHeight: "88vh", display: "flex", flexDirection: "column", background: "var(--hc-card)", color: "var(--hc-fg)", borderRadius: R.x2, boxShadow: "var(--hc-shadow-xl)", padding: 18 } as any}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12, flexShrink: 0 }}>
-              <span style={{ fontWeight: 800, ...TYPE.base }}>{editingId ? "Edit component" : form.html ? "Review & save component" : "New component"}</span>
-              <button onClick={() => setShowNew(false)} style={miniBtn(false)}><XIcon size={14} /></button>
-            </div>
-            <div style={{ display: "grid", gap: 10, overflowY: "auto", flex: 1, minHeight: 0, paddingRight: 4 }}>
-              <label style={lbl()}>Name<input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} style={inp()} /></label>
-              <div style={{ display: "flex", gap: 10 }}>
-                <label style={{ ...lbl(), flex: 1 }}>Type
-                  <select value={form.type} onChange={(e) => setForm((f) => ({ ...f, type: e.target.value }))} style={inp()}>{TYPES.map((t) => <option key={t} value={t}>{titleCase(t)}</option>)}</select>
-                </label>
-                <label style={{ ...lbl(), flex: 1 }}>Status
-                  <select value={form.status} onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))} style={inp()}><option value="live">Live</option><option value="draft">Draft</option></select>
-                </label>
+      {/* New / edit / AI-review component */}
+      <Dialog open={showNew} onOpenChange={setShowNew}>
+        <Dialog.Popup size="lg">
+          <Dialog.Header>
+            <Dialog.Title>{editingId ? "Edit component" : form.html ? "Review & save component" : "New component"}</Dialog.Title>
+            <Dialog.Description>Components marked live become available to the page builders.</Dialog.Description>
+          </Dialog.Header>
+          <Dialog.Body>
+            <div className="grid gap-3">
+              <Field>
+                <Field.Label>Name</Field.Label>
+                <Input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
+              </Field>
+              <div className="flex gap-3">
+                <Field className="flex-1">
+                  <Field.Label>Type</Field.Label>
+                  <Select value={form.type} onValueChange={(v) => setForm((f) => ({ ...f, type: String(v) }))}>
+                    {TYPES.map((t) => <SelectItem key={t} value={t}>{titleCase(t)}</SelectItem>)}
+                  </Select>
+                </Field>
+                <Field className="flex-1">
+                  <Field.Label>Status</Field.Label>
+                  <Select value={form.status} onValueChange={(v) => setForm((f) => ({ ...f, status: String(v) }))}>
+                    <SelectItem value="live">Live</SelectItem>
+                    <SelectItem value="draft">Draft</SelectItem>
+                  </Select>
+                </Field>
               </div>
-              <label style={lbl()}>HTML<textarea value={form.html} onChange={(e) => setForm((f) => ({ ...f, html: e.target.value }))} rows={8} style={{ ...inp(), fontFamily: "ui-monospace,monospace", fontSize: 12.5, resize: "vertical" }} /></label>
-              {form.html && <iframe title="preview" srcDoc={pageDoc(renderTemplate(form.html))} style={{ width: "100%", height: 180, border: "1px solid var(--hc-border)", borderRadius: R.lg, background: "var(--card)" }} />}
+              <Field>
+                <Field.Label>HTML</Field.Label>
+                <Textarea value={form.html} onChange={(e) => setForm((f) => ({ ...f, html: e.target.value }))} rows={8} className="font-mono" />
+              </Field>
+              {form.html && (
+                <iframe
+                  title="preview"
+                  srcDoc={pageDoc(renderTemplate(form.html))}
+                  className="w-full rounded-lg border border-border bg-card"
+                  style={{ height: 180 }}
+                />
+              )}
+              {formErr && (
+                <Alert variant="destructive">
+                  {formErr}
+                  {/approval|review|publish/i.test(formErr) ? <> · <a href="/review" className="underline">Open Review</a></> : null}
+                </Alert>
+              )}
             </div>
-            {formErr && <div style={{ margin: "10px 0 0", padding: "9px 12px", borderRadius: R.lg, background: "rgba(220,38,38,0.10)", color: "var(--destructive)", fontWeight: 600, ...TYPE.sm, flexShrink: 0 }}>{formErr}{/approval|review|publish/i.test(formErr) ? <> · <a href="/review" style={{ color: "var(--destructive)", textDecoration: "underline" }}>Open Review</a></> : null}</div>}
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 14, flexShrink: 0 }}>
-              <button onClick={() => setShowNew(false)} style={btn(false, false)}>Cancel</button>
-              <button onClick={saveComponent} disabled={busy} style={btn(true, busy)}><CheckIcon size={14} color="var(--primary-foreground)" /> Save to library</button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+          </Dialog.Body>
+          <Dialog.Footer>
+            <Button appearance="outline" variant="secondary" onClick={() => setShowNew(false)}>Cancel</Button>
+            <Button loading={busy} disabled={busy} startIcon={<Check className="size-4" />} onClick={saveComponent}>
+              Save to library
+            </Button>
+          </Dialog.Footer>
+        </Dialog.Popup>
+      </Dialog>
+    </AppShellCard>
   );
-
-  function pill(): any { return { display: "inline-flex", alignItems: "center", alignSelf: "center", flex: "0 0 auto", width: "fit-content", height: "fit-content", fontSize: 11, fontWeight: 700, lineHeight: 1.4, whiteSpace: "nowrap", padding: "3px 9px", borderRadius: R.full, background: "var(--hc-primary-10)", color: "var(--hc-primary)" }; }
-  function btn(primary: boolean, disabled: boolean): any { return { display: "inline-flex", alignItems: "center", gap: 7, padding: "8px 14px", borderRadius: R.lg, border: primary ? "none" : "1px solid var(--hc-border)", background: primary ? "var(--hc-primary)" : "var(--hc-card)", color: primary ? "var(--primary-foreground)" : "var(--hc-fg)", fontWeight: 700, ...TYPE.sm, cursor: disabled ? "default" : "pointer", opacity: disabled ? 0.5 : 1 }; }
-  function miniBtn(disabled: boolean): any { return { width: 26, height: 26, borderRadius: R.md, border: "1px solid var(--hc-border)", background: "var(--hc-card)", color: "var(--hc-fg)", display: "grid", placeItems: "center", cursor: disabled ? "default" : "pointer", opacity: disabled ? 0.4 : 1, fontSize: 13 }; }
-  function lbl(): any { return { display: "grid", gap: 5, fontWeight: 700, ...TYPE.sm, color: "var(--hc-fg)" }; }
-  function inp(): any { return { padding: "9px 11px", borderRadius: R.lg, border: "1px solid var(--hc-input)", background: "var(--hc-card)", color: "var(--hc-fg)", ...TYPE.sm, outline: "none", fontWeight: 400, width: "100%" }; }
 }

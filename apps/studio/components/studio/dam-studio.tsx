@@ -123,7 +123,7 @@ export default function DamStudio() {
             aria-label="Search assets"
             size="sm"
             startIcon={<Search className="size-4" />}
-            style={{ maxWidth: 280 }}
+            className="max-w-xs"
           />
           <Button size="sm" loading={busy} onClick={() => fileRef.current?.click()} startIcon={<Upload className="size-4" />}>
             {busy ? "Uploading…" : "Upload assets"}
@@ -136,7 +136,7 @@ export default function DamStudio() {
             className="hidden"
             onChange={(e) => upload(e.target.files)}
           />
-          {msg && <span className="text-sm text-muted-foreground">{msg}</span>}
+          {msg && <span className="text-sm text-secondary-foreground">{msg}</span>}
         </div>
       </AppShellCard.Header>
 
@@ -154,10 +154,10 @@ export default function DamStudio() {
           secondaryAction={q.trim() ? { label: "Clear search", onClick: () => setQ("") } : undefined}
         />
       ) : (
-        // Inline style, not an arbitrary Tailwind class: @humain/ui ships a
-        // PRECOMPILED utility layer, so a novel `grid-cols-[repeat(auto-fill,…)]`
-        // silently resolves to nothing and the grid collapses to one column.
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 14 }}>
+        // Standard scale utilities only. The package ships a PRECOMPILED utility
+        // layer, so an arbitrary `grid-cols-[repeat(auto-fill,…)]` silently
+        // resolves to nothing — which collapsed this grid to a single column.
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
           {shown.map((a) => (
             <Button
               key={a.id}
@@ -168,14 +168,13 @@ export default function DamStudio() {
               className="block h-auto w-full p-0 text-start"
             >
               <Card padding="none" className="overflow-hidden">
-                <div className="grid place-items-center border-b border-border bg-muted" style={{ height: 130 }}>
+                <div className="grid h-32 place-items-center border-b border-border bg-muted">
                   {isImg(a.mimeType) ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={a.sizes.find((s) => s.name === "thumbnail")?.url || a.url}
                       alt={a.alt || a.filename}
-                      className="max-w-full object-contain"
-                      style={{ maxHeight: 130 }}
+                      className="max-h-32 max-w-full object-contain"
                     />
                   ) : (
                     <FileText className="size-8 text-muted-foreground" />
@@ -183,7 +182,7 @@ export default function DamStudio() {
                 </div>
                 <Card.Content className="p-3">
                   <div className="truncate text-xs font-semibold text-foreground">{a.filename}</div>
-                  <div className="mt-0.5 text-xs text-muted-foreground">
+                  <div className="mt-0.5 text-xs text-secondary-foreground">
                     {a.width && a.height ? `${a.width}×${a.height} · ` : ""}{kb(a.filesize)}
                   </div>
                   {a.alt && (
@@ -206,10 +205,10 @@ export default function DamStudio() {
           <Dialog.Body>
             {sel && (
               <div className="grid gap-5 md:grid-cols-[1.2fr_1fr]">
-                <div className="grid place-items-center rounded-xl border border-border bg-muted p-3" style={{ minHeight: 240 }}>
+                <div className="grid min-h-60 place-items-center rounded-xl border border-border bg-muted p-3">
                   {isImg(sel.mimeType) ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={sel.url} alt={sel.alt || sel.filename} className="max-w-full" style={{ maxHeight: 360 }} />
+                    <img src={sel.url} alt={sel.alt || sel.filename} className="max-h-96 max-w-full" />
                   ) : (
                     <FileText className="size-14 text-muted-foreground" />
                   )}
@@ -251,7 +250,7 @@ export default function DamStudio() {
                   {sel.sizes.map((s) => (
                     <div key={s.name} className="flex justify-between text-xs">
                       <span className="capitalize text-foreground">{s.name}</span>
-                      <span className="text-muted-foreground">{s.width}×{s.height} · {kb(s.filesize)}</span>
+                      <span className="text-secondary-foreground">{s.width}×{s.height} · {kb(s.filesize)}</span>
                     </div>
                   ))}
 
@@ -318,7 +317,7 @@ export default function DamStudio() {
 function Row({ k, v }: { k: string; v: string }) {
   return (
     <div className="flex gap-2.5 leading-7">
-      <span className="w-24 shrink-0 text-muted-foreground">{k}</span>
+      <span className="w-24 shrink-0 text-secondary-foreground">{k}</span>
       <span className="break-words text-foreground">{v}</span>
     </div>
   );

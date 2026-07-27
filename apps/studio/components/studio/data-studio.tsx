@@ -1,8 +1,51 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
+import {
+  AlertDialog,
+  AppShellCard,
+  Badge,
+  Button,
+  type ColumnDef,
+  DataTable,
+  EmptyState,
+  Field,
+  Input,
+  Pagination,
+  Separator,
+  Textarea,
+} from "@humain/ui";
+import { ArrowLeft, Database, Plus, Search, Trash2 } from "lucide-react";
+
+/* =============================================================================
+   CMS Data — native back-office over every collection and global.
+
+   Migrated onto @humain/ui per references/adoption.md §4:
+     row list       -> DataTable (organisms.md), with server paging kept on the
+                       package Pagination underneath rather than DataTable's own
+                       client-side pagination — the API pages server-side, so the
+                       table only ever holds the current page.
+     <input>        -> Input, <textarea> -> Textarea, both labelled via Field
+     <button>       -> Button
+     window.confirm -> AlertDialog
+     empty/intro    -> EmptyState
+     status pill    -> Badge
+
+   Every endpoint, payload shape and handler is unchanged, including the
+   scalar/JSON detection in build(), the "template from the first row" behaviour
+   of newDoc(), and global editing.
+
+   NOTE on layout values: the package's utility layer is PRECOMPILED, so only
+   standard-scale utilities exist — an arbitrary class like `w-[220px]` silently
+   resolves to nothing. Sizes here snap to the scale (w-56, max-w-xs) rather than
+   being expressed as arbitrary values.
+
+   Labels go through the compound `Field` rather than the documented smart
+   `label` prop: that prop is unreachable from a consumer on Input, Textarea AND
+   Select, because the package's .d.ts files import it through the library's
+   internal `@/` alias. Field is the sanctioned fallback.
+   ============================================================================= */
 
 type Row = { id: string | number; title: string; status?: string; updatedAt?: string };
-const TEAL = "var(--primary)", INK = "var(--background)", LINE = "var(--hairline)", MUT = "var(--text-muted)";
 
 // Grouped collection catalogue (mirrors the API allowlist).
 const CATALOG: { group: string; items: { slug: string; label: string }[] }[] = [
@@ -16,6 +59,7 @@ const CATALOG: { group: string; items: { slug: string; label: string }[] }[] = [
 const GLOBALS = [{ slug: "navigation", label: "Navigation" }, { slug: "settings", label: "Site Settings" }];
 const SKIP = new Set(["id", "createdAt", "updatedAt", "sizes", "thumbnailURL"]);
 const isScalar = (v: any) => v == null || ["string", "number", "boolean"].includes(typeof v);
+const isLive = (s?: string) => s === "published" || s === "live";
 
 export default function DataStudio({ initialCollection }: { initialCollection: string | null }) {
   const [coll, setColl] = useState<string | null>(initialCollection);
@@ -30,6 +74,7 @@ export default function DataStudio({ initialCollection }: { initialCollection: s
   const [isNew, setIsNew] = useState(false);
   const [busy, setBusy] = useState("");
   const [msg, setMsg] = useState("");
+  const [confirmDel, setConfirmDel] = useState(false);
 
   const label = useMemo(() => {
     for (const g of CATALOG) { const it = g.items.find((x) => x.slug === coll); if (it) return it.label; }
@@ -84,8 +129,8 @@ export default function DataStudio({ initialCollection }: { initialCollection: s
     } catch { setMsg("Save failed."); } finally { setBusy(""); }
   }
   async function del(id: string | number) {
-    if (!confirm("Delete this record?")) return;
-    await fetch(`/api/manage/${coll}/${id}`, { method: "DELETE" }); setDoc(null); loadList(coll!, page, q);
+    await fetch(`/api/manage/${coll}/${id}`, { method: "DELETE" });
+    setConfirmDel(false); setDoc(null); loadList(coll!, page, q);
   }
   async function openGlobal(slug: string) {
     setGlobalSlug(slug); setColl(null); setRows([]); setBusy("get");
@@ -96,96 +141,245 @@ export default function DataStudio({ initialCollection }: { initialCollection: s
     try { const r = await fetch(`/api/manage/global/${globalSlug}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(build()) }); setMsg(r.ok ? "Saved ✓" : "Save failed."); } catch { setMsg("Save failed."); } finally { setBusy(""); }
   }
 
-  const card: React.CSSProperties = { border: `1px solid ${LINE}`, borderRadius: 12, background: "var(--card)" };
-  const inp: React.CSSProperties = { width: "100%", padding: "7px 9px", borderRadius: 7, border: `1px solid ${LINE}`, fontSize: 13, outline: "none", color: INK };
-  const btn = (p?: boolean, dis?: boolean): React.CSSProperties => ({ padding: "7px 13px", borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: dis ? "default" : "pointer", border: p ? "none" : `1px solid ${LINE}`, background: p ? TEAL : "var(--card)", color: p ? "var(--primary-foreground)" : INK, opacity: dis ? 0.5 : 1 });
+  // The title cell is the row action, so the table keeps real button semantics
+  // instead of an onClick on a <tr>.
+  const columns = useMemo<ColumnDef<Row, unknown>[]>(() => [
+    {
+      accessorKey: "id",
+      header: "ID",
+      cell: ({ row }) => <span className="text-xs text-secondary-foreground">#{String(row.original.id)}</span>,
+    },
+    {
+      accessorKey: "title",
+      header: "Title",
+      cell: ({ row }) => (
+        <Button
+          appearance="link"
+          variant="primary"
+          className="h-auto p-0 text-start"
+          onClick={() => edit(row.original.id)}
+        >
+          {row.original.title}
+        </Button>
+      ),
+    },
+    {
+      accessorKey: "status",
+      header: "Status",
+      cell: ({ row }) =>
+        row.original.status ? (
+          <Badge variant="soft" color={isLive(row.original.status) ? "success" : "warning"} size="sm">
+            {row.original.status}
+          </Badge>
+        ) : null,
+    },
+  ], [coll]); // eslint-disable-line
+
+  const railItem = (active: boolean, text: string, onClick: () => void) => (
+    <Button
+      key={text}
+      appearance={active ? "soft" : "ghost"}
+      variant={active ? "primary" : "secondary"}
+      size="sm"
+      onClick={onClick}
+      className="w-full justify-start text-start"
+    >
+      {text}
+    </Button>
+  );
 
   return (
-    <div style={{ background: "var(--card)", borderRadius: 16, minHeight: "100%", display: "flex", fontFamily: "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif", color: INK, overflow: "hidden" }}>
-      {/* collection rail */}
-      <div style={{ width: 220, borderInlineEnd: `1px solid ${LINE}`, padding: "18px 12px", overflowY: "auto", flexShrink: 0 }}>
-        <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: ".1em", color: TEAL, textTransform: "uppercase", padding: "0 6px 8px" }}>CMS Data</div>
-        {CATALOG.map((g) => (
-          <div key={g.group} style={{ marginBottom: 10 }}>
-            <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: ".1em", color: MUT, fontWeight: 700, padding: "4px 6px" }}>{g.group}</div>
-            {g.items.map((it) => (
-              <div key={it.slug} onClick={() => loadList(it.slug)} style={{ padding: "6px 8px", borderRadius: 7, cursor: "pointer", fontSize: 13, background: coll === it.slug ? "color-mix(in srgb, var(--success) 12%, var(--background))" : "transparent", color: coll === it.slug ? TEAL : "var(--ink)", fontWeight: coll === it.slug ? 700 : 500 }}>{it.label}</div>
-            ))}
-          </div>
-        ))}
-        <div style={{ fontSize: 10, textTransform: "uppercase", letterSpacing: ".1em", color: MUT, fontWeight: 700, padding: "4px 6px" }}>Globals</div>
-        {GLOBALS.map((it) => <div key={it.slug} onClick={() => openGlobal(it.slug)} style={{ padding: "6px 8px", borderRadius: 7, cursor: "pointer", fontSize: 13, background: globalSlug === it.slug ? "color-mix(in srgb, var(--success) 12%, var(--background))" : "transparent", color: globalSlug === it.slug ? TEAL : "var(--ink)", fontWeight: globalSlug === it.slug ? 700 : 500 }}>{it.label}</div>)}
-      </div>
+    <AppShellCard inset bodyPadding="none">
+      <AppShellCard.Header>
+        <AppShellCard.Title>{globalSlug ? "Site configuration" : label || "CMS Data"}</AppShellCard.Title>
+        <AppShellCard.Subtitle>
+          {coll
+            ? `${total} record${total === 1 ? "" : "s"} · full create, read, update and delete via the Payload API.`
+            : "Full create / read / update / delete over every collection and global, via the Payload API."}
+        </AppShellCard.Subtitle>
+      </AppShellCard.Header>
 
-      {/* main */}
-      <div style={{ flex: 1, minWidth: 0, padding: "20px 24px", overflowY: "auto" }}>
-        {!coll && !globalSlug && (
-          <div style={{ color: MUT, marginTop: 60, textAlign: "center" }}>
-            <h1 style={{ color: INK, fontSize: 24, marginBottom: 6 }}>CMS Data — native back-office</h1>
-            Full create / read / update / delete over every collection and global, via the Payload API. Pick a collection on the left.
-          </div>
-        )}
-
-        {/* record editor (collection or global) */}
-        {doc && (
-          <div style={{ ...card, padding: 18, maxWidth: 720 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-              <b style={{ fontSize: 16 }}>{globalSlug ? `Global · ${globalSlug}` : isNew ? `New ${label}` : `Edit ${label} #${doc.id}`}</b>
-              {!globalSlug && <button onClick={() => setDoc(null)} style={btn(false)}>← Back to list</button>}
-            </div>
-            <div style={{ display: "grid", gap: 10 }}>
-              {Object.keys(editVals).map((k) => {
-                const orig = doc[k]; const complex = !isScalar(orig) || (isNew && (editVals[k].trim().startsWith("{") || editVals[k].trim().startsWith("[")));
-                return (
-                  <label key={k} style={{ display: "block" }}>
-                    <span style={{ fontSize: 11, fontWeight: 700, color: MUT }}>{k}{typeof orig === "boolean" ? " (true/false)" : complex ? " (JSON)" : ""}</span>
-                    {complex
-                      ? <textarea value={editVals[k]} onChange={(e) => setEditVals((v) => ({ ...v, [k]: e.target.value }))} rows={4} style={{ ...inp, fontFamily: "ui-monospace,monospace", fontSize: 11.5, marginTop: 3 }} />
-                      : (String(editVals[k]).length > 80
-                        ? <textarea value={editVals[k]} onChange={(e) => setEditVals((v) => ({ ...v, [k]: e.target.value }))} rows={3} style={{ ...inp, marginTop: 3 }} />
-                        : <input value={editVals[k]} onChange={(e) => setEditVals((v) => ({ ...v, [k]: e.target.value }))} style={{ ...inp, marginTop: 3 }} />)}
-                  </label>
-                );
-              })}
-            </div>
-            <div style={{ display: "flex", gap: 8, marginTop: 14, alignItems: "center" }}>
-              <button style={btn(true, !!busy)} disabled={!!busy} onClick={globalSlug ? saveGlobal : save}>{busy === "save" ? "Saving…" : globalSlug ? "Save global" : isNew ? "Create" : "Save"}</button>
-              {!globalSlug && !isNew && <button style={{ ...btn(false), color: "var(--destructive)", borderColor: "color-mix(in srgb, var(--destructive) 30%, var(--background))" }} onClick={() => del(doc.id)}>Delete</button>}
-              {msg && <span style={{ color: MUT, fontSize: 13 }}>{msg}</span>}
-            </div>
-          </div>
-        )}
-
-        {/* list */}
-        {coll && !doc && (
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14, flexWrap: "wrap" }}>
-              <h1 style={{ fontSize: 22, margin: 0 }}>{label}</h1>
-              <span style={{ fontSize: 12, color: MUT }}>{total} record{total === 1 ? "" : "s"}</span>
-              <input value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => e.key === "Enter" && loadList(coll, 1, q)} placeholder="Search…" style={{ ...inp, width: 200, marginInlineStart: "auto" }} />
-              <button style={btn(true)} onClick={newDoc}>+ New</button>
-              {msg && <span style={{ color: MUT, fontSize: 13 }}>{msg}</span>}
-            </div>
-            <div style={{ ...card, overflow: "hidden" }}>
-              {rows.map((r) => (
-                <div key={r.id} onClick={() => edit(r.id)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 14px", borderBottom: `1px solid ${LINE}`, cursor: "pointer" }}>
-                  <span style={{ fontSize: 11, color: MUT, width: 48, flexShrink: 0 }}>#{r.id}</span>
-                  <span style={{ fontSize: 13.5, fontWeight: 500, flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{r.title}</span>
-                  {r.status && <span style={{ fontSize: 10.5, fontWeight: 700, color: r.status === "published" || r.status === "live" ? "var(--success)" : "var(--warning)", textTransform: "uppercase" }}>{r.status}</span>}
-                </div>
-              ))}
-              {rows.length === 0 && <div style={{ padding: 24, color: MUT, textAlign: "center", fontSize: 13 }}>{busy ? "Loading…" : "No records."}</div>}
-            </div>
-            {totalPages > 1 && (
-              <div style={{ display: "flex", gap: 8, marginTop: 12, alignItems: "center", fontSize: 13, color: MUT }}>
-                <button style={btn(false, page <= 1)} disabled={page <= 1} onClick={() => loadList(coll, page - 1, q)}>← Prev</button>
-                <span>Page {page} / {totalPages}</span>
-                <button style={btn(false, page >= totalPages)} disabled={page >= totalPages} onClick={() => loadList(coll, page + 1, q)}>Next →</button>
+      <div className="flex min-h-0 flex-1">
+        {/* Collection rail */}
+        <aside
+          className="w-56 shrink-0 overflow-y-auto border-e border-border p-3"
+          aria-label="Collections"
+        >
+          {CATALOG.map((g) => (
+            <div key={g.group} className="mb-2">
+              <Separator className="my-2" label={g.group} />
+              <div className="grid gap-0.5">
+                {g.items.map((it) => railItem(coll === it.slug, it.label, () => loadList(it.slug)))}
               </div>
-            )}
+            </div>
+          ))}
+          <Separator className="my-2" label="Globals" />
+          <div className="grid gap-0.5">
+            {GLOBALS.map((it) => railItem(globalSlug === it.slug, it.label, () => openGlobal(it.slug)))}
           </div>
-        )}
+        </aside>
+
+        {/* Main */}
+        <div className="min-w-0 flex-1 overflow-y-auto">
+          {!coll && !globalSlug && (
+            <div className="p-6">
+              <EmptyState
+                title="Pick a collection"
+                description="Every collection and global is editable here through the Payload API — choose one on the left to browse, edit or create records."
+                media="featured-icon"
+                icon={<Database />}
+              />
+            </div>
+          )}
+
+          {/* Record editor (collection or global) */}
+          {doc && (
+            <div className="p-6">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <h3 className="text-base font-semibold text-foreground">
+                  {globalSlug ? `Global · ${globalSlug}` : isNew ? `New ${label}` : `Edit ${label} #${doc.id}`}
+                </h3>
+                {!globalSlug && (
+                  <Button
+                    appearance="outline"
+                    variant="secondary"
+                    size="sm"
+                    startIcon={<ArrowLeft className="size-4" />}
+                    onClick={() => setDoc(null)}
+                  >
+                    Back to list
+                  </Button>
+                )}
+              </div>
+
+              <div className="grid gap-3">
+                {Object.keys(editVals).map((k) => {
+                  const orig = doc[k];
+                  const complex = !isScalar(orig) || (isNew && (editVals[k].trim().startsWith("{") || editVals[k].trim().startsWith("[")));
+                  const hint = typeof orig === "boolean" ? " (true/false)" : complex ? " (JSON)" : "";
+                  return (
+                    <Field key={k}>
+                      <Field.Label>{k}{hint}</Field.Label>
+                      {complex ? (
+                        <Textarea
+                          value={editVals[k]}
+                          onChange={(e) => setEditVals((v) => ({ ...v, [k]: e.target.value }))}
+                          rows={4}
+                          className="font-mono"
+                        />
+                      ) : String(editVals[k]).length > 80 ? (
+                        <Textarea
+                          value={editVals[k]}
+                          onChange={(e) => setEditVals((v) => ({ ...v, [k]: e.target.value }))}
+                          rows={3}
+                        />
+                      ) : (
+                        <Input
+                          value={editVals[k]}
+                          onChange={(e) => setEditVals((v) => ({ ...v, [k]: e.target.value }))}
+                        />
+                      )}
+                    </Field>
+                  );
+                })}
+              </div>
+
+              <div className="mt-4 flex flex-wrap items-center gap-2">
+                <Button loading={busy === "save"} disabled={!!busy} onClick={globalSlug ? saveGlobal : save}>
+                  {busy === "save" ? "Saving…" : globalSlug ? "Save global" : isNew ? "Create" : "Save"}
+                </Button>
+                {!globalSlug && !isNew && (
+                  <Button
+                    appearance="outline"
+                    variant="destructive"
+                    startIcon={<Trash2 className="size-4" />}
+                    onClick={() => setConfirmDel(true)}
+                  >
+                    Delete
+                  </Button>
+                )}
+                {msg && <span className="text-sm text-secondary-foreground">{msg}</span>}
+              </div>
+            </div>
+          )}
+
+          {/* List */}
+          {coll && !doc && (
+            <>
+              {/* One padded toolbar between the header and the table, per the
+                  package's data-panel contract. */}
+              <div className="flex flex-wrap items-center gap-2 border-b border-border px-6 py-4">
+                <Input
+                  value={q}
+                  onChange={(e) => setQ(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && loadList(coll, 1, q)}
+                  placeholder="Search…"
+                  aria-label={`Search ${label}`}
+                  size="sm"
+                  startIcon={<Search className="size-4" />}
+                  className="max-w-xs"
+                />
+                <Button size="sm" startIcon={<Plus className="size-4" />} onClick={newDoc}>New</Button>
+                {msg && <span className="text-sm text-secondary-foreground">{msg}</span>}
+              </div>
+
+              {rows.length === 0 ? (
+                <div className="p-6">
+                  <EmptyState
+                    title={busy ? "Loading…" : q.trim() ? "No matching records" : "No records"}
+                    description={
+                      q.trim()
+                        ? "No record in this collection matches that search."
+                        : "This collection is empty. Create the first record with New."
+                    }
+                    media="featured-icon"
+                    icon={<Database />}
+                    primaryAction={{ label: "New record", startIcon: <Plus className="size-4" />, onClick: newDoc }}
+                    secondaryAction={q.trim() ? { label: "Clear search", onClick: () => { setQ(""); loadList(coll, 1, ""); } } : undefined}
+                  />
+                </div>
+              ) : (
+                <>
+                  <DataTable columns={columns} data={rows} getRowId={(r) => String(r.id)} enableSorting />
+                  {totalPages > 1 && (
+                    // Server-side paging, so the package Pagination drives
+                    // loadList rather than DataTable's own client pagination.
+                    <div className="flex justify-center px-6 py-4">
+                      <Pagination
+                        currentPage={page}
+                        totalPages={totalPages}
+                        onPageChange={(p) => loadList(coll, p, q)}
+                      />
+                    </div>
+                  )}
+                </>
+              )}
+            </>
+          )}
+        </div>
       </div>
-    </div>
+
+      <AlertDialog open={confirmDel} onOpenChange={setConfirmDel}>
+        <AlertDialog.Portal>
+          <AlertDialog.Backdrop />
+          <AlertDialog.Popup>
+            <AlertDialog.Header>
+              <AlertDialog.Title>Delete this record?</AlertDialog.Title>
+              <AlertDialog.Description>
+                {label} #{doc?.id} is removed from the collection. This cannot be undone.
+              </AlertDialog.Description>
+            </AlertDialog.Header>
+            <AlertDialog.Footer>
+              <AlertDialog.Cancel size="default" appearance="outline" variant="secondary" shape="rounded">
+                Cancel
+              </AlertDialog.Cancel>
+              <AlertDialog.Action variant="destructive" onClick={() => doc && del(doc.id)}>
+                Delete record
+              </AlertDialog.Action>
+            </AlertDialog.Footer>
+          </AlertDialog.Popup>
+        </AlertDialog.Portal>
+      </AlertDialog>
+    </AppShellCard>
   );
 }

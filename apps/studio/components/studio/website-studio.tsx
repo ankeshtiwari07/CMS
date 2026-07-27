@@ -1,5 +1,40 @@
 "use client";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import {
+  Alert,
+  AppShellCard,
+  Badge,
+  Button,
+  ButtonGroup,
+  DropdownMenu,
+  Field,
+  Input,
+  Separator,
+  Textarea,
+} from "@humain/ui";
+import { ArrowLeft, ChevronDown, ChevronUp, Monitor, RefreshCw, Smartphone, Sparkles, X } from "lucide-react";
+
+/* =============================================================================
+   Website Studio — plan sections, generate, edit, publish.
+
+   Migrated onto @humain/ui per adoption.md §4 and the package skill:
+     <button> x17        -> Button / ButtonGroup (device toggle)
+     <input>/<textarea>  -> Input / Textarea in Field
+     notice + published  -> Alert
+     bordered rows       -> Separator + spacing (no Card inside a Card)
+     header commands     -> two visible (Save, Publish); Preview, Export and
+                            Submit-for-review moved into AppShellCard.Menu
+
+   Behaviour untouched: plan/generate/section/publish/PATCH endpoints, the
+   ?prompt= auto-run, assemble(), slugify(), the review submission and the D2
+   natural-language site edit.
+
+   TWO deliberate exceptions, both flagged rather than faked:
+   - <input type="color"> stays native. The package ships no colour picker, and
+     the skill says to say so rather than invent one.
+   - The generated site's own brand hex values stay literal. They are the
+     artifact being produced, not this app's chrome.
+   ============================================================================= */
 
 type Brand = { bg: string; ink: string; muted: string; accent: string; accent2: string; line: string; soft: string; font?: string; radius?: number };
 type Section = { id: string; kind: string; brief: string; html?: string };
@@ -138,115 +173,250 @@ export default function WebsiteStudio({ siteId }: { siteId: string | null }) {
     } catch (e: any) { flash(e.message); } finally { setBusy(""); }
   };
 
-  const shell: React.CSSProperties = { background: "var(--card)", borderRadius: 14, minHeight: "100%", padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,.06)" };
-  const btn = (x?: React.CSSProperties): React.CSSProperties => ({ padding: "9px 14px", borderRadius: 9, border: "1px solid var(--hairline)", background: "var(--card)", cursor: "pointer", fontSize: 13, fontWeight: 600, color: "var(--ink)", ...x });
-  const primaryBtn = btn({ background: "var(--studio-teal-dark)", color: "var(--primary-foreground)", border: "none" });
+  const deviceWidth = device === "mobile" ? 390 : undefined;
 
   if (phase === "prompt") {
     return (
-      <div style={shell}>
-        <div style={{ maxWidth: 780, margin: "6vh auto 0" }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: "var(--studio-teal-dark)", letterSpacing: 1 }}>WEBSITE STUDIO</div>
-          <h1 style={{ fontSize: 34, margin: "8px 0 6px", color: "var(--ink)" }}>Generate a website</h1>
-          <p style={{ color: "var(--text-muted)", marginTop: 0 }}>Describe the site. HUMAIN plans the sections, designs each one (Apple-style), assembles a complete responsive page, and publishes it to a live URL in the CMS.</p>
-          <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder="e.g. The HUMAIN ONE marketing homepage — enterprise AI agents. Hero, 6 agent cards, operational domains, Build-Your-Own-Agent, platform, a payroll use-case stat, enterprise logos, FAQ, footer. Teal + lime, white, Apple.com layout."
-            style={{ width: "100%", minHeight: 150, padding: 16, borderRadius: 12, border: "1px solid var(--hairline)", fontSize: 16, resize: "vertical", fontFamily: "inherit" }} />
-          {err && <div style={{ color: "var(--destructive)", marginTop: 12 }}>{err}</div>}
-          <div style={{ display: "flex", gap: 12, marginTop: 20 }}>
-            <button style={primaryBtn} disabled={!!busy || !prompt.trim()} onClick={genPlan}>{busy || "Plan sections →"}</button>
-            <button style={btn()} disabled={!!busy || !prompt.trim()} onClick={() => genSite(false)}>Skip — generate now</button>
+      <AppShellCard>
+        <AppShellCard.Header>
+          <AppShellCard.Title>Generate a website</AppShellCard.Title>
+          <AppShellCard.Subtitle>
+            Describe the site. HUMAIN plans the sections, designs each one, assembles a complete
+            responsive page, and publishes it to a live URL in the CMS.
+          </AppShellCard.Subtitle>
+        </AppShellCard.Header>
+        <div className="mx-auto max-w-3xl">
+          <Field>
+            <Field.Label>Brief</Field.Label>
+            <Textarea
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              rows={6}
+              placeholder="e.g. The HUMAIN ONE marketing homepage — enterprise AI agents. Hero, 6 agent cards, operational domains, platform, FAQ, footer. Teal + lime, white."
+            />
+          </Field>
+          {err && <Alert variant="destructive" className="mt-3">{err}</Alert>}
+          <div className="mt-5 flex flex-wrap gap-3">
+            <Button loading={!!busy} disabled={!!busy || !prompt.trim()} onClick={genPlan}>
+              {busy || "Plan sections"}
+            </Button>
+            <Button appearance="outline" variant="secondary" disabled={!!busy || !prompt.trim()} onClick={() => genSite(false)}>
+              Skip — generate now
+            </Button>
           </div>
         </div>
-      </div>
+      </AppShellCard>
     );
   }
 
   if (phase === "plan" && plan) {
     return (
-      <div style={shell}>
-        <div style={{ maxWidth: 800, margin: "3vh auto 0" }}>
-          <button style={btn({ marginBottom: 14 })} onClick={() => setPhase("prompt")}>← Back</button>
-          <input value={plan.title} onChange={(e) => setPlan({ ...plan, title: e.target.value })} style={{ width: "100%", fontSize: 26, fontWeight: 700, border: "none", borderBottom: "2px solid var(--hairline)", padding: "6px 2px", color: "var(--ink)", marginBottom: 6 }} />
-          <div style={{ display: "flex", gap: 8, alignItems: "center", margin: "10px 0 18px" }}>
-            <span style={{ fontSize: 12, color: "var(--text-muted)", fontWeight: 700 }}>BRAND</span>
+      <AppShellCard>
+        <AppShellCard.Header>
+          <AppShellCard.Title>Section plan</AppShellCard.Title>
+          <AppShellCard.Subtitle>Edit, reorder or remove sections before generating.</AppShellCard.Subtitle>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <Button appearance="outline" variant="secondary" size="sm" startIcon={<ArrowLeft className="size-4" />} onClick={() => setPhase("prompt")}>
+              Back
+            </Button>
+          </div>
+        </AppShellCard.Header>
+
+        <div className="mx-auto max-w-3xl">
+          <Field>
+            <Field.Label>Title</Field.Label>
+            <Input value={plan.title} onChange={(e) => setPlan({ ...plan, title: e.target.value })} />
+          </Field>
+
+          <Separator className="my-4" label="Brand" />
+          <div className="flex flex-wrap items-center gap-3">
             {(["bg", "ink", "accent", "accent2"] as const).map((k) => (
-              <label key={k} style={{ display: "flex", alignItems: "center", gap: 4 }} title={k}>
-                <input type="color" value={(plan.brand as any)[k]} onChange={(e) => setPlan({ ...plan, brand: { ...plan.brand, [k]: e.target.value } })} style={{ width: 26, height: 26, border: "none", background: "none", padding: 0 }} />
+              <label key={k} className="flex items-center gap-2 text-xs text-secondary-foreground" title={k}>
+                {/* Native colour input: the package ships no colour picker. */}
+                <input
+                  type="color"
+                  aria-label={`Brand ${k}`}
+                  value={(plan.brand as any)[k]}
+                  onChange={(e) => setPlan({ ...plan, brand: { ...plan.brand, [k]: e.target.value } })}
+                  className="size-7 cursor-pointer rounded-md border border-border bg-transparent p-0"
+                />
+                {k}
               </label>
             ))}
           </div>
-          <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-muted)", marginBottom: 10 }}>SECTIONS — edit, reorder or remove</div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {plan.sections.map((s, i) => (
-              <div key={s.id} style={{ display: "flex", gap: 10, alignItems: "center", padding: 12, borderRadius: 10, border: "1px solid var(--hairline)", background: "var(--soft-bg)" }}>
-                <span style={{ color: "var(--studio-teal-dark)", fontWeight: 800, minWidth: 22 }}>{i + 1}</span>
-                <span style={{ fontSize: 11, fontWeight: 700, color: "var(--studio-teal-dark)", background: "var(--brand-tint)", padding: "3px 8px", borderRadius: 6, minWidth: 92, textAlign: "center" }}>{s.kind}</span>
-                <input value={s.brief} onChange={(e) => setPlan({ ...plan, sections: plan.sections.map((x, k) => (k === i ? { ...x, brief: e.target.value } : x)) })} style={{ flex: 1, border: "none", background: "transparent", fontSize: 14, color: "var(--ink)" }} />
-                <button style={btn({ padding: "4px 8px" })} onClick={() => setPlan({ ...plan, sections: plan.sections.filter((_, k) => k !== i) })}>✕</button>
+
+          <Separator className="my-4" label="Sections" />
+          <div className="grid gap-3">
+            {plan.sections.map((sec, i) => (
+              <div key={sec.id} className="flex items-center gap-2.5">
+                <span className="w-6 shrink-0 font-bold text-primary">{i + 1}</span>
+                <Badge variant="soft" color="primary" size="sm">{sec.kind}</Badge>
+                <Input
+                  value={sec.brief}
+                  aria-label={`Section ${i + 1} brief`}
+                  className="flex-1"
+                  onChange={(e) => setPlan({ ...plan, sections: plan.sections.map((x, k) => (k === i ? { ...x, brief: e.target.value } : x)) })}
+                />
+                <Button
+                  appearance="ghost"
+                  variant="secondary"
+                  size="icon-sm"
+                  aria-label={`Remove section ${i + 1}`}
+                  onClick={() => setPlan({ ...plan, sections: plan.sections.filter((_, k) => k !== i) })}
+                >
+                  <X className="size-4" />
+                </Button>
               </div>
             ))}
           </div>
-          {err && <div style={{ color: "var(--destructive)", marginTop: 12 }}>{err}</div>}
-          <div style={{ marginTop: 20 }}><button style={primaryBtn} disabled={!!busy} onClick={() => genSite(true)}>{busy || `Generate ${plan.sections.length} sections →`}</button></div>
+
+          {err && <Alert variant="destructive" className="mt-3">{err}</Alert>}
+          <div className="mt-5">
+            <Button loading={!!busy} disabled={!!busy} onClick={() => genSite(true)}>
+              {busy || `Generate ${plan.sections.length} sections`}
+            </Button>
+          </div>
         </div>
-      </div>
+      </AppShellCard>
     );
   }
 
-  if (!site) return <div style={shell}>{busy || "Loading…"}</div>;
+  if (!site) {
+    return (
+      <AppShellCard>
+        <AppShellCard.Header>
+          <AppShellCard.Title>Website Studio</AppShellCard.Title>
+          <AppShellCard.Subtitle>{busy || "Loading…"}</AppShellCard.Subtitle>
+        </AppShellCard.Header>
+      </AppShellCard>
+    );
+  }
+
   return (
-    <div style={shell}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 14 }}>
-        <input value={site.title} onChange={(e) => setSite({ ...site, title: e.target.value })} style={{ fontSize: 20, fontWeight: 700, border: "none", color: "var(--ink)", minWidth: 200, flex: 1 }} />
-        <div style={{ display: "flex", gap: 4, border: "1px solid var(--hairline)", borderRadius: 9, overflow: "hidden" }}>
-          <button style={{ ...btn({ border: "none", borderRadius: 0, background: device === "desktop" ? "var(--brand-tint)" : "var(--card)" }) }} onClick={() => setDevice("desktop")}>🖥</button>
-          <button style={{ ...btn({ border: "none", borderRadius: 0, background: device === "mobile" ? "var(--brand-tint)" : "var(--card)" }) }} onClick={() => setDevice("mobile")}>📱</button>
-        </div>
-        <span style={{ fontSize: 12, color: "var(--text-muted)" }}>/site/</span>
-        <input value={slug} onChange={(e) => setSlug(slugify(e.target.value))} style={{ ...btn(), width: 150, fontWeight: 500 }} />
-        <button style={btn()} disabled={!site} onClick={preview}>Preview</button>
-        <button style={btn()} onClick={exportHtml}>Export HTML</button>
-        <button style={btn()} disabled={!!busy} onClick={() => save(false)}>{savedId ? "Save" : "Save draft"}</button>
-        <button style={btn()} disabled={!!busy} onClick={review}>Submit for review</button>
-        <button style={primaryBtn} disabled={!!busy} onClick={() => save(true)}>Publish</button>
-      </div>
-      {notice && <div style={{ position: "fixed", top: 16, right: 16, background: "var(--studio-teal-dark)", color: "var(--primary-foreground)", padding: "8px 14px", borderRadius: 8, zIndex: 50 }}>{notice}</div>}
-      {publishedPath && <div style={{ marginBottom: 12, padding: "8px 12px", background: "var(--brand-tint)", borderRadius: 8, fontSize: 13 }}>✅ Published — live at <a href={publishedPath} target="_blank" rel="noreferrer" style={{ color: "var(--studio-teal-dark)", fontWeight: 700 }}>{publishedPath}</a></div>}
+    <AppShellCard bodyPadding="none">
+      <AppShellCard.Toolbar>
+        <AppShellCard.Header>
+          <AppShellCard.Title>{site.title || "Untitled site"}</AppShellCard.Title>
+          <AppShellCard.Subtitle>
+            {site.sections.length} section{site.sections.length === 1 ? "" : "s"} · regenerate,
+            reorder or edit with AI, then publish to /site/{slug || "…"}.
+          </AppShellCard.Subtitle>
+        </AppShellCard.Header>
+        <AppShellCard.Actions>
+          <Button appearance="outline" variant="secondary" loading={busy === "Saving…"} disabled={!!busy} onClick={() => save(false)}>
+            {savedId ? "Save" : "Save draft"}
+          </Button>
+          <Button loading={busy === "Publishing…"} disabled={!!busy} onClick={() => save(true)}>Publish</Button>
+        </AppShellCard.Actions>
+        <AppShellCard.Menu>
+          <DropdownMenu.Item onClick={preview}>Open standalone preview</DropdownMenu.Item>
+          <DropdownMenu.Item onClick={exportHtml}>Export HTML</DropdownMenu.Item>
+          <DropdownMenu.Item disabled={!!busy} onClick={review}>Submit for review</DropdownMenu.Item>
+        </AppShellCard.Menu>
+      </AppShellCard.Toolbar>
 
-      {/* D2 — edit the whole site by instruction (agent regenerates only what changes) */}
-      <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 14, padding: 10, borderRadius: 10, border: "1px solid var(--hairline)", background: "var(--soft-bg)" }}>
-        <span style={{ fontSize: 12, fontWeight: 800, color: "var(--studio-teal-dark)", whiteSpace: "nowrap" }}>✦ Edit with AI</span>
-        <input value={aiEdit} onChange={(e) => setAiEdit(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") aiEditSite(); }}
-          placeholder={savedId ? "Tell the agent what to change — e.g. “rewrite the hero headline to be punchier and add a testimonials section”" : "Save the site first to enable AI editing"}
-          disabled={!savedId || !!busy}
-          style={{ flex: 1, border: "1px solid var(--hairline)", borderRadius: 8, padding: "9px 12px", fontSize: 14, fontFamily: "inherit", background: savedId ? "var(--card)" : "var(--surface-2)" }} />
-        <button style={primaryBtn} disabled={!!busy || !savedId || !aiEdit.trim()} onClick={aiEditSite}>{busy === "Editing with AI…" ? busy : "Apply edit"}</button>
+      <div className="border-b border-border px-6 py-4">
+        {notice && <Alert variant="success" className="mb-3">{notice}</Alert>}
+        {publishedPath && (
+          <Alert variant="success" className="mb-3">
+            Published — live at{" "}
+            <a href={publishedPath} target="_blank" rel="noreferrer" className="font-semibold underline">
+              {publishedPath}
+            </a>
+          </Alert>
+        )}
+
+        <div className="flex flex-wrap items-end gap-3">
+          <Field className="flex-1 min-w-56">
+            <Field.Label>Title</Field.Label>
+            <Input value={site.title} onChange={(e) => setSite({ ...site, title: e.target.value })} />
+          </Field>
+          <Field>
+            <Field.Label>Path</Field.Label>
+            <Input value={slug} onChange={(e) => setSlug(slugify(e.target.value))} className="max-w-xs" />
+          </Field>
+          <ButtonGroup>
+            <Button
+              appearance={device === "desktop" ? "soft" : "outline"}
+              variant={device === "desktop" ? "primary" : "secondary"}
+              size="icon-sm"
+              aria-label="Desktop preview"
+              title="Desktop"
+              onClick={() => setDevice("desktop")}
+            >
+              <Monitor className="size-4" />
+            </Button>
+            <Button
+              appearance={device === "mobile" ? "soft" : "outline"}
+              variant={device === "mobile" ? "primary" : "secondary"}
+              size="icon-sm"
+              aria-label="Mobile preview"
+              title="Mobile"
+              onClick={() => setDevice("mobile")}
+            >
+              <Smartphone className="size-4" />
+            </Button>
+          </ButtonGroup>
+        </div>
+
+        {/* D2 — edit the whole site by instruction. */}
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <Badge variant="soft" color="primary" size="sm">
+            <Sparkles className="me-1 inline size-3 align-middle" /> Edit with AI
+          </Badge>
+          <Input
+            value={aiEdit}
+            onChange={(e) => setAiEdit(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") aiEditSite(); }}
+            aria-label="Describe the change"
+            placeholder={savedId ? "e.g. rewrite the hero headline to be punchier and add a testimonials section" : "Save the site first to enable AI editing"}
+            disabled={!savedId || !!busy}
+            className="min-w-64 flex-1"
+          />
+          <Button loading={busy === "Editing with AI…"} disabled={!!busy || !savedId || !aiEdit.trim()} onClick={aiEditSite}>
+            Apply edit
+          </Button>
+        </div>
       </div>
 
-      <div style={{ display: "flex", gap: 16, alignItems: "flex-start" }}>
-        <div style={{ width: 220, maxHeight: "calc(100vh - 130px)", overflowY: "auto", display: "flex", flexDirection: "column", gap: 6 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: "var(--text-muted)", marginBottom: 2 }}>SECTIONS</div>
-          {site.sections.map((s, i) => (
-            <div key={s.id} style={{ padding: 10, borderRadius: 9, border: "1px solid var(--hairline)", background: "var(--soft-bg)" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
-                <span style={{ fontSize: 11, fontWeight: 700, color: "var(--studio-teal-dark)" }}>{i + 1}. {s.kind}</span>
+      <div className="flex min-h-0 flex-1 items-start gap-4 p-6">
+        <aside className="w-56 shrink-0 overflow-y-auto" aria-label="Sections">
+          <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-secondary-foreground">Sections</div>
+          <div className="grid gap-2">
+            {site.sections.map((sec, i) => (
+              <div key={sec.id}>
+                <div className="text-xs font-semibold text-foreground">{i + 1}. {sec.kind}</div>
+                <div className="mt-1 flex flex-wrap gap-1">
+                  <Button appearance="ghost" variant="secondary" size="icon-xs" disabled={!!busy} aria-label={`Regenerate ${sec.kind}`} title="Regenerate" onClick={() => regenSection(i)}>
+                    <RefreshCw className="size-3.5" />
+                  </Button>
+                  <Button appearance="ghost" variant="secondary" size="icon-xs" aria-label={`Move ${sec.kind} up`} title="Move up" onClick={() => moveSection(i, -1)}>
+                    <ChevronUp className="size-3.5" />
+                  </Button>
+                  <Button appearance="ghost" variant="secondary" size="icon-xs" aria-label={`Move ${sec.kind} down`} title="Move down" onClick={() => moveSection(i, 1)}>
+                    <ChevronDown className="size-3.5" />
+                  </Button>
+                  <Button appearance="ghost" variant="destructive" size="icon-xs" aria-label={`Remove ${sec.kind}`} title="Remove" onClick={() => removeSection(i)}>
+                    <X className="size-3.5" />
+                  </Button>
+                </div>
+                <Separator className="mt-2" />
               </div>
-              <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-                <button style={btn({ padding: "3px 7px", fontSize: 11 })} disabled={!!busy} onClick={() => regenSection(i)}>↻</button>
-                <button style={btn({ padding: "3px 7px", fontSize: 11 })} onClick={() => moveSection(i, -1)}>↑</button>
-                <button style={btn({ padding: "3px 7px", fontSize: 11 })} onClick={() => moveSection(i, 1)}>↓</button>
-                <button style={btn({ padding: "3px 7px", fontSize: 11, color: "var(--destructive)" })} onClick={() => removeSection(i)}>✕</button>
-              </div>
-            </div>
-          ))}
-          {busy && <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 6 }}>{busy}</div>}
-        </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ margin: "0 auto", width: device === "mobile" ? 390 : "100%", transition: "width .2s", border: "1px solid var(--hairline)", borderRadius: 12, overflow: "hidden", boxShadow: "0 2px 16px rgba(0,0,0,.08)" }}>
-            <iframe title="preview" srcDoc={site.html} style={{ width: "100%", height: "calc(100vh - 150px)", border: "none", background: "var(--card)" }} />
+            ))}
+          </div>
+          {busy && <div className="mt-2 text-xs text-secondary-foreground">{busy}</div>}
+        </aside>
+
+        <div className="min-w-0 flex-1">
+          <div
+            className="mx-auto overflow-hidden rounded-xl border border-border shadow-md"
+            style={{ width: deviceWidth, transition: "width .2s" }}
+          >
+            {/* Height is viewport-relative and off the utility scale. */}
+            <iframe title="preview" srcDoc={site.html} className="w-full border-0 bg-card" style={{ height: "calc(100vh - 300px)" }} />
           </div>
         </div>
       </div>
-    </div>
+    </AppShellCard>
   );
 }

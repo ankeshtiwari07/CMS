@@ -144,6 +144,11 @@ export const DICT: Record<string, Tr> = {
   "chats.rename": { en: "Rename", ar: "إعادة تسمية", fr: "Renommer", de: "Umbenennen", es: "Renombrar", pl: "Zmień nazwę" },
   "chats.delete": { en: "Delete", ar: "حذف", fr: "Supprimer", de: "Löschen", es: "Eliminar", pl: "Usuń" },
   "chats.renamePrompt": { en: "Rename this chat:", ar: "إعادة تسمية المحادثة:", fr: "Renommer cette discussion :", de: "Diesen Chat umbenennen:", es: "Renombrar este chat:", pl: "Zmień nazwę czatu:" },
+  "chats.manage": { en: "Manage chats", ar: "إدارة المحادثات", fr: "Gérer les discussions", de: "Chats verwalten", es: "Gestionar chats", pl: "Zarządzaj czatami" },
+  "nav.assets": { en: "Assets", ar: "الأصول", fr: "Ressources", de: "Medien", es: "Recursos", pl: "Zasoby" },
+  "nav.notifications": { en: "Notifications", ar: "الإشعارات", fr: "Notifications", de: "Benachrichtigungen", es: "Notificaciones", pl: "Powiadomienia" },
+  "nav.darkmode": { en: "Dark mode", ar: "الوضع الداكن", fr: "Mode sombre", de: "Dunkelmodus", es: "Modo oscuro", pl: "Tryb ciemny" },
+  "nav.lightmode": { en: "Light mode", ar: "الوضع الفاتح", fr: "Mode clair", de: "Hellmodus", es: "Modo claro", pl: "Tryb jasny" },
   "chats.deleteConfirm": { en: "Delete this chat?", ar: "حذف هذه المحادثة؟", fr: "Supprimer cette discussion ?", de: "Diesen Chat löschen?", es: "¿Eliminar este chat?", pl: "Usunąć ten czat?" },
 };
 

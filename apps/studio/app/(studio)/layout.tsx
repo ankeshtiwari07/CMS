@@ -1,19 +1,13 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/payload";
-import StudioAppShell from "@/components/studio/studio-app-shell";
+import ConsoleShell from "@/components/studio/console-shell";
 
 /**
- * Shared chrome for every Create Studio route — /studio, /design, /projects,
- * /search, /brand, /review and /settings.
+ * Create Studio routes — /studio, /design, /projects, /search, /brand, /review
+ * and /settings — share the ONE console shell with the CMS.
  *
- * A route group, so the URLs are unchanged. Previously each of those seven
- * surfaces imported the hand-rolled studio sidebar and wrapped itself in its own
- * `display:flex; minHeight:100vh` shell, which is why /studio and /cms could
- * drift apart. The shell now lives here, built on the @humain/ui AppShell recipe
- * exactly as app/cms/layout.tsx does, and pages supply only their panel content.
- *
- * Auth moves up here too: every one of those pages was calling getCurrentUser()
- * and redirecting on its own.
+ * There used to be two shells. They shared components but not composition, which
+ * is exactly how the two halves of the console kept drifting apart.
  */
 export const dynamic = "force-dynamic";
 
@@ -21,8 +15,8 @@ export default async function StudioLayout({ children }: { children: React.React
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   return (
-    <StudioAppShell user={{ name: user.name, email: user.email, roles: user.roles }}>
+    <ConsoleShell user={{ name: user.name, email: user.email, roles: user.roles }}>
       {children}
-    </StudioAppShell>
+    </ConsoleShell>
   );
 }

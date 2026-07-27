@@ -1,33 +1,28 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { AppSidebar, chatItemVariants, cn } from "@humain/ui";
-import { Pencil, Trash2 } from "lucide-react";
+import { AppSidebar, Button, Dialog, EmptyState, Input } from "@humain/ui";
+import { MessagesSquare, Pencil, Trash2 } from "lucide-react";
 import { useT } from "@/lib/i18n-client";
 
 type Chat = { id: string | number; title: string; mode?: string; pinned?: boolean; updatedAt?: string };
 
 /* =============================================================================
-   Per-user chat history in the sidebar. Lists the signed-in user's saved
-   conversations (topics); clicking one reopens the thread in the composer.
+   Per-user chat history.
+
+   The target design shows "Chats" as a COLLAPSED row with a chevron, not an
+   always-open list, so the list is now the children of an AppSidebar.NavItem —
+   which is the package's own collapsible-parent pattern.
+
+   AppSidebar.NavSub carries only a label and an onClick, so per-row rename and
+   delete cannot hang off it. Rather than drop those (they are real features),
+   the last child opens a "Manage chats" Dialog that does both. Nothing is lost;
+   it moves one click away, and the sidebar row stays a plain nav row as designed.
+
    The list refreshes whenever a thread is saved (humain:chatsaved).
-
-   Now rendered inside the package's AppSidebar.ChatList, which owns the section
-   label, the scroll region and — importantly — the collapsed behaviour: it
-   returns null on the icon rail, which is what the old hand-rolled list did with
-   its own `collapsed` prop. That prop is therefore gone; the shell no longer has
-   to tell this component how wide the sidebar is.
-
-   The rows are NOT AppSidebar.ChatItem. ChatItem renders a single <button> with
-   no action slot, so per-row rename/delete could only be reached through its
-   onContextMenu — and the package's ContextMenu.Trigger is itself a <button>,
-   which would nest interactive elements. Instead the rows use the package's
-   exported `chatItemVariants` (the same styling ChatItem uses) so the chrome is
-   identical while rename/delete stay as real sibling buttons.
    ============================================================================= */
-export default function ChatHistory() {
-  const t = useT();
-  const router = useRouter();
+
+export function useChats() {
   const [chats, setChats] = useState<Chat[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const loaded = useRef(false);
@@ -45,7 +40,6 @@ export default function ChatHistory() {
 
   useEffect(() => {
     if (!loaded.current) { loaded.current = true; load(); }
-    // A save refreshes the list and highlights the just-saved thread as active.
     const onSaved = (e: Event) => {
       const id = (e as CustomEvent).detail?.id;
       if (id) setActiveId(String(id));
@@ -60,76 +54,140 @@ export default function ChatHistory() {
     };
   }, []);
 
-  function open(id: string | number) {
-    setActiveId(String(id));
-    router.push("/studio");
-    setTimeout(() => globalThis.dispatchEvent(new CustomEvent("humain:loadchat", { detail: { id } })), 90);
-  }
+  return { chats, setChats, activeId, setActiveId, reload: load };
+}
+
+/** The NavSub rows that sit under the collapsible "Chats" item. */
+export function ChatNavItems({
+  chats,
+  activeId,
+  onOpen,
+  onManage,
+}: {
+  chats: Chat[];
+  activeId: string | null;
+  onOpen: (id: string | number) => void;
+  onManage: () => void;
+}) {
+  const t = useT();
+  return (
+    <>
+      {chats.length === 0 && <AppSidebar.NavSub label={t("chats.empty")} />}
+      {chats.map((c) => (
+        <AppSidebar.NavSub
+          key={c.id}
+          label={c.title || "—"}
+          isActive={activeId === String(c.id)}
+          onClick={() => onOpen(c.id)}
+        />
+      ))}
+      {chats.length > 0 && <AppSidebar.NavSub label={t("chats.manage")} onClick={onManage} />}
+    </>
+  );
+}
+
+/** Rename / delete, which NavSub cannot carry. */
+export function ManageChatsDialog({
+  open,
+  onOpenChange,
+  chats,
+  setChats,
+  activeId,
+  setActiveId,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  chats: Chat[];
+  setChats: React.Dispatch<React.SetStateAction<Chat[]>>;
+  activeId: string | null;
+  setActiveId: (v: string | null) => void;
+}) {
+  const t = useT();
+  const [editing, setEditing] = useState<string | null>(null);
+  const [draft, setDraft] = useState("");
 
   async function rename(c: Chat) {
-    const next = window.prompt(t("chats.renamePrompt"), c.title);
-    if (next == null) return;
-    const title = next.trim().slice(0, 120);
+    const title = draft.trim().slice(0, 120);
+    setEditing(null);
     if (!title || title === c.title) return;
     setChats((p) => p.map((x) => (x.id === c.id ? { ...x, title } : x)));
-    await fetch(`/api/conversations/${c.id}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ title }) }).catch(() => {});
+    await fetch(`/api/conversations/${c.id}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ title }),
+    }).catch(() => {});
   }
 
   async function remove(c: Chat) {
-    if (!window.confirm(t("chats.deleteConfirm"))) return;
     setChats((p) => p.filter((x) => x.id !== c.id));
-    if (activeId === String(c.id)) { setActiveId(null); globalThis.dispatchEvent(new CustomEvent("humain:newchat")); }
+    if (activeId === String(c.id)) {
+      setActiveId(null);
+      globalThis.dispatchEvent(new CustomEvent("humain:newchat"));
+    }
     await fetch(`/api/conversations/${c.id}`, { method: "DELETE" }).catch(() => {});
   }
 
   return (
-    <AppSidebar.ChatList label={t("chats.title")}>
-      {chats.length === 0 ? (
-        <p className="px-3 py-1 text-sm text-muted-foreground">{t("chats.empty")}</p>
-      ) : (
-        chats.map((c) => {
-          const on = activeId === String(c.id);
-          return (
-            <div
-              key={c.id}
-              role="listitem"
-              className={cn(chatItemVariants({ state: on ? "selected" : "default" }), "group/chat")}
-            >
-              <button
-                type="button"
-                onClick={() => open(c.id)}
-                title={c.title}
-                className={cn(
-                  "min-w-0 flex-1 cursor-pointer truncate text-start text-sm",
-                  on ? "font-semibold text-primary" : "text-sidebar-foreground",
-                )}
-              >
-                {c.title || "—"}
-              </button>
-              <span className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover/chat:opacity-100 focus-within:opacity-100 motion-reduce:transition-none">
-                <button
-                  type="button"
-                  aria-label={t("chats.rename")}
-                  title={t("chats.rename")}
-                  onClick={() => rename(c)}
-                  className="grid size-6 cursor-pointer place-items-center rounded-sm text-muted-foreground hover:bg-background focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                >
-                  <Pencil className="size-3.5" />
-                </button>
-                <button
-                  type="button"
-                  aria-label={t("chats.delete")}
-                  title={t("chats.delete")}
-                  onClick={() => remove(c)}
-                  className="grid size-6 cursor-pointer place-items-center rounded-sm text-destructive hover:bg-background focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                >
-                  <Trash2 className="size-3.5" />
-                </button>
-              </span>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <Dialog.Popup size="md">
+        <Dialog.Header>
+          <Dialog.Title>{t("chats.title")}</Dialog.Title>
+          <Dialog.Description>Rename or delete your saved threads.</Dialog.Description>
+        </Dialog.Header>
+        <Dialog.Body>
+          {chats.length === 0 ? (
+            <EmptyState
+              title={t("chats.empty")}
+              description="Threads you save from the composer appear here."
+              media="featured-icon"
+              icon={<MessagesSquare />}
+            />
+          ) : (
+            <div className="grid gap-2">
+              {chats.map((c) => (
+                <div key={c.id} className="flex items-center gap-2">
+                  {editing === String(c.id) ? (
+                    <Input
+                      value={draft}
+                      autoFocus
+                      aria-label={t("chats.rename")}
+                      className="flex-1"
+                      onChange={(e) => setDraft(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") rename(c);
+                        if (e.key === "Escape") setEditing(null);
+                      }}
+                      onBlur={() => rename(c)}
+                    />
+                  ) : (
+                    <span className="flex-1 truncate text-sm text-foreground">{c.title || "—"}</span>
+                  )}
+                  <Button
+                    appearance="ghost"
+                    variant="secondary"
+                    size="icon-sm"
+                    aria-label={t("chats.rename")}
+                    title={t("chats.rename")}
+                    onClick={() => { setEditing(String(c.id)); setDraft(c.title || ""); }}
+                  >
+                    <Pencil className="size-4" />
+                  </Button>
+                  <Button
+                    appearance="ghost"
+                    variant="destructive"
+                    size="icon-sm"
+                    aria-label={t("chats.delete")}
+                    title={t("chats.delete")}
+                    onClick={() => remove(c)}
+                  >
+                    <Trash2 className="size-4" />
+                  </Button>
+                </div>
+              ))}
             </div>
-          );
-        })
-      )}
-    </AppSidebar.ChatList>
+          )}
+        </Dialog.Body>
+      </Dialog.Popup>
+    </Dialog>
   );
 }

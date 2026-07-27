@@ -1,14 +1,11 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/payload";
-import CmsAppShell from "@/components/cms/cms-app-shell";
+import ConsoleShell from "@/components/studio/console-shell";
 
 /**
- * Shared chrome for every /cms route.
- *
- * Previously each page imported the hand-rolled studio Sidebar and wrapped
- * itself in a bespoke <main>. The shell now lives here, built on the
- * @humain/ui AppShell recipe, so all CMS surfaces share the exact package
- * layout and pages only supply their panel content.
+ * Every /cms route, on the same console shell as Create Studio. Pages, Data and
+ * Governance live under the CMS row's own sub-navigation rather than the top
+ * level, so the section owns its own structure.
  */
 export const dynamic = "force-dynamic";
 
@@ -16,8 +13,8 @@ export default async function CmsLayout({ children }: { children: React.ReactNod
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   return (
-    <CmsAppShell user={{ name: user.name, email: user.email, roles: user.roles }}>
+    <ConsoleShell user={{ name: user.name, email: user.email, roles: user.roles }}>
       {children}
-    </CmsAppShell>
+    </ConsoleShell>
   );
 }

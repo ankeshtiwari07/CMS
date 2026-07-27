@@ -1,23 +1,42 @@
-import { CmsCardPanel } from "@/components/cms/cms-app-shell";
-import Launcher from "@/components/cms/launcher";
+import { redirect } from "next/navigation";
+import { getCurrentUser } from "@/lib/payload";
+import { ConsolePanel } from "@/components/studio/console-shell";
+import CmsWorkspace from "@/components/cms/cms-workspace";
+import type { Tier } from "@/components/cms/cms-preview";
 
 export const metadata = { title: "Content Management · HUMAIN" };
 export const dynamic = "force-dynamic";
 
-// The bespoke 60px TopBar and the full-page gradient canvas are gone: chrome is
-// now the @humain/ui AppShell in app/cms/layout.tsx, and AppShell.Root supplies
-// the app background itself. Auth also moved to the layout.
+// Map the user's RBAC roles to the CMS workspace tier (gates starters/actions).
+function tierFor(roles: string[]): Tier {
+  if (roles.includes("admin") || roles.includes("siteAdmin")) return "Admin";
+  if (roles.includes("publisher") || roles.includes("reviewer") || roles.includes("compliance")) return "Editor";
+  if (roles.includes("author") || roles.includes("brand")) return "Marketer";
+  return "Standard";
+}
+
+/**
+ * The CMS landing is the agentic composer, not a tile grid.
+ *
+ * It used to be a grid of content-type tiles; those content types are still
+ * reachable — Templates in the sidebar goes to /cms/manage, and every collection
+ * is under the CMS row's sub-navigation and CMS Admin.
+ */
 export default async function CmsPage() {
-  // Title + supporting text belong to the card header, not the body — the
-  // package's panel contract is explicit that AppShellCard.Title is used once
-  // and never repeated inside the body.
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+  const roles = user.roles ?? [];
+  const canEdit = roles.some((r) => ["author", "reviewer", "publisher", "brand", "siteAdmin", "admin"].includes(r));
+  const canPublish = roles.some((r) => ["publisher", "siteAdmin", "admin"].includes(r));
+
   return (
-    <CmsCardPanel
-      label="Overview"
-      title="Content Management"
-      subtitle="Choose a content type to create and manage."
-    >
-      <Launcher />
-    </CmsCardPanel>
+    <ConsolePanel label="CMS">
+      <CmsWorkspace
+        user={{ name: user.name, email: user.email, roles }}
+        canEdit={canEdit}
+        canPublish={canPublish}
+        tier={tierFor(roles)}
+      />
+    </ConsolePanel>
   );
 }

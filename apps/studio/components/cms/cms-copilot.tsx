@@ -252,6 +252,22 @@ export default function CmsCopilot({ surface }: { surface: CopilotSurface }) {
             <AppShellCard.Subtitle>{cfg.label}</AppShellCard.Subtitle>
           </AppShellCard.Header>
           <AppShellCard.Actions>
+            {/* Stop lives in the toolbar, NOT in AIContainer.Input's `after`
+                slot: that slot renders as a plain block underneath the input, so
+                an icon button there reads as a stray square floating below the
+                composer rather than as a control. */}
+            {busy && (
+              <Button
+                appearance="ghost"
+                variant="secondary"
+                size="icon-sm"
+                aria-label="Stop generating"
+                title="Stop generating"
+                onClick={() => abortRef.current?.abort()}
+              >
+                <Square className="size-4" />
+              </Button>
+            )}
             <Button
               appearance="ghost"
               variant="secondary"
@@ -311,20 +327,6 @@ export default function CmsCopilot({ surface }: { surface: CopilotSurface }) {
             )}
           </AIContainer.Messages>
           <AIContainer.Input
-            after={
-              busy ? (
-                <Button
-                  appearance="ghost"
-                  variant="secondary"
-                  size="icon-sm"
-                  aria-label="Stop generating"
-                  title="Stop"
-                  onClick={() => abortRef.current?.abort()}
-                >
-                  <Square className="size-4" />
-                </Button>
-              ) : undefined
-            }
             inputProps={{
               variant: "compact",
               value: input,

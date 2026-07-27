@@ -1,68 +1,73 @@
 "use client";
-import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Button } from "@humain/ui";
 import {
-  DocIcon, BookIcon, MegaphoneIcon, CalendarIcon, BoxIcon, BookmarkIcon, QuestionIcon,
-  UserCircleIcon, GalleryIcon, MicIcon, BuildingIcon,
-} from "@/components/icons";
+  BookOpen,
+  Bookmark,
+  Building2,
+  Calendar,
+  CircleHelp,
+  CircleUser,
+  FileText,
+  Images,
+  Megaphone,
+  Mic,
+  Package,
+} from "lucide-react";
+
+/* =============================================================================
+   Content-type launcher.
+
+   Migrated onto the package per references/adoption.md §4 (Plain HTML/CSS):
+   `<button class="...">` -> `Button`. The tiles used to hand-roll their own lime
+   gradient, border, shadow and hover lift in inline styles; they now use the
+   package's own `appearance="gradient"`, which is the aligned treatment and
+   themes with Foundation instead of being a transcribed rgba() pair.
+
+   Icons are lucide, matching cms-app-shell and the rest of the CMS chrome.
+
+   The page title moved OUT of here into the panel's AppShellCard header
+   (app/cms/page.tsx), because the package's generated-output contract is
+   explicit: use AppShellCard.Header for every titled product panel, and do not
+   repeat the card title inside the body.
+   ============================================================================= */
 
 // Tiles map to the manage route; the 4 core content types open the tabbed form,
 // the rest open a single-type form. `type` is the console content-types key.
 const TILES = [
-  { type: "blog", label: "BLOG", Icon: DocIcon },
-  { type: "articles", label: "ARTICLE", Icon: BookIcon },
-  { type: "press", label: "PRESS RELEASES", Icon: MegaphoneIcon },
-  { type: "events", label: "EVENTS", Icon: CalendarIcon },
-  { type: "products", label: "PRODUCTS", Icon: BoxIcon },
-  { type: "caseStudies", label: "CASE STUDIES", Icon: BookmarkIcon },
-  { type: "faqs", label: "FAQ", Icon: QuestionIcon },
-  { type: "leadership", label: "LEADERSHIP PROFILES", Icon: UserCircleIcon },
-  { type: "careers", label: "CAREERS", Icon: BuildingIcon },
-  { type: "mediaGalleries", label: "MEDIA GALLERIES", Icon: GalleryIcon },
-  { type: "campaignMicrosites", label: "CAMPAIGN MICROSITES", Icon: MicIcon },
+  { type: "blog", label: "BLOG", Icon: FileText },
+  { type: "articles", label: "ARTICLE", Icon: BookOpen },
+  { type: "press", label: "PRESS RELEASES", Icon: Megaphone },
+  { type: "events", label: "EVENTS", Icon: Calendar },
+  { type: "products", label: "PRODUCTS", Icon: Package },
+  { type: "caseStudies", label: "CASE STUDIES", Icon: Bookmark },
+  { type: "faqs", label: "FAQ", Icon: CircleHelp },
+  { type: "leadership", label: "LEADERSHIP PROFILES", Icon: CircleUser },
+  { type: "careers", label: "CAREERS", Icon: Building2 },
+  { type: "mediaGalleries", label: "MEDIA GALLERIES", Icon: Images },
+  { type: "campaignMicrosites", label: "CAMPAIGN MICROSITES", Icon: Mic },
 ];
 
 export default function Launcher() {
   const router = useRouter();
-  const [hover, setHover] = useState<string | null>(null);
   return (
-    <div style={{ maxWidth: 1180, margin: "0 auto", padding: "40px 28px 60px" }}>
-      {/* Text now sits on the light AppShell canvas (the old dark CMS gradient
-          is gone), so header colours use theme-aware tokens, not white. */}
-      <h1 style={{ color: "var(--foreground)", fontSize: 24, fontWeight: 700, margin: "0 0 4px" }}>Content Management</h1>
-      <p style={{ color: "var(--muted-foreground)", margin: "0 0 28px", fontSize: 14.5 }}>
-        Choose a content type to create and manage.
-      </p>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 18 }}>
-        {TILES.map(({ type, label, Icon }) => (
-          <button
-            key={type}
-            onMouseEnter={() => setHover(type)}
-            onMouseLeave={() => setHover(null)}
-            onClick={() => router.push(`/cms/manage?type=${type}`)}
-            style={{
-              aspectRatio: "1 / 1",
-              border: "1px solid rgba(194,229,75,0.25)",
-              borderRadius: 18,
-              background: "linear-gradient(150deg, rgba(191,235,200,0.92) 0%, rgba(212,240,150,0.92) 100%)",
-              boxShadow: hover === type ? "0 12px 30px rgba(0,0,0,0.35)" : "0 6px 18px rgba(0,0,0,0.25)",
-              transform: hover === type ? "translateY(-3px)" : "none",
-              transition: "all .15s",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 14,
-              color: "var(--on-brand-ink)",
-              cursor: "pointer",
-              padding: 16,
-            }}
-          >
-            <Icon size={30} color="var(--on-brand-ink)" />
-            <span style={{ fontSize: 13, fontWeight: 700, letterSpacing: "0.06em", textAlign: "center", lineHeight: 1.25 }}>{label}</span>
-          </button>
-        ))}
-      </div>
+    // Responsive: the old grid was a hard `repeat(5, 1fr)`, which is a
+    // horizontal-overflow risk on narrow viewports.
+    <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+      {TILES.map(({ type, label, Icon }) => (
+        <Button
+          key={type}
+          appearance="gradient"
+          variant="primary"
+          onClick={() => router.push(`/cms/manage?type=${type}`)}
+          className="h-auto w-full flex-col justify-center gap-3.5 whitespace-normal p-4 aspect-square"
+        >
+          <Icon className="size-7 shrink-0" />
+          <span className="text-center text-[13px] font-bold leading-tight tracking-[0.06em]">
+            {label}
+          </span>
+        </Button>
+      ))}
     </div>
   );
 }

@@ -1,5 +1,7 @@
 "use client";
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Alert, Badge, Button, Select, SelectItem } from "@humain/ui";
+import { ArrowUp } from "lucide-react";
 
 // ---------- types (mirror apps/ai-service/src/deck.ts) ----------
 type Theme = { id: string; name: string; bg: string; surface: string; fg: string; muted: string; accent: string; accent2: string; font: string; heading: string; radius: number };
@@ -392,7 +394,7 @@ export default function DeckStudio({ deckId, userName }: { deckId: string | null
     ];
     return (
       <div style={{ ...pane, height: "100%", minHeight: 0, position: "relative" }}>
-        {notice && <div style={{ position: "fixed", top: 16, right: 16, background: "var(--studio-primary)", color: "var(--primary-foreground)", padding: "8px 14px", borderRadius: 8, zIndex: 60 }}>{notice}</div>}
+        {notice && <div className="absolute inset-x-4 top-4 z-50"><Alert variant="success">{notice}</Alert></div>}
         <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24 }}>
           {/* fanned deck previews */}
           <div style={{ position: "relative", width: 420, height: 150, marginBottom: 34 }}>
@@ -406,23 +408,37 @@ export default function DeckStudio({ deckId, userName }: { deckId: string | null
               onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); if (compose.trim()) { startFromPrompt(compose); setCompose(""); } } }}
               placeholder="What topics should your deck include? Tell the main points and visuals." rows={2}
               style={{ width: "100%", border: "none", outline: "none", resize: "none", fontSize: 16, color: "var(--ink)", minHeight: 30, background: "transparent", fontFamily: "inherit" }} />
-            <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap", alignItems: "center" }}>
-              <select value={deckType} onChange={(e) => setDeckType(e.target.value as any)} style={chip} title="Deck Type">
-                <option value="HTML">🖥 HTML</option><option value="Images">🖼 Images</option>
-              </select>
-              <select value={themeId} onChange={(e) => setThemeId(e.target.value)} style={chip} title="Theme">
-                {themes.map((th) => <option key={th.id} value={th.id}>🎨 {th.name}</option>)}
-              </select>
-              <select value={style} onChange={(e) => setStyle(e.target.value)} style={chip} title="Style">
-                {["Story Telling", "Data-driven", "Minimal", "Persuasive", "Technical"].map((s) => <option key={s} value={s}>✎ {s}</option>)}
-              </select>
-              <select value={slideCount} onChange={(e) => setSlideCount(Number(e.target.value))} style={chip} title="Slides">
-                {[6, 8, 10, 12, 15].map((n) => <option key={n} value={n}># {n} Slides</option>)}
-              </select>
-              <span style={{ marginInlineStart: "auto" }} />
-              <span style={{ ...chip, background: "var(--mint-pill)", color: "var(--studio-teal-dark)", border: "none" }}>Claude Opus 4.8</span>
-              <button style={{ width: 40, height: 34, borderRadius: 999, border: "none", background: "var(--studio-primary)", color: "var(--primary-foreground)", cursor: "pointer", fontSize: 18 }}
-                disabled={!compose.trim()} onClick={() => { if (compose.trim()) { startFromPrompt(compose); setCompose(""); } }}>↑</button>
+            <div className="mt-2.5 flex flex-wrap items-center gap-2">
+              {/* Native <select> x4 -> the package's flat Select API. The old
+                  ones were styled as pills with emoji glyphs baked into the
+                  option text, which no assistive tech could make sense of. */}
+              <Select value={deckType} onValueChange={(v) => setDeckType(String(v) as any)}>
+                <SelectItem value="HTML">HTML</SelectItem>
+                <SelectItem value="Images">Images</SelectItem>
+              </Select>
+              <Select value={themeId} onValueChange={(v) => setThemeId(String(v))}>
+                {themes.map((th) => <SelectItem key={th.id} value={th.id}>{th.name}</SelectItem>)}
+              </Select>
+              <Select value={style} onValueChange={(v) => setStyle(String(v))}>
+                {["Story Telling", "Data-driven", "Minimal", "Persuasive", "Technical"].map((sv) => (
+                  <SelectItem key={sv} value={sv}>{sv}</SelectItem>
+                ))}
+              </Select>
+              <Select value={String(slideCount)} onValueChange={(v) => setSlideCount(Number(v))}>
+                {[6, 8, 10, 12, 15].map((n) => <SelectItem key={n} value={String(n)}>{n} slides</SelectItem>)}
+              </Select>
+              <div className="flex-1" />
+              <Badge variant="soft" color="primary" size="sm">Claude Opus 4.8</Badge>
+              <Button
+                shape="round"
+                size="icon-sm"
+                aria-label="Start the deck"
+                title="Start"
+                disabled={!compose.trim()}
+                onClick={() => { if (compose.trim()) { startFromPrompt(compose); setCompose(""); } }}
+              >
+                <ArrowUp className="size-4" />
+              </Button>
             </div>
           </div>
         </div>
@@ -432,7 +448,7 @@ export default function DeckStudio({ deckId, userName }: { deckId: string | null
 
   return (
     <div style={{ display: "flex", gap: 12, height: "100%", minHeight: 0 }}>
-      {notice && <div style={{ position: "fixed", top: 16, right: 16, background: "var(--studio-primary)", color: "var(--primary-foreground)", padding: "8px 14px", borderRadius: 8, zIndex: 60 }}>{notice}</div>}
+      {notice && <div className="absolute inset-x-4 top-4 z-50"><Alert variant="success">{notice}</Alert></div>}
 
       {/* ---------------- LEFT: chat ---------------- */}
       <div style={{ ...pane, width: 440, flexShrink: 0 }}>

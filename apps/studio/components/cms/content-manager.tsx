@@ -3,9 +3,41 @@ import { useMemo, useState } from "react";
 import { useLocale } from "@/lib/i18n-client";
 import { useRouter } from "next/navigation";
 import { CORE_TABS, ALL_TABS, findTab, type FieldDef } from "@/lib/content-types";
-import { DocIcon, BookIcon, MegaphoneIcon, CalendarIcon, StarIcon, ArrowUpRightIcon } from "@/components/icons";
+import {
+  Alert,
+  AppShellCard,
+  Badge,
+  Button,
+  Field,
+  Input,
+  Separator,
+  Tabs,
+  Textarea,
+} from "@humain/ui";
+import { ArrowLeft, BookOpen, Calendar, FileText, Megaphone, Sparkles } from "lucide-react";
 
-const ICONS: Record<string, any> = { doc: DocIcon, book: BookIcon, megaphone: MegaphoneIcon, calendar: CalendarIcon };
+/* =============================================================================
+   Content Manager — tabbed content-type forms with agentic prefill.
+
+   Migrated onto @humain/ui per adoption.md §4 and the package skill:
+     hand-rolled pill tabs -> Tabs (Tabs.List / Tabs.Trigger)
+     template cards        -> outline Buttons + a Default Badge, not Card
+                              (a Card inside a Card is never correct)
+     <input>/<textarea>    -> Input / Textarea in Field
+     <button> x6           -> Button
+     read-only + AI notes  -> Alert
+     fixed-position toast  -> Alert
+     back link             -> Button in AppShellCard.Header
+
+   Behaviour untouched: the same 12-column field grid, template auto-draft,
+   AI-brief re-draft, the canEdit/canPublish gating and the draft/publish
+   submissions with their approval routing.
+
+   The local field renderer is renamed FormField — the package now owns the name
+   `Field`.
+   ============================================================================= */
+
+const ICONS: Record<string, any> = { doc: FileText, book: BookOpen, megaphone: Megaphone, calendar: Calendar };
 
 type Values = Record<string, string>;
 
@@ -99,256 +131,180 @@ export default function ContentManager({ initialType = "blog", canEdit = true, c
   }
 
   return (
-    <div style={{ maxWidth: 1180, margin: "0 auto", padding: "26px 28px 60px" }}>
-      <button
-        onClick={() => router.push("/cms")}
-        style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "transparent", border: "none", color: "var(--muted-foreground)", fontSize: 13, marginBottom: 8, cursor: "pointer" }}
-      >
-        ← Content Management
-      </button>
-      {/* Header sits on the light AppShell canvas now — theme-aware text, not white. */}
-      <h1 style={{ color: "var(--foreground)", fontSize: 24, fontWeight: 700, margin: 0 }}>{isCore ? "Content Management" : tab.label}</h1>
-      <p style={{ color: "var(--muted-foreground)", margin: "5px 0 20px", fontSize: 14.5 }}>{tab.subtitle}</p>
+    <AppShellCard>
+      <AppShellCard.Toolbar>
+        <AppShellCard.Header>
+          <AppShellCard.Title>{isCore ? "Content Management" : tab.label}</AppShellCard.Title>
+          <AppShellCard.Subtitle>{tab.subtitle}</AppShellCard.Subtitle>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <Button
+              appearance="ghost"
+              variant="secondary"
+              size="sm"
+              startIcon={<ArrowLeft className="size-4" />}
+              onClick={() => router.push("/cms")}
+            >
+              Content Management
+            </Button>
+          </div>
+        </AppShellCard.Header>
+      </AppShellCard.Toolbar>
 
-      {/* Tabs (core content types only) */}
+      {toast && (
+        <Alert variant={toast.kind === "ok" ? "success" : "destructive"} className="mb-4">
+          {toast.msg}
+        </Alert>
+      )}
+
+      {/* Core content types */}
       {isCore && (
-        <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-          {CORE_TABS.map((t) => {
-            const Icon = ICONS[t.icon];
-            const active = t.key === activeKey;
-            return (
-              <button
-                key={t.key}
-                onClick={() => setActiveKey(t.key)}
-                style={{
-                  display: "inline-flex", alignItems: "center", gap: 8, height: 42, padding: "0 18px",
-                  borderRadius: "var(--r-pill)", border: "none", fontWeight: 600, fontSize: 14.5,
-                  background: active ? "var(--lime)" : "var(--deep-teal)",
-                  // Active pill is lime (theme-invariant) -> ink must not flip;
-                  // inactive pill is deep-teal (dark in both themes) -> white is fine.
-                  color: active ? "var(--on-brand-ink)" : "rgba(255,255,255,0.86)",
-                }}
-              >
-                <Icon size={17} color={active ? "var(--on-brand-ink)" : "rgba(255,255,255,0.86)"} /> {t.label}
-              </button>
-            );
-          })}
-        </div>
+        <Tabs value={activeKey} onValueChange={(v) => setActiveKey(String(v))}>
+          <Tabs.List>
+            {CORE_TABS.map((t) => {
+              const Icon = ICONS[t.icon];
+              return (
+                <Tabs.Trigger key={t.key} value={t.key}>
+                  <Icon className="me-1.5 inline size-4 align-middle" />
+                  {t.label}
+                </Tabs.Trigger>
+              );
+            })}
+          </Tabs.List>
+        </Tabs>
       )}
 
       {/* Templates */}
       {tab.templates.length > 0 && (
-      <div style={{ marginTop: 24 }}>
-        <div style={{ color: "var(--foreground)", fontWeight: 600, fontSize: 14.5, marginBottom: 12 }}>Select Template</div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0,260px))", gap: 16 }}>
-          {tab.templates.map((tpl) => {
-            const selected = templates[activeKey] === tpl.key;
-            return (
-              <div
-                key={tpl.key}
-                style={{
-                  position: "relative",
-                  background: "var(--surface)",
-                  borderRadius: 14,
-                  padding: "16px 16px 14px",
-                  boxShadow: selected ? "0 0 0 2px var(--lime)" : "var(--shadow-card)",
-                }}
-              >
-                {selected && (
-                  <span
-                    style={{
-                      position: "absolute",
-                      top: -10,
-                      right: -8,
-                      width: 26,
-                      height: 26,
-                      borderRadius: "50%",
-                      background: "var(--lime)",
-                      display: "grid",
-                      placeItems: "center",
-                    }}
-                  >
-                    <StarIcon size={13} color="var(--background)" />
-                  </span>
-                )}
-                <div style={{ color: "var(--label)", fontWeight: 700, fontSize: 15.5 }}>{tpl.name}</div>
-                <div style={{ color: "var(--text-muted)", fontSize: 13, margin: "3px 0 12px" }}>{tpl.desc}</div>
-                <button
+        <>
+          <Separator className="my-4" label="Select template" />
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {tab.templates.map((tpl) => {
+              const selected = templates[activeKey] === tpl.key;
+              return (
+                <Button
+                  key={tpl.key}
+                  appearance={selected ? "soft" : "outline"}
+                  variant={selected ? "primary" : "secondary"}
                   onClick={() => { setTemplates((s) => ({ ...s, [activeKey]: tpl.key })); suggest({ tpl: tpl.key, auto: true }); }}
-                  style={{
-                    height: 30,
-                    padding: "0 14px",
-                    borderRadius: "var(--r-pill)",
-                    border: "none",
-                    background: "var(--lime)",
-                    color: "var(--on-brand-ink)",
-                    fontWeight: 700,
-                    fontSize: 12.5,
-                    opacity: selected ? 1 : 0.78,
-                  }}
+                  className="block h-auto w-full whitespace-normal p-4 text-start"
                 >
-                  {selected ? "Default" : "Set Default"}
-                </button>
-              </div>
-            );
-          })}
-        </div>
-      </div>
+                  <span className="flex items-start justify-between gap-2">
+                    <span className="min-w-0 flex-1 text-sm font-semibold text-foreground">{tpl.name}</span>
+                    {selected && <Badge variant="soft" color="primary" size="xs">Default</Badge>}
+                  </span>
+                  <span className="mt-1 block text-xs text-secondary-foreground">{tpl.desc}</span>
+                </Button>
+              );
+            })}
+          </div>
+        </>
       )}
 
-      {/* Form panel */}
-      <div
-        style={{
-          marginTop: 26,
-          background: "var(--surface)",
-          borderRadius: "var(--r-card)",
-          padding: "26px 28px 22px",
-          boxShadow: "var(--shadow-card)",
-        }}
-      >
-        <h2 style={{ color: "var(--label)", fontSize: 18, fontWeight: 700, margin: "0 0 14px" }}>{tab.formTitle}</h2>
+      <Separator className="my-5" />
 
-        {!canEdit && (
-          <div style={{ fontSize: 13.5, color: "var(--text-muted)", background: "var(--soft-bg)", border: "1px solid var(--hairline)", borderRadius: 12, padding: "12px 14px", marginBottom: 14 }}>
-            🔒 You have <b>read-only</b> access. Content authoring is available to editor roles.
+      <h3 className="mb-3 text-lg font-semibold text-foreground">{tab.formTitle}</h3>
+
+      {!canEdit && (
+        <Alert variant="warning" className="mb-4">
+          You have <b>read-only</b> access. Content authoring is available to editor roles.
+        </Alert>
+      )}
+
+      {/* Agentic prefill — the agent proposes a draft, the human edits. */}
+      {canEdit && (
+        <>
+          <div className="mb-2 flex flex-wrap items-center gap-2">
+            <Input
+              value={brief}
+              onChange={(e) => setBrief(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter" && !suggesting) suggest(); }}
+              aria-label="Brief for the AI draft"
+              placeholder="Selecting a template auto-drafts. Add a brief to steer it, then re-draft."
+              className="min-w-64 flex-1"
+            />
+            <Button
+              loading={suggesting}
+              disabled={suggesting}
+              startIcon={<Sparkles className="size-4" />}
+              onClick={() => suggest()}
+            >
+              {suggesting ? "Drafting…" : "Draft with AI"}
+            </Button>
           </div>
-        )}
+          {aiFilled && (
+            <Alert variant="info" className="mb-4">
+              AI-suggested draft — review and edit every field before saving. Agents propose, you decide.
+            </Alert>
+          )}
+        </>
+      )}
 
-        {/* Agentic prefill — agent proposes a draft, human edits */}
-        {canEdit && (
-          <>
-            <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 8, padding: "11px 13px", background: "var(--brand-tint)", borderRadius: 12, border: "1px solid var(--hairline)" }}>
-              <span style={{ fontSize: 17, lineHeight: 1 }}>✨</span>
-              <input
-                value={brief}
-                onChange={(e) => setBrief(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter" && !suggesting) suggest(); }}
-                placeholder={`Selecting a template auto-drafts. Add a brief to steer it, then re-draft.`}
-                style={{ flex: 1, height: 40, border: "1px solid var(--hairline)", borderRadius: 10, padding: "0 12px", fontSize: 14, color: "var(--ink)", background: "var(--card)", outline: "none" }}
-              />
-              <button
-                onClick={() => suggest()}
-                disabled={suggesting}
-                style={{ height: 40, padding: "0 18px", borderRadius: "var(--r-pill)", border: "none", background: "var(--studio-primary, var(--teal-accent))", color: "var(--primary-foreground)", fontWeight: 700, fontSize: 13.5, whiteSpace: "nowrap", cursor: "pointer" }}
-              >
-                {suggesting ? "Drafting…" : "✨ Draft with AI"}
-              </button>
-            </div>
-            {aiFilled && (
-              <div style={{ fontSize: 12.5, color: "var(--studio-teal-dark, var(--deep-teal))", margin: "0 0 16px", display: "flex", alignItems: "center", gap: 6 }}>
-                AI-suggested draft — review &amp; edit every field before saving. Agents propose, you decide.
-              </div>
-            )}
-          </>
-        )}
+      <div className="grid grid-cols-12 gap-x-5 gap-y-4">
+        {tab.fields.map((f) => (
+          <FormField key={f.name} f={f} value={v[f.name] || ""} onChange={(val) => setField(f.name, val)} />
+        ))}
+      </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(12, 1fr)", gap: "18px 20px" }}>
-          {tab.fields.map((f) => (
-            <Field key={f.name} f={f} value={v[f.name] || ""} onChange={(val) => setField(f.name, val)} />
-          ))}
-        </div>
-
-        {canEdit && (
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 14, marginTop: 26 }}>
-            <span style={{ fontSize: 12.5, color: "var(--text-muted)" }}>
+      {canEdit && (
+        <>
+          <Separator className="my-5" />
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <span className="text-sm text-secondary-foreground">
               {canPublish
                 ? "You can publish — content still passes the required approval stages first."
                 : "Saved drafts are routed to the Review queue for human approval before publishing."}
             </span>
-            <div style={{ display: "flex", gap: 14 }}>
-              <button
-                onClick={() => submit("draft")}
+            <div className="flex flex-wrap gap-3">
+              <Button
+                appearance="outline"
+                variant="secondary"
+                loading={busy === "draft"}
                 disabled={busy !== null}
-                style={{ height: 46, padding: "0 30px", borderRadius: 12, border: "none", background: "var(--lime)", color: "var(--on-brand-ink)", fontWeight: 700, fontSize: 15 }}
+                onClick={() => submit("draft")}
               >
-                {busy === "draft" ? "Saving…" : canPublish ? "Save Draft" : "Save & send for review"}
-              </button>
+                {busy === "draft" ? "Saving…" : canPublish ? "Save draft" : "Save & send for review"}
+              </Button>
               {canPublish && (
-                <button
-                  onClick={() => submit("published")}
-                  disabled={busy !== null}
-                  style={{ height: 46, padding: "0 34px", borderRadius: 12, border: "none", background: "var(--publish-blue)", color: "var(--primary-foreground)", fontWeight: 700, fontSize: 15 }}
-                >
+                <Button loading={busy === "published"} disabled={busy !== null} onClick={() => submit("published")}>
                   {busy === "published" ? "Publishing…" : "Publish"}
-                </button>
+                </Button>
               )}
             </div>
           </div>
-        )}
-      </div>
-
-      {toast && (
-        <div
-          role="status"
-          style={{
-            position: "fixed",
-            bottom: 24,
-            left: "50%",
-            transform: "translateX(-50%)",
-            background: toast.kind === "ok" ? "var(--publish-blue)" : "var(--destructive)",
-            color: "var(--primary-foreground)",
-            padding: "12px 20px",
-            borderRadius: 12,
-            fontWeight: 600,
-            fontSize: 14,
-            boxShadow: "var(--shadow-card)",
-            zIndex: 100,
-          }}
-          onAnimationEnd={() => {}}
-        >
-          {toast.msg}
-        </div>
+        </>
       )}
-    </div>
+    </AppShellCard>
   );
 }
 
-function Field({ f, value, onChange }: { f: FieldDef; value: string; onChange: (v: string) => void }) {
-  const span = `span ${f.col}`;
-  const labelEl = (
-    <label style={{ display: "block", color: "var(--label)", fontWeight: 600, fontSize: 13.5, marginBottom: 7 }}>
-      {f.label}
-    </label>
-  );
-  const common: React.CSSProperties = {
-    width: "100%",
-    border: "1px solid var(--hairline)",
-    borderRadius: "var(--r-input)",
-    padding: "11px 13px",
-    fontSize: 14.5,
-    color: "var(--ink)",
-    outline: "none",
-    background: "var(--card)",
-  };
-  const focus = {
-    onFocus: (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-      (e.currentTarget.style.borderColor = "var(--studio-primary)"),
-    onBlur: (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-      (e.currentTarget.style.borderColor = "var(--hairline)"),
-  };
-
+/**
+ * One form field on the 12-column grid.
+ *
+ * The column span is a runtime value from the content-type definition, so it
+ * stays an inline style: the package's utility layer is precompiled and an
+ * arbitrary `col-span-[n]` would silently not exist.
+ */
+function FormField({ f, value, onChange }: { f: FieldDef; value: string; onChange: (v: string) => void }) {
   return (
-    <div style={{ gridColumn: span }}>
-      {labelEl}
-      {f.type === "textarea" || f.type === "richtext" ? (
-        <textarea
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={f.placeholder}
-          rows={f.type === "richtext" ? 6 : 3}
-          style={{ ...common, resize: "vertical", minHeight: f.type === "richtext" ? 130 : 70 }}
-          {...focus}
-        />
-      ) : (
-        <input
-          type={f.type === "date" ? "date" : f.type === "time" ? "time" : "text"}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={f.placeholder}
-          style={common}
-          {...focus}
-        />
-      )}
+    <div style={{ gridColumn: `span ${f.col}` }}>
+      <Field>
+        <Field.Label>{f.label}</Field.Label>
+        {f.type === "textarea" || f.type === "richtext" ? (
+          <Textarea
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder={f.placeholder}
+            rows={f.type === "richtext" ? 6 : 3}
+          />
+        ) : (
+          <Input
+            type={f.type === "date" ? "date" : f.type === "time" ? "time" : "text"}
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder={f.placeholder}
+          />
+        )}
+      </Field>
     </div>
   );
 }

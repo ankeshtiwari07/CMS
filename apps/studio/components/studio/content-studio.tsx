@@ -1,5 +1,34 @@
 "use client";
 import React, { useEffect, useRef, useState } from "react";
+import {
+  Alert,
+  AppShellCard,
+  Button,
+  DropdownMenu,
+  Field,
+  Input,
+  LoadingIndicator,
+  Separator,
+  Textarea,
+} from "@humain/ui";
+import { ArrowLeft, ChevronDown, ChevronUp, Plus, RefreshCw, X } from "lucide-react";
+
+/* =============================================================================
+   Content Studio — plan an outline, write it section by section, edit, export.
+
+   Migrated onto @humain/ui per adoption.md §4 and the package skill:
+     <button>            -> Button (headers keep two visible; the MD/HTML/DOC
+                            exports moved into AppShellCard.Menu)
+     <input>/<textarea>  -> Input / Textarea, labelled through Field
+     error + toast divs  -> Alert
+     hand-rolled spinner -> LoadingIndicator. The old one injected its own
+                            @keyframes into the document from inside render.
+     bordered section divs -> Separator + spacing (a Card inside a Card is
+                            never correct per the skill)
+
+   Behaviour is untouched: same outline/article/section/save endpoints, same
+   auto-run from ?prompt=, same markdown renderer, same export blobs and slug.
+   ============================================================================= */
 
 type Section = { id: string; heading: string; body: string };
 type OutlineItem = { heading: string; intent: string };
@@ -90,79 +119,264 @@ export default function ContentStudio({ projectId }: { projectId: string | null 
     try { const r = await fetch("/api/article/save", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ id: savedId, title, subtitle, prompt, sections }) }); const j = await r.json(); if (!r.ok) throw new Error(j.error || "Save failed"); setSavedId(j.id); flash("Saved to Projects"); } catch (e: any) { flash(e.message); } finally { setBusy(""); }
   };
 
-  const shell: React.CSSProperties = { background: "var(--card)", borderRadius: 14, minHeight: "100%", padding: 24, boxShadow: "0 1px 3px rgba(0,0,0,.06)" };
-  const btn = (x?: React.CSSProperties): React.CSSProperties => ({ padding: "8px 13px", borderRadius: 9, border: "1px solid var(--hairline)", background: "var(--card-bg,#fff)", cursor: "pointer", fontSize: 13, fontWeight: 600, color: "var(--ink)", ...x });
-  const primaryBtn = btn({ background: "var(--studio-primary)", color: "var(--primary-foreground)", border: "none" });
 
   if (phase === "prompt") {
-    return (<div style={shell}><div style={{ maxWidth: 760, margin: "6vh auto 0" }}>
-      <div style={{ fontSize: 13, fontWeight: 700, color: "var(--studio-primary)", letterSpacing: 1 }}>CONTENT STUDIO</div>
-      <h1 style={{ fontSize: 32, margin: "8px 0 6px", color: "var(--ink)" }}>Write long-form content</h1>
-      <p style={{ color: "var(--text-muted)", marginTop: 0 }}>Describe the article, blog or press piece. HUMAIN plans an outline you can edit, writes it section by section, and lets you refine, export (MD / HTML / DOC) and save.</p>
-      <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder="e.g. A 1,200-word thought-leadership article on sovereign AI for enterprises in the Gulf — audience: CIOs; confident, practical tone." style={{ width: "100%", minHeight: 140, padding: 16, borderRadius: 12, border: "1px solid var(--hairline)", fontSize: 16, resize: "vertical", fontFamily: "inherit", background: "var(--card-bg,#fff)", color: "var(--ink)" }} />
-      {err && <div style={{ color: "var(--destructive)", marginTop: 12 }}>{err}</div>}
-      <div style={{ display: "flex", gap: 12, marginTop: 20 }}>
-        <button style={primaryBtn} disabled={!!busy || !prompt.trim()} onClick={genOutline}>{busy || "Plan outline →"}</button>
-        <button style={btn()} disabled={!!busy || !prompt.trim()} onClick={() => genArticle(false)}>Skip — write it now</button>
-      </div></div></div>);
+    return (
+      <AppShellCard>
+        <AppShellCard.Header>
+          <AppShellCard.Title>Write long-form content</AppShellCard.Title>
+          <AppShellCard.Subtitle>
+            Describe the article, blog or press piece. HUMAIN plans an outline you can edit, writes
+            it section by section, and lets you refine, export (MD / HTML / DOC) and save.
+          </AppShellCard.Subtitle>
+        </AppShellCard.Header>
+        <div className="mx-auto max-w-3xl">
+          <Field>
+            <Field.Label>Brief</Field.Label>
+            <Textarea
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              rows={6}
+              placeholder="e.g. A 1,200-word thought-leadership article on sovereign AI for enterprises in the Gulf — audience: CIOs; confident, practical tone."
+            />
+          </Field>
+          {err && <Alert variant="destructive" className="mt-3">{err}</Alert>}
+          <div className="mt-5 flex flex-wrap gap-3">
+            <Button loading={!!busy} disabled={!!busy || !prompt.trim()} onClick={genOutline}>
+              {busy || "Plan outline"}
+            </Button>
+            <Button
+              appearance="outline"
+              variant="secondary"
+              disabled={!!busy || !prompt.trim()}
+              onClick={() => genArticle(false)}
+            >
+              Skip — write it now
+            </Button>
+          </div>
+        </div>
+      </AppShellCard>
+    );
   }
 
   if (phase === "outline") {
-    return (<div style={shell}><div style={{ maxWidth: 760, margin: "3vh auto 0" }}>
-      <button style={btn({ marginBottom: 14 })} onClick={() => setPhase("prompt")}>← Back</button>
-      <input value={title} onChange={(e) => setTitle(e.target.value)} style={{ width: "100%", fontSize: 26, fontWeight: 700, border: "none", borderBottom: "2px solid var(--hairline)", padding: "6px 2px", color: "var(--ink)", background: "transparent", marginBottom: 14 }} />
-      <div style={{ fontSize: 12, fontWeight: 700, color: "var(--text-muted)", marginBottom: 10 }}>OUTLINE — edit, reorder or remove before writing</div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        {outline.map((o, i) => (
-          <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start", padding: 12, borderRadius: 10, border: "1px solid var(--hairline)", background: "var(--soft-bg)" }}>
-            <span style={{ color: "var(--studio-primary)", fontWeight: 800, minWidth: 22 }}>{i + 1}</span>
-            <div style={{ flex: 1 }}>
-              <input value={o.heading} onChange={(e) => setOutline((os) => os.map((x, k) => k === i ? { ...x, heading: e.target.value } : x))} style={{ width: "100%", fontWeight: 600, border: "none", background: "transparent", fontSize: 15, color: "var(--ink)", outline: "none" }} />
-              <input value={o.intent} onChange={(e) => setOutline((os) => os.map((x, k) => k === i ? { ...x, intent: e.target.value } : x))} style={{ width: "100%", border: "none", background: "transparent", fontSize: 13, color: "var(--text-muted)", marginTop: 3, outline: "none" }} />
-            </div>
-            <button style={btn({ padding: "4px 8px" })} onClick={() => setOutline((os) => os.filter((_, k) => k !== i))}>✕</button>
+    return (
+      <AppShellCard>
+        <AppShellCard.Header>
+          <AppShellCard.Title>Outline</AppShellCard.Title>
+          <AppShellCard.Subtitle>Edit, reorder or remove sections before writing.</AppShellCard.Subtitle>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <Button
+              appearance="outline"
+              variant="secondary"
+              size="sm"
+              startIcon={<ArrowLeft className="size-4" />}
+              onClick={() => setPhase("prompt")}
+            >
+              Back
+            </Button>
           </div>
-        ))}
-      </div>
-      <button style={btn({ marginTop: 10 })} onClick={() => setOutline((os) => [...os, { heading: "New section", intent: "" }])}>+ Add section</button>
-      {err && <div style={{ color: "var(--destructive)", marginTop: 12 }}>{err}</div>}
-      <div style={{ marginTop: 20 }}><button style={primaryBtn} disabled={!!busy} onClick={() => genArticle(true)}>{busy || `Write ${outline.length} sections →`}</button></div>
-    </div></div>);
+        </AppShellCard.Header>
+
+        <div className="mx-auto max-w-3xl">
+          <Field>
+            <Field.Label>Title</Field.Label>
+            <Input value={title} onChange={(e) => setTitle(e.target.value)} />
+          </Field>
+
+          <Separator className="my-4" label="Sections" />
+
+          <div className="grid gap-3">
+            {outline.map((o, i) => (
+              <div key={i} className="flex items-start gap-2.5">
+                <span className="mt-2 w-6 shrink-0 font-bold text-primary">{i + 1}</span>
+                <div className="grid flex-1 gap-1.5">
+                  <Input
+                    value={o.heading}
+                    aria-label={`Section ${i + 1} heading`}
+                    onChange={(e) => setOutline((os) => os.map((x, k) => (k === i ? { ...x, heading: e.target.value } : x)))}
+                  />
+                  <Input
+                    value={o.intent}
+                    size="sm"
+                    aria-label={`Section ${i + 1} intent`}
+                    placeholder="What this section covers"
+                    onChange={(e) => setOutline((os) => os.map((x, k) => (k === i ? { ...x, intent: e.target.value } : x)))}
+                  />
+                </div>
+                <Button
+                  appearance="ghost"
+                  variant="secondary"
+                  size="icon-sm"
+                  aria-label={`Remove section ${i + 1}`}
+                  onClick={() => setOutline((os) => os.filter((_, k) => k !== i))}
+                >
+                  <X className="size-4" />
+                </Button>
+              </div>
+            ))}
+          </div>
+
+          <Button
+            appearance="outline"
+            variant="secondary"
+            size="sm"
+            className="mt-3"
+            startIcon={<Plus className="size-4" />}
+            onClick={() => setOutline((os) => [...os, { heading: "New section", intent: "" }])}
+          >
+            Add section
+          </Button>
+
+          {err && <Alert variant="destructive" className="mt-3">{err}</Alert>}
+
+          <div className="mt-5">
+            <Button loading={!!busy} disabled={!!busy} onClick={() => genArticle(true)}>
+              {busy || `Write ${outline.length} sections`}
+            </Button>
+          </div>
+        </div>
+      </AppShellCard>
+    );
   }
 
   // editor
-  return (<div style={shell}>
-    {notice && <div style={{ position: "fixed", top: 16, right: 16, background: "var(--studio-primary)", color: "var(--primary-foreground)", padding: "8px 14px", borderRadius: 8, zIndex: 50 }}>{notice}</div>}
-    <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", marginBottom: 16, maxWidth: 900, margin: "0 auto 16px" }}>
-      <input value={title} onChange={(e) => setTitle(e.target.value)} style={{ fontSize: 22, fontWeight: 800, border: "none", color: "var(--ink)", flex: 1, minWidth: 220, background: "transparent", outline: "none" }} />
-      <button style={btn(preview ? { background: "var(--mint-pill)" } : {})} onClick={() => setPreview((p) => !p)}>{preview ? "Edit" : "Preview"}</button>
-      <button style={btn()} onClick={() => download(`${slug()}.md`, fullMd(), "text/markdown")}>MD</button>
-      <button style={btn()} onClick={() => download(`${slug()}.html`, fullHtml(), "text/html")}>HTML</button>
-      <button style={btn()} onClick={() => download(`${slug()}.doc`, fullHtml(), "application/msword")}>DOC</button>
-      <button style={primaryBtn} disabled={!!busy} onClick={save}>{savedId ? "Update" : "Save"}</button>
-    </div>
-    <div style={{ maxWidth: 900, margin: "0 auto" }}>
-      <input value={subtitle} onChange={(e) => setSubtitle(e.target.value)} placeholder="Subtitle / dek (optional)" style={{ width: "100%", fontSize: 16, color: "var(--text-muted)", border: "none", borderBottom: "1px solid var(--hairline)", padding: "4px 2px 10px", marginBottom: 18, background: "transparent", outline: "none" }} />
-      {busy && <div style={{ display: "flex", alignItems: "center", gap: 10, color: "var(--studio-teal-dark)", fontSize: 13, marginBottom: 12 }}><span className="humain-spin" style={{ width: 16, height: 16, border: "2.5px solid var(--mint-pill)", borderTopColor: "var(--studio-primary)", borderRadius: "50%", display: "inline-block" }} /> {busy}<style>{`@keyframes humain-spin{to{transform:rotate(360deg)}}.humain-spin{animation:humain-spin .7s linear infinite}`}</style></div>}
-      {preview ? (
-        <article style={{ lineHeight: 1.75, color: "var(--ink)", fontSize: 16 }} dangerouslySetInnerHTML={{ __html: sections.map((s) => `<h2 style="margin-top:28px">${s.heading}</h2>${mdToHtml(s.body)}`).join("") }} />
-      ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
-          {sections.map((s, i) => (
-            <div key={s.id} style={{ border: "1px solid var(--hairline)", borderRadius: 12, padding: 16 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-                <input value={s.heading} onChange={(e) => upd(i, { heading: e.target.value })} style={{ flex: 1, fontSize: 17, fontWeight: 700, border: "none", color: "var(--ink)", background: "transparent", outline: "none" }} />
-                <button style={btn({ padding: "4px 8px" })} disabled={!!busy} onClick={() => regen(i)} title="Regenerate">↻</button>
-                <button style={btn({ padding: "4px 8px" })} onClick={() => move(i, -1)}>↑</button>
-                <button style={btn({ padding: "4px 8px" })} onClick={() => move(i, 1)}>↓</button>
-                <button style={btn({ padding: "4px 8px", color: "var(--destructive)" })} onClick={() => setSections((ss) => ss.filter((_, k) => k !== i))}>✕</button>
-              </div>
-              <textarea value={s.body} onChange={(e) => upd(i, { body: e.target.value })} style={{ width: "100%", minHeight: 150, border: "1px solid var(--hairline)", borderRadius: 8, padding: 12, fontSize: 14.5, lineHeight: 1.6, resize: "vertical", fontFamily: "inherit", color: "var(--ink)", background: "var(--card-bg,#fff)", outline: "none" }} />
+  return (
+    <AppShellCard>
+      <AppShellCard.Toolbar>
+        <AppShellCard.Header>
+          <AppShellCard.Title>{title || "Untitled article"}</AppShellCard.Title>
+          <AppShellCard.Subtitle>
+            {sections.length} section{sections.length === 1 ? "" : "s"} · edit inline, regenerate any
+            section, then export or save to Projects.
+          </AppShellCard.Subtitle>
+          {notice && (
+            <div className="mt-3">
+              <Alert variant="success">{notice}</Alert>
             </div>
-          ))}
-          <button style={btn()} onClick={() => setSections((ss) => [...ss, { id: uid(), heading: "New section", body: "" }])}>+ Add section</button>
-        </div>
-      )}
-    </div>
-  </div>);
+          )}
+        </AppShellCard.Header>
+        <AppShellCard.Actions>
+          <Button appearance="outline" variant="secondary" onClick={() => setPreview((p) => !p)}>
+            {preview ? "Edit" : "Preview"}
+          </Button>
+          <Button loading={!!busy} disabled={!!busy} onClick={save}>
+            {savedId ? "Update" : "Save"}
+          </Button>
+        </AppShellCard.Actions>
+        {/* Exports live in the overflow menu — the skill caps a header at two
+            visible buttons. */}
+        <AppShellCard.Menu>
+          <DropdownMenu.Item onClick={() => download(`${slug()}.md`, fullMd(), "text/markdown")}>
+            Download Markdown
+          </DropdownMenu.Item>
+          <DropdownMenu.Item onClick={() => download(`${slug()}.html`, fullHtml(), "text/html")}>
+            Download HTML
+          </DropdownMenu.Item>
+          <DropdownMenu.Item onClick={() => download(`${slug()}.doc`, fullHtml(), "application/msword")}>
+            Download DOC
+          </DropdownMenu.Item>
+        </AppShellCard.Menu>
+      </AppShellCard.Toolbar>
+
+      <div className="mx-auto max-w-4xl">
+        <Field>
+          <Field.Label>Title</Field.Label>
+          <Input value={title} onChange={(e) => setTitle(e.target.value)} />
+        </Field>
+        <Field className="mt-3">
+          <Field.Label>Subtitle / dek (optional)</Field.Label>
+          <Input value={subtitle} onChange={(e) => setSubtitle(e.target.value)} />
+        </Field>
+
+        {busy && (
+          <div className="mt-4 flex items-center gap-2.5 text-sm text-secondary-foreground">
+            <LoadingIndicator size="sm" /> {busy}
+          </div>
+        )}
+
+        <Separator className="my-5" />
+
+        {preview ? (
+          <article
+            className="hf-richtext text-base leading-relaxed text-foreground"
+            dangerouslySetInnerHTML={{
+              __html: sections.map((sec) => `<h2>${sec.heading}</h2>${mdToHtml(sec.body)}`).join(""),
+            }}
+          />
+        ) : (
+          <div className="grid gap-6">
+            {sections.map((sec, i) => (
+              <div key={sec.id}>
+                <div className="mb-2 flex items-center gap-2">
+                  <Input
+                    value={sec.heading}
+                    aria-label={`Section ${i + 1} heading`}
+                    className="flex-1"
+                    onChange={(e) => upd(i, { heading: e.target.value })}
+                  />
+                  <Button
+                    appearance="ghost"
+                    variant="secondary"
+                    size="icon-sm"
+                    disabled={!!busy}
+                    aria-label="Regenerate section"
+                    title="Regenerate"
+                    onClick={() => regen(i)}
+                  >
+                    <RefreshCw className="size-4" />
+                  </Button>
+                  <Button
+                    appearance="ghost"
+                    variant="secondary"
+                    size="icon-sm"
+                    aria-label="Move section up"
+                    title="Move up"
+                    onClick={() => move(i, -1)}
+                  >
+                    <ChevronUp className="size-4" />
+                  </Button>
+                  <Button
+                    appearance="ghost"
+                    variant="secondary"
+                    size="icon-sm"
+                    aria-label="Move section down"
+                    title="Move down"
+                    onClick={() => move(i, 1)}
+                  >
+                    <ChevronDown className="size-4" />
+                  </Button>
+                  <Button
+                    appearance="ghost"
+                    variant="destructive"
+                    size="icon-sm"
+                    aria-label="Remove section"
+                    title="Remove"
+                    onClick={() => setSections((ss) => ss.filter((_, k) => k !== i))}
+                  >
+                    <X className="size-4" />
+                  </Button>
+                </div>
+                <Textarea
+                  value={sec.body}
+                  aria-label={`Section ${i + 1} body`}
+                  rows={7}
+                  onChange={(e) => upd(i, { body: e.target.value })}
+                />
+              </div>
+            ))}
+            <Button
+              appearance="outline"
+              variant="secondary"
+              size="sm"
+              startIcon={<Plus className="size-4" />}
+              onClick={() => setSections((ss) => [...ss, { id: uid(), heading: "New section", body: "" }])}
+            >
+              Add section
+            </Button>
+          </div>
+        )}
+      </div>
+    </AppShellCard>
+  );
 }

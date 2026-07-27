@@ -165,7 +165,7 @@ export default function DamStudio() {
               variant="secondary"
               onClick={() => open(a)}
               aria-label={`Open ${a.filename}`}
-              className="block h-auto w-full overflow-hidden p-0 text-start"
+              className="block h-auto w-full overflow-hidden whitespace-normal p-0 text-start"
             >
               <span className="block">
                 <span className="grid h-32 place-items-center border-b border-border bg-muted">

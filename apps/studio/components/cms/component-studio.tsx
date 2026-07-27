@@ -259,10 +259,13 @@ export default function ComponentStudio({ user, canPublish }: { user: { name?: s
                 onDragStart={(e: React.DragEvent<HTMLButtonElement>) => e.dataTransfer.setData("text/plain", String(c.id))}
                 onClick={() => addBlock(c)}
                 title="Drag onto the canvas, or click to add"
-                className="block h-auto w-full cursor-grab p-3 text-start"
+                // whitespace-normal is required: Button sets whitespace-nowrap on
+                // its content, so without it the badge row cannot wrap and long
+                // component names are clipped past the column edge.
+                className="block h-auto w-full cursor-grab whitespace-normal p-3 text-start"
               >
-                <span className="flex items-center justify-between gap-2">
-                  <span className="text-sm font-semibold text-foreground">{c.name}</span>
+                <span className="flex items-start justify-between gap-2">
+                  <span className="min-w-0 flex-1 truncate text-sm font-semibold text-foreground">{c.name}</span>
                   <Badge variant="soft" color={c.status === "live" ? "success" : "warning"} size="xs">{c.status}</Badge>
                 </span>
                 <span className="mt-1.5 flex flex-wrap items-center gap-1.5">

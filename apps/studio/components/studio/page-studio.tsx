@@ -242,7 +242,7 @@ export default function PageStudio() {
                 variant="secondary"
                 onClick={() => load(it)}
                 aria-label={`Open ${it.title}`}
-                className="block h-auto w-full p-3 text-start"
+                className="block h-auto w-full whitespace-normal p-3 text-start"
               >
                 <span className="flex items-center justify-between gap-2">
                   <Badge variant="soft" color="primary" size="xs">{it.contentType}</Badge>

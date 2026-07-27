@@ -60,11 +60,16 @@ export default function Launcher() {
           appearance="gradient"
           variant="primary"
           onClick={() => router.push(`/cms/manage?type=${type}`)}
-          className="h-auto w-full flex-col justify-center gap-3.5 whitespace-normal p-4 aspect-square"
+          className="h-auto w-full justify-center whitespace-normal p-4 aspect-square"
         >
-          <Icon className="size-7 shrink-0" />
-          <span className="text-center text-[13px] font-bold leading-tight tracking-[0.06em]">
-            {label}
+          {/* ONE child that owns the stack: Button wraps its children in its own
+              flex row, so `flex-col` on the Button itself never reaches them and
+              the icon sat beside the label instead of above it. */}
+          <span className="flex flex-col items-center justify-center gap-3">
+            <Icon className="size-7 shrink-0" />
+            <span className="text-center text-xs font-bold uppercase leading-tight">
+              {label}
+            </span>
           </span>
         </Button>
       ))}

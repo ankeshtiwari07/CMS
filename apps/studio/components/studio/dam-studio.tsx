@@ -123,7 +123,7 @@ export default function DamStudio() {
             aria-label="Search assets"
             size="sm"
             startIcon={<Search className="size-4" />}
-            className="max-w-[280px]"
+            style={{ maxWidth: 280 }}
           />
           <Button size="sm" loading={busy} onClick={() => fileRef.current?.click()} startIcon={<Upload className="size-4" />}>
             {busy ? "Uploading…" : "Upload assets"}
@@ -154,7 +154,10 @@ export default function DamStudio() {
           secondaryAction={q.trim() ? { label: "Clear search", onClick: () => setQ("") } : undefined}
         />
       ) : (
-        <div className="grid grid-cols-[repeat(auto-fill,minmax(180px,1fr))] gap-3.5">
+        // Inline style, not an arbitrary Tailwind class: @humain/ui ships a
+        // PRECOMPILED utility layer, so a novel `grid-cols-[repeat(auto-fill,…)]`
+        // silently resolves to nothing and the grid collapses to one column.
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 14 }}>
           {shown.map((a) => (
             <Button
               key={a.id}
@@ -165,21 +168,22 @@ export default function DamStudio() {
               className="block h-auto w-full p-0 text-start"
             >
               <Card padding="none" className="overflow-hidden">
-                <div className="grid h-[130px] place-items-center border-b border-border bg-muted">
+                <div className="grid place-items-center border-b border-border bg-muted" style={{ height: 130 }}>
                   {isImg(a.mimeType) ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={a.sizes.find((s) => s.name === "thumbnail")?.url || a.url}
                       alt={a.alt || a.filename}
-                      className="max-h-[130px] max-w-full object-contain"
+                      className="max-w-full object-contain"
+                      style={{ maxHeight: 130 }}
                     />
                   ) : (
                     <FileText className="size-8 text-muted-foreground" />
                   )}
                 </div>
                 <Card.Content className="p-3">
-                  <div className="truncate text-[12.5px] font-semibold text-foreground">{a.filename}</div>
-                  <div className="mt-0.5 text-[11px] text-muted-foreground">
+                  <div className="truncate text-xs font-semibold text-foreground">{a.filename}</div>
+                  <div className="mt-0.5 text-xs text-muted-foreground">
                     {a.width && a.height ? `${a.width}×${a.height} · ` : ""}{kb(a.filesize)}
                   </div>
                   {a.alt && (
@@ -202,10 +206,10 @@ export default function DamStudio() {
           <Dialog.Body>
             {sel && (
               <div className="grid gap-5 md:grid-cols-[1.2fr_1fr]">
-                <div className="grid min-h-[240px] place-items-center rounded-xl border border-border bg-muted p-3">
+                <div className="grid place-items-center rounded-xl border border-border bg-muted p-3" style={{ minHeight: 240 }}>
                   {isImg(sel.mimeType) ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={sel.url} alt={sel.alt || sel.filename} className="max-h-[360px] max-w-full" />
+                    <img src={sel.url} alt={sel.alt || sel.filename} className="max-w-full" style={{ maxHeight: 360 }} />
                   ) : (
                     <FileText className="size-14 text-muted-foreground" />
                   )}

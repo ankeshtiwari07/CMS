@@ -1,5 +1,40 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
+import {
+  AppShellCard,
+  Badge,
+  Button,
+  DropdownMenu,
+  EmptyState,
+  Field,
+  Progress,
+  Separator,
+  Textarea,
+} from "@humain/ui";
+import { ShieldCheck } from "lucide-react";
+
+/* =============================================================================
+   Brand Governance.
+
+   Migrated onto @humain/ui per references/adoption.md §4 and the package skill's
+   Adopt guardrails:
+     <button>            -> Button (two visible in the header, the third in
+                            AppShellCard.Menu — the skill caps header buttons at
+                            two and puts overflow in the ellipsis menu)
+     <textarea>          -> Textarea in a Field
+     hand-rolled score ring / conic-gradient -> Progress circular showValue
+     hand-rolled bar divs -> Progress (semantic variant per threshold)
+     severity + status pills -> Badge
+     "run a review" placeholder -> EmptyState
+     nested bordered "card" divs -> Separator + spacing, because the skill is
+                            explicit that a Card inside a Card is never correct
+
+   Behaviour is unchanged: same three endpoints, same busy/message handling, same
+   thresholds, same remediation flow.
+
+   Palette swatches keep literal hex: those are the BRAND'S OWN colours being
+   audited — data under review, not chrome. Same for the off-brand chips.
+   ============================================================================= */
 
 type Finding = { dimension: string; severity: string; issue: string; evidence?: string; fix?: string };
 type Report = {
@@ -10,9 +45,10 @@ type Report = {
 };
 type Profile = { name: string; palette: string[]; paletteMeta: { hex: string; name?: string; usage?: string }[]; fonts: string[]; voice: string; ragText: string; grounded: boolean };
 
-const TEAL = "var(--primary)", INK = "var(--background)", LINE = "var(--hairline)", MUT = "var(--text-muted)";
-const statusColor = (s: string) => (s === "pass" ? "var(--success)" : s === "warn" ? "var(--warning)" : "var(--destructive)");
-const sevColor = (s: string) => (s === "fail" ? "var(--destructive)" : s === "warn" ? "var(--warning)" : "var(--text-muted)");
+type Tone = "success" | "warning" | "destructive";
+const statusTone = (s: string): Tone => (s === "pass" ? "success" : s === "warn" ? "warning" : "destructive");
+const sevTone = (s: string): Tone => (s === "fail" ? "destructive" : s === "warn" ? "warning" : "success");
+const scoreTone = (n: number): Tone => (n >= 85 ? "success" : n >= 65 ? "warning" : "destructive");
 
 export default function GovernanceStudio() {
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -57,145 +93,198 @@ export default function GovernanceStudio() {
     } catch { setMsg("Remediation failed."); } finally { setBusy(""); }
   }
 
-  const ring = useMemo(() => {
-    const s = report?.score ?? 0;
-    return { background: `conic-gradient(${statusColor(report?.status || "warn")} ${s}%, var(--surface-3) 0)` };
-  }, [report]);
-
-  const card: React.CSSProperties = { border: `1px solid ${LINE}`, borderRadius: 14, background: "var(--card)", padding: 16 };
-  const btn = (primary?: boolean, disabled?: boolean): React.CSSProperties => ({
-    padding: "9px 14px", borderRadius: 10, fontWeight: 700, fontSize: 13.5, cursor: disabled ? "default" : "pointer",
-    border: primary ? "none" : `1px solid ${LINE}`, background: primary ? TEAL : "var(--card)", color: primary ? "var(--primary-foreground)" : INK, opacity: disabled ? 0.55 : 1,
-  });
 
   return (
-    <div style={{ background: "var(--card)", borderRadius: 16, minHeight: "100%", padding: "22px 26px", fontFamily: "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif", color: INK }}>
-      <div style={{ display: "flex", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
-        <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: ".12em", color: TEAL, textTransform: "uppercase" }}>Governance Agent</div>
-        {profile && (
-          <span style={{ fontSize: 12, fontWeight: 700, color: profile.grounded ? "var(--success)" : "var(--warning)", background: profile.grounded ? "color-mix(in srgb, var(--success) 12%, var(--background))" : "var(--soft-warning)", border: `1px solid ${LINE}`, padding: "3px 9px", borderRadius: 999 }}>
-            {profile.grounded ? `● Grounded on “${profile.name}” (RAG + brand guidelines)` : "○ No active brand — using defaults"}
-          </span>
-        )}
-      </div>
-      <h1 style={{ margin: "6px 0 4px", fontSize: 26, letterSpacing: "-.01em" }}>Brand Governance</h1>
-      <p style={{ color: MUT, margin: 0, maxWidth: "70ch", fontSize: 14.5 }}>
-        Keep branding, styling, tone and visual identity consistent with your brand across everything generated or edited. Every check is grounded in your brand corpus and written to the audit log.
-      </p>
+    <AppShellCard>
+      <AppShellCard.Toolbar>
+        <AppShellCard.Header>
+          <AppShellCard.Title>Brand Governance</AppShellCard.Title>
+          <AppShellCard.Subtitle>
+            Keep branding, styling, tone and visual identity consistent with your brand across
+            everything generated or edited. Every check is grounded in your brand corpus and written
+            to the audit log.
+          </AppShellCard.Subtitle>
+          {profile && (
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <Badge variant="dot" color={profile.grounded ? "success" : "warning"} size="sm">
+                {profile.grounded
+                  ? `Grounded on “${profile.name}” (RAG + brand guidelines)`
+                  : "No active brand — using defaults"}
+              </Badge>
+              {msg && <span className="text-sm text-secondary-foreground">{msg}</span>}
+            </div>
+          )}
+        </AppShellCard.Header>
+        <AppShellCard.Actions>
+          <Button loading={busy === "review"} disabled={!!busy} onClick={review}>
+            {busy === "review" ? "Reviewing…" : "Review against brand"}
+          </Button>
+          <Button
+            appearance="outline"
+            variant="secondary"
+            loading={busy === "fix"}
+            disabled={!!busy || !report}
+            onClick={fix}
+          >
+            {busy === "fix" ? "Fixing…" : "Auto-fix on-brand"}
+          </Button>
+        </AppShellCard.Actions>
+        {/* Third command lives in the overflow menu: the skill caps a header at
+            two visible buttons. */}
+        <AppShellCard.Menu>
+          <DropdownMenu.Item disabled={busy === "load"} onClick={loadLatestSite}>
+            Load latest website
+          </DropdownMenu.Item>
+        </AppShellCard.Menu>
+      </AppShellCard.Toolbar>
 
-      {/* Brand profile */}
+      {/* Brand profile — a section, not a nested Card. */}
       {profile && (
-        <div style={{ ...card, marginTop: 18, display: "flex", gap: 24, flexWrap: "wrap" }}>
-          <div style={{ minWidth: 220 }}>
-            <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: ".1em", color: MUT, fontWeight: 700, marginBottom: 8 }}>Brand palette</div>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              {(profile.paletteMeta.length ? profile.paletteMeta : profile.palette.map((h) => ({ hex: h }))).map((p, i) => (
-                <div key={i} title={`${p.hex}${(p as any).name ? " · " + (p as any).name : ""}`} style={{ textAlign: "center" }}>
-                  <div style={{ width: 40, height: 40, borderRadius: 9, background: p.hex, border: `1px solid ${LINE}` }} />
-                  <div style={{ fontSize: 9.5, color: MUT, marginTop: 3 }}>{p.hex}</div>
-                </div>
-              ))}
+        <>
+          <div className="flex flex-wrap gap-6">
+            <div className="min-w-56">
+              <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-secondary-foreground">
+                Brand palette
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {(profile.paletteMeta.length ? profile.paletteMeta : profile.palette.map((h) => ({ hex: h }))).map((pl, i) => (
+                  <div key={i} title={`${pl.hex}${(pl as any).name ? " · " + (pl as any).name : ""}`} className="text-center">
+                    {/* The brand's own colour, under audit — data, not chrome. */}
+                    <div className="size-10 rounded-lg border border-border" style={{ background: pl.hex }} />
+                    <div className="mt-1 text-xs text-secondary-foreground">{pl.hex}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="min-w-64 flex-1">
+              <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-secondary-foreground">
+                Voice &amp; guidelines (grounding)
+              </div>
+              <div className="max-h-32 overflow-auto whitespace-pre-wrap text-sm leading-relaxed text-secondary-foreground">
+                {profile.voice || "—"}
+              </div>
+              {profile.fonts.length > 0 && (
+                <div className="mt-2 text-xs text-secondary-foreground">Fonts: {profile.fonts.join(", ")}</div>
+              )}
             </div>
           </div>
-          <div style={{ flex: 1, minWidth: 260 }}>
-            <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: ".1em", color: MUT, fontWeight: 700, marginBottom: 8 }}>Voice &amp; guidelines (grounding)</div>
-            <div style={{ fontSize: 13, color: "var(--ink)", lineHeight: 1.55, whiteSpace: "pre-wrap", maxHeight: 120, overflow: "auto" }}>{profile.voice || "—"}</div>
-            {profile.fonts.length > 0 && <div style={{ fontSize: 12, color: MUT, marginTop: 8 }}>Fonts: {profile.fonts.join(", ")}</div>}
-          </div>
-        </div>
+          <Separator className="my-5" />
+        </>
       )}
 
-      {/* Toolbar */}
-      <div style={{ display: "flex", gap: 10, marginTop: 16, flexWrap: "wrap", alignItems: "center" }}>
-        <button style={btn(false, busy === "load")} disabled={busy === "load"} onClick={loadLatestSite}>Load latest website</button>
-        <button style={btn(true, !!busy)} disabled={!!busy} onClick={review}>{busy === "review" ? "Reviewing…" : "Review against brand"}</button>
-        <button style={btn(false, !!busy || !report)} disabled={!!busy || !report} onClick={fix}>{busy === "fix" ? "Fixing…" : "Auto-fix on-brand"}</button>
-        {msg && <span style={{ color: MUT, fontSize: 13 }}>{msg}</span>}
-      </div>
-
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 16, alignItems: "start" }}>
-        {/* Editor + preview */}
-        <div style={card}>
-          <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: ".1em", color: MUT, fontWeight: 700, marginBottom: 8 }}>Artifact (HTML)</div>
-          <textarea value={html} onChange={(e) => { setHtml(e.target.value); }} placeholder="Paste a page/section/component HTML, or click “Load latest website”." spellCheck={false}
-            style={{ width: "100%", height: 150, resize: "vertical", border: `1px solid ${LINE}`, borderRadius: 10, padding: 10, fontFamily: "ui-monospace,monospace", fontSize: 12, color: INK, outline: "none" }} />
-          <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: ".1em", color: MUT, fontWeight: 700, margin: "12px 0 8px" }}>Live preview</div>
-          <iframe title="preview" srcDoc={html || "<div style='font-family:sans-serif;color:#889;padding:24px'>Nothing to preview yet.</div>"} style={{ width: "100%", height: 320, border: `1px solid ${LINE}`, borderRadius: 10, background: "var(--card)" }} />
+      <div className="grid items-start gap-4 lg:grid-cols-2">
+        {/* Artifact + preview */}
+        <div>
+          <Field>
+            <Field.Label>Artifact (HTML)</Field.Label>
+            <Textarea
+              value={html}
+              onChange={(e) => setHtml(e.target.value)}
+              placeholder="Paste a page/section/component HTML, or use “Load latest website”."
+              spellCheck={false}
+              rows={7}
+              className="font-mono"
+            />
+          </Field>
+          <div className="mb-2 mt-4 text-xs font-semibold uppercase tracking-wider text-secondary-foreground">
+            Live preview
+          </div>
+          <iframe
+            title="preview"
+            srcDoc={html || "<div style='font-family:sans-serif;color:#889;padding:24px'>Nothing to preview yet.</div>"}
+            className="h-80 w-full rounded-xl border border-border bg-card"
+          />
         </div>
 
         {/* Report */}
-        <div style={card}>
-          {!report && <div style={{ color: MUT, fontSize: 14, padding: "40px 8px", textAlign: "center" }}>Run a review to see the governance report — overall score, per-dimension breakdown, off-brand colours and specific findings.</div>}
+        <div>
+          {!report && (
+            <EmptyState
+              title="No review yet"
+              description="Run a review to see the governance report — overall score, per-dimension breakdown, off-brand colours and specific findings."
+              media="featured-icon"
+              icon={<ShieldCheck />}
+            />
+          )}
           {report && (
             <div>
-              <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
-                <div style={{ width: 92, height: 92, borderRadius: "50%", display: "grid", placeItems: "center", ...ring }}>
-                  <div style={{ width: 70, height: 70, borderRadius: "50%", background: "var(--card)", display: "grid", placeItems: "center" }}>
-                    <div style={{ fontSize: 24, fontWeight: 800 }}>{report.score}</div>
-                  </div>
-                </div>
+              <div className="flex items-center gap-5">
+                <Progress
+                  circular
+                  showValue
+                  size="lg"
+                  value={report.score}
+                  variant={statusTone(report.status)}
+                />
                 <div>
-                  <div style={{ fontWeight: 800, fontSize: 16, color: statusColor(report.status), textTransform: "uppercase" }}>{report.status}</div>
-                  <div style={{ color: MUT, fontSize: 13, marginTop: 2, maxWidth: "34ch" }}>{report.summary}</div>
+                  <div className="text-base font-bold uppercase text-foreground">{report.status}</div>
+                  <div className="mt-0.5 max-w-sm text-sm text-secondary-foreground">{report.summary}</div>
                 </div>
               </div>
 
-              {/* dimension bars */}
-              <div style={{ marginTop: 16, display: "grid", gap: 8 }}>
+              <div className="mt-4 grid gap-2">
                 {(["palette", "tone", "messaging", "visual"] as const).map((k) => (
-                  <div key={k} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                    <div style={{ width: 78, fontSize: 12, color: MUT, textTransform: "capitalize" }}>{k}</div>
-                    <div style={{ flex: 1, height: 7, background: "var(--surface-2)", borderRadius: 99, overflow: "hidden" }}>
-                      <div style={{ width: `${report.dimensions[k]}%`, height: "100%", background: report.dimensions[k] >= 85 ? "var(--success)" : report.dimensions[k] >= 65 ? "var(--warning)" : "var(--destructive)" }} />
-                    </div>
-                    <div style={{ width: 30, fontSize: 12, fontWeight: 700, textAlign: "right" }}>{report.dimensions[k]}</div>
+                  <div key={k} className="flex items-center gap-2.5">
+                    <div className="w-20 text-xs capitalize text-secondary-foreground">{k}</div>
+                    <Progress
+                      className="flex-1"
+                      size="sm"
+                      value={report.dimensions[k]}
+                      variant={scoreTone(report.dimensions[k])}
+                    />
+                    <div className="w-8 text-end text-xs font-semibold text-foreground">{report.dimensions[k]}</div>
                   </div>
                 ))}
               </div>
 
-              {/* off-brand colours */}
               {report.palette.offBrand.length > 0 && (
-                <div style={{ marginTop: 14 }}>
-                  <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: ".1em", color: MUT, fontWeight: 700, marginBottom: 6 }}>Off-brand colours ({report.palette.offBrand.length})</div>
-                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                <>
+                  <Separator className="my-4" label={`Off-brand colours (${report.palette.offBrand.length})`} />
+                  <div className="flex flex-wrap gap-1.5">
                     {report.palette.offBrand.map((c) => (
-                      <span key={c} style={{ display: "inline-flex", alignItems: "center", gap: 6, border: `1px solid ${LINE}`, borderRadius: 8, padding: "3px 8px", fontSize: 11.5 }}>
-                        <span style={{ width: 13, height: 13, borderRadius: 3, background: c, border: `1px solid ${LINE}` }} />{c}
-                      </span>
+                      <Badge key={c} variant="outline" color="secondary" size="sm">
+                        <span className="me-1.5 inline-block size-3 rounded-sm border border-border align-middle" style={{ background: c }} />
+                        {c}
+                      </Badge>
                     ))}
                   </div>
-                </div>
+                </>
               )}
 
-              {/* findings */}
               {report.findings.length > 0 && (
-                <div style={{ marginTop: 16 }}>
-                  <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: ".1em", color: MUT, fontWeight: 700, marginBottom: 8 }}>Findings ({report.findings.length})</div>
-                  <div style={{ display: "grid", gap: 8 }}>
+                <>
+                  <Separator className="my-4" label={`Findings (${report.findings.length})`} />
+                  <div className="grid gap-3">
                     {report.findings.map((f, i) => (
-                      <div key={i} style={{ border: `1px solid ${LINE}`, borderRadius: 10, padding: "9px 11px" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          <span style={{ fontSize: 10, fontWeight: 800, color: "var(--primary-foreground)", background: sevColor(f.severity), padding: "1px 7px", borderRadius: 5, textTransform: "uppercase" }}>{f.severity}</span>
-                          <span style={{ fontSize: 11, color: MUT, textTransform: "capitalize" }}>{f.dimension}</span>
+                      <div key={i}>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="soft" color={sevTone(f.severity)} size="xs">{f.severity}</Badge>
+                          <span className="text-xs capitalize text-secondary-foreground">{f.dimension}</span>
                         </div>
-                        <div style={{ fontSize: 13, marginTop: 5 }}>{f.issue}</div>
-                        {f.evidence && <div style={{ fontSize: 11.5, color: MUT, marginTop: 3, fontFamily: "ui-monospace,monospace" }}>evidence: {f.evidence}</div>}
-                        {f.fix && <div style={{ fontSize: 12, color: "var(--success)", marginTop: 3 }}>→ {f.fix}</div>}
+                        <div className="mt-1 text-sm text-foreground">{f.issue}</div>
+                        {f.evidence && (
+                          <div className="mt-0.5 font-mono text-xs text-secondary-foreground">evidence: {f.evidence}</div>
+                        )}
+                        {f.fix && <div className="mt-0.5 text-xs text-success">→ {f.fix}</div>}
                       </div>
                     ))}
                   </div>
-                </div>
+                </>
               )}
 
               {changes && (
-                <div style={{ marginTop: 14, fontSize: 12.5, color: "var(--ink)" }}>
-                  <b>Applied fixes:</b> {changes.length ? changes.join(" · ") : "no changes needed"}
-                </div>
+                <>
+                  <Separator className="my-4" />
+                  <div className="text-sm text-secondary-foreground">
+                    <b className="text-foreground">Applied fixes:</b>{" "}
+                    {changes.length ? changes.join(" · ") : "no changes needed"}
+                  </div>
+                </>
               )}
             </div>
           )}
         </div>
       </div>
-    </div>
+    </AppShellCard>
   );
 }

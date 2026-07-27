@@ -1,5 +1,4 @@
 "use client";
-import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
   AppShell,
@@ -33,10 +32,11 @@ import {
   ShieldCheck,
   UserCircle,
 } from "lucide-react";
-import { HumainLockup } from "@/components/brand";
+import { HumainWordmark } from "@/components/brand";
 import ChatHistory from "@/components/studio/chat-history";
 import NotificationsBell from "@/components/notifications/notifications-bell";
 import SidebarAccountMenu, { type ShellUser } from "@/components/studio/sidebar-account-menu";
+import { useSidebarPref } from "@/components/studio/use-sidebar-pref";
 import { useT } from "@/lib/i18n-client";
 
 /* =============================================================================
@@ -54,7 +54,7 @@ import { useT } from "@/lib/i18n-client";
    own bespoke flex wrapper. Every feature that sidebar grew is re-homed on a
    package primitive rather than dropped:
 
-     collapse + persistence  -> SidebarProvider open/onOpenChange (see below)
+     collapse + persistence  -> SidebarProvider open/onOpenChange (useSidebarPref)
      "+" create menu         -> DropdownMenu, same events, same options
      CMS Admin tree          -> NavSection + NavItem/NavSub (two-level, admin-only)
      chat history            -> AppSidebar.ChatList (components/studio/chat-history)
@@ -66,10 +66,6 @@ import { useT } from "@/lib/i18n-client";
    share (Pages, Data, Assets, Governance, Components) deliberately reuse the
    CMS shell's icon for that destination so the two sidebars agree.
    ============================================================================= */
-
-/** Same key and same values as the old sidebar, so an existing user's collapse
-    preference carries across the migration instead of silently resetting. */
-const SIDEBAR_KEY = "humain-sidebar";
 
 const NAV = [
   { key: "cms", Icon: Layers, href: "/cms/studio" },
@@ -242,22 +238,8 @@ export default function StudioAppShell({
   const roles = user.roles ?? [];
   const isAdmin = roles.includes("admin");
 
-  // SidebarProvider has no persistence of its own, so the app keeps owning it.
-  // Reading localStorage during render would desync SSR markup from the client,
-  // so the first paint is expanded and the stored preference is applied on mount
-  // — the same one-frame behaviour the old sidebar had.
-  const [open, setOpen] = useState(true);
-  useEffect(() => {
-    try {
-      setOpen(localStorage.getItem(SIDEBAR_KEY) !== "collapsed");
-    } catch { /* ignore */ }
-  }, []);
-  function onOpenChange(next: boolean) {
-    setOpen(next);
-    try {
-      localStorage.setItem(SIDEBAR_KEY, next ? "expanded" : "collapsed");
-    } catch { /* ignore */ }
-  }
+  // Shared with the CMS shell, so the two never disagree about collapsed state.
+  const { open, onOpenChange } = useSidebarPref();
 
   const items = NAV.filter((n) => !("approverOnly" in n) || roles.some((r) => APPROVER_ROLES.includes(r)));
 
@@ -268,6 +250,11 @@ export default function StudioAppShell({
           <AppSidebar
             logoSubtext="Create Studio"
             logo={
+              // The WORDMARK only. HumainLockup would be the natural choice but
+              // it already renders "Create Studio" beneath the wordmark, so
+              // pairing it with logoSubtext printed the product name twice.
+              // Wordmark + logoSubtext also matches how the CMS shell composes.
+              //
               // The package turns the compacted logomark into the expand
               // affordance, so "go home" is only offered while expanded.
               <button
@@ -277,10 +264,23 @@ export default function StudioAppShell({
                 title="Home"
                 className="cursor-pointer rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
               >
-                <HumainLockup color="var(--foreground)" />
+                <HumainWordmark size={18} color="var(--foreground)" />
               </button>
             }
           >
+            {/* One scroll region for nav + chat history, which is what the old
+                sidebar did and what this nav needs: an admin sees 18 rows plus
+                the CMS Admin tree, and the package's SidebarContent is
+                `overflow-hidden`, so without this the admin section is silently
+                clipped off the bottom rather than reachable.
+
+                A BLOCK, not a flex column: AppSidebar.ChatList is
+                `flex min-h-0 flex-1`, so under a flex parent it would fight the
+                nav for height and collapse to nothing once the nav is tall.
+                Under a block parent it lays out at its natural height and this
+                one scroller owns all the overflow. */}
+            <AppSidebar.Content>
+              <div className="-me-2 min-h-0 flex-1 overflow-y-auto overflow-x-hidden pe-2">
             <AppSidebar.Nav aria-label="Create Studio">
               <CreateMenu />
               {items.map(({ key, Icon, href }) => (
@@ -331,7 +331,9 @@ export default function StudioAppShell({
               ]}
             </AppSidebar.Nav>
 
-            <ChatHistory />
+                <ChatHistory />
+              </div>
+            </AppSidebar.Content>
 
             <AppSidebar.Footer>
               <FooterBell />

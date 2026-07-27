@@ -20,6 +20,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import SidebarAccountMenu, { type ShellUser } from "@/components/studio/sidebar-account-menu";
+import { useSidebarPref } from "@/components/studio/use-sidebar-pref";
 
 /* =============================================================================
    HUMAIN CMS shell — the canonical @humain/ui app layout.
@@ -73,22 +74,35 @@ export default function CmsAppShell({
     items.find((n) => (n.exact ? pathname === n.href : pathname.startsWith(n.href)))?.href ??
     "/cms";
 
+  // Controlled, and sharing the studio shell's key. Left uncontrolled, this
+  // provider chose its own default and /cms sat on the icon rail while /studio
+  // was expanded — the two shells looked different again despite being the same
+  // component.
+  const { open, onOpenChange } = useSidebarPref();
+
   return (
     <AppShell.Root gap={12}>
       <AppShell.Sidebar>
-        <SidebarProvider connected>
+        <SidebarProvider connected open={open} onOpenChange={onOpenChange}>
           <AppSidebar logoSubtext="Content Management">
-            <AppSidebar.Nav>
-              {items.map(({ href, label, Icon }) => (
-                <AppSidebar.NavItem
-                  key={href}
-                  icon={<Icon />}
-                  label={label}
-                  isActive={active === href}
-                  onClick={() => router.push(href)}
-                />
-              ))}
-            </AppSidebar.Nav>
+            {/* One scroll region, as in the studio shell: SidebarContent is
+                `overflow-hidden`, so a short viewport would clip the tail of
+                the nav rather than let it scroll. */}
+            <AppSidebar.Content>
+              <div className="-me-2 min-h-0 flex-1 overflow-y-auto overflow-x-hidden pe-2">
+                <AppSidebar.Nav>
+                  {items.map(({ href, label, Icon }) => (
+                    <AppSidebar.NavItem
+                      key={href}
+                      icon={<Icon />}
+                      label={label}
+                      isActive={active === href}
+                      onClick={() => router.push(href)}
+                    />
+                  ))}
+                </AppSidebar.Nav>
+              </div>
+            </AppSidebar.Content>
             {/* Was a bare AppSidebar.Account whose only action was onExpand ->
                 /settings, which left /cms with no sign-out, theme or language.
                 It now shares the studio shell's account menu, so both sidebars

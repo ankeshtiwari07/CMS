@@ -14,16 +14,22 @@ const SIDEBAR_KEY = "humain-sidebar";
  * /studio ended up expanded while /cms sat on the icon rail even after both
  * moved onto the same AppSidebar. One hook, one key, one state.
  *
+ * DEFAULT IS COLLAPSED. The package skill is explicit that AppSidebar should
+ * start collapsed, and the icon rail is the shape the design system is built
+ * around. Only an explicit stored "expanded" opens it, so a user who has never
+ * touched the control gets the rail, and anyone who has expanded it keeps that
+ * across sessions and across both halves of the console.
+ *
  * Reading localStorage during render would desync the SSR markup from the
- * client, so the first paint is expanded and the stored preference applies on
- * mount — the same one-frame behaviour the old sidebar had.
+ * client, so the first paint is the collapsed default and the stored preference
+ * applies on mount.
  */
 export function useSidebarPref() {
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
 
   useEffect(() => {
     try {
-      setOpen(localStorage.getItem(SIDEBAR_KEY) !== "collapsed");
+      setOpen(localStorage.getItem(SIDEBAR_KEY) === "expanded");
     } catch { /* ignore */ }
   }, []);
 

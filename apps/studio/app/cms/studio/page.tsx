@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/payload";
-import { CmsPanel } from "@/components/cms/cms-app-shell";
 import CmsWorkspace from "@/components/cms/cms-workspace";
 import type { Tier } from "@/components/cms/cms-preview";
 
@@ -27,14 +26,18 @@ export default async function CmsStudioPage() {
   const canEdit = roles.some((r) => ["author", "reviewer", "publisher", "brand", "siteAdmin", "admin"].includes(r));
   const canPublish = roles.some((r) => ["publisher", "siteAdmin", "admin"].includes(r));
 
+  // Rendered DIRECTLY, not inside CmsPanel: CmsWorkspace returns the two
+  // sibling AppShell.Panels itself (conversation rail + generated output).
+  // Wrapping it in another panel nested them, so the chat and preview were laid
+  // out INSIDE one panel instead of being siblings the shell can size.
   return (
-    <CmsPanel label="Studio">
+    <>
       <CmsWorkspace
         user={{ name: user.name, email: user.email, roles }}
         canEdit={canEdit}
         canPublish={canPublish}
         tier={tier}
       />
-    </CmsPanel>
+    </>
   );
 }

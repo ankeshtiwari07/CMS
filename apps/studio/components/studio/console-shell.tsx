@@ -242,6 +242,17 @@ export default function ConsoleShell({
   const roles = user.roles ?? [];
   const isAdmin = roles.includes("admin");
   const { open, onOpenChange } = useSidebarPref();
+
+  // Root-owned panel layout, following 4-templates-appshell--resizable-chat-and-main.
+  // The Root owns the split so two-panel surfaces (the CMS agent workspace and
+  // every copilot dock) get a real drag handle, and dragging past the threshold
+  // expands that panel to full width. Single-panel surfaces ignore all of it.
+  const [panelSizes, setPanelSizes] = useState<[number, number]>([35, 65]);
+  const [expandedPanel, setExpandedPanel] = useState<number | null>(null);
+  // Mobile: two panels become swipeable tabs. Every AppShell.Panel already
+  // carries a `label`, which is what the tab bar renders — the props were there,
+  // the mechanism was not wired.
+  const [activePanel, setActivePanel] = useState(0);
   const { chats, setChats, activeId, setActiveId } = useChats();
   const [manageChats, setManageChats] = useState(false);
   const [unread, setUnread] = useState(0);
@@ -256,8 +267,19 @@ export default function ConsoleShell({
   }
 
   return (
-    <AppShell.Root gap={12}>
-      <AppShell.Sidebar>
+    <AppShell.Root
+      gap={12}
+      panelSizes={panelSizes}
+      onPanelSizesChange={(s) => setPanelSizes(s as [number, number])}
+      expandedPanel={expandedPanel}
+      onExpandedPanelChange={setExpandedPanel}
+      expandThreshold={85}
+      activePanel={activePanel}
+      onActivePanelChange={setActivePanel}
+    >
+      {/* The story sets an explicit width per collapse state rather than
+          leaving the sidebar to size itself. */}
+      <AppShell.Sidebar width={open ? "280px" : "64px"}>
         <SidebarProvider connected open={open} onOpenChange={onOpenChange}>
           <AppSidebar
             logo={

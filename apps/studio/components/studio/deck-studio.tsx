@@ -408,7 +408,12 @@ export default function DeckStudio({ deckId, userName }: { deckId: string | null
               onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); if (compose.trim()) { startFromPrompt(compose); setCompose(""); } } }}
               placeholder="What topics should your deck include? Tell the main points and visuals." rows={2}
               style={{ width: "100%", border: "none", outline: "none", resize: "none", fontSize: 16, color: "var(--ink)", minHeight: 30, background: "transparent", fontFamily: "inherit" }} />
-            <div className="mt-2.5 flex flex-wrap items-center gap-2">
+            {/* justify-between with the controls and the actions as two groups:
+                a bare flex-1 spacer inside a flex-wrap row pushes everything
+                after it onto its own line as soon as the row wraps, which is why
+                the model badge and send button sat below the selects. */}
+            <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2">
+              <div className="flex flex-wrap items-center gap-2">
               {/* Native <select> x4 -> the package's flat Select API. The old
                   ones were styled as pills with emoji glyphs baked into the
                   option text, which no assistive tech could make sense of. */}
@@ -439,18 +444,20 @@ export default function DeckStudio({ deckId, userName }: { deckId: string | null
                   {[6, 8, 10, 12, 15].map((n) => <SelectItem key={n} value={String(n)}>{n} slides</SelectItem>)}
                 </Select>
               </div>
-              <div className="flex-1" />
-              <Badge variant="soft" color="primary" size="sm">Claude Opus 4.8</Badge>
-              <Button
-                shape="round"
-                size="icon-sm"
-                aria-label="Start the deck"
-                title="Start"
-                disabled={!compose.trim()}
-                onClick={() => { if (compose.trim()) { startFromPrompt(compose); setCompose(""); } }}
-              >
-                <ArrowUp className="size-4" />
-              </Button>
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge variant="soft" color="primary" size="sm">Claude Opus 4.8</Badge>
+                <Button
+                  shape="round"
+                  size="icon-sm"
+                  aria-label="Start the deck"
+                  title="Start"
+                  disabled={!compose.trim()}
+                  onClick={() => { if (compose.trim()) { startFromPrompt(compose); setCompose(""); } }}
+                >
+                  <ArrowUp className="size-4" />
+                </Button>
+              </div>
             </div>
           </div>
         </div>

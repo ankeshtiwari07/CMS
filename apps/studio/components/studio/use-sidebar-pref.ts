@@ -1,8 +1,11 @@
 "use client";
 import { useState } from "react";
 
-/** Same key the old sidebar used, so an existing preference carries over. */
-export const SIDEBAR_KEY = "humain-sidebar";
+// Same key the old sidebar used, so an existing preference carries over. It is
+// defined in a non-client module because the server layouts read it too — see
+// lib/sidebar-pref.ts.
+import { SIDEBAR_KEY } from "@/lib/sidebar-pref";
+export { SIDEBAR_KEY };
 
 /**
  * Collapse state for the console sidebar, shared by both halves of the console.

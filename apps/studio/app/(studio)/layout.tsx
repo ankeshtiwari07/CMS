@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { getCurrentUser } from "@/lib/payload";
-import { SIDEBAR_KEY } from "@/components/studio/use-sidebar-pref";
+import { SIDEBAR_KEY } from "@/lib/sidebar-pref";
 import ConsoleShell from "@/components/studio/console-shell";
 
 /**

@@ -341,3 +341,8 @@ export default function CmsCopilot({ surface }: { surface: CopilotSurface }) {
     </AppShell.Panel>
   );
 }
+
+// Root identifies panels by this static marker on the component type; without it
+// the copilot dock was never counted, so its surface never had two discoverable
+// panels and the resizable pair could not form.
+(CmsCopilot as any).__appShellType = "AppShell.Panel";

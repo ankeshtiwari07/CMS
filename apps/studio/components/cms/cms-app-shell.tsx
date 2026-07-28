@@ -56,14 +56,36 @@ export function CmsSectionNav() {
  * AppShellCard would nest card-in-card and mis-compute those scroll regions.
  * The section nav sits above as a fixed row; the workspace takes the remainder.
  */
-export function CmsPanel({ label, children }: { label: string; children: React.ReactNode }) {
+export function CmsPanel({
+  label,
+  width,
+  minWidth,
+  flex = 1,
+  children,
+}: {
+  label: string;
+  width?: number | string;
+  minWidth?: number | string;
+  flex?: number;
+  children: React.ReactNode;
+}) {
   return (
-    <AppShell.Panel flex={1} label={label}>
+    <AppShell.Panel flex={flex} width={width} minWidth={minWidth} label={label}>
       <CmsSectionNav />
       <div className="min-h-0 flex-1">{children}</div>
     </AppShell.Panel>
   );
 }
+// AppShell.Root discovers panels by a STATIC MARKER on the component type:
+//   isAppShellPanelComponent = (t) => t.__appShellType === "AppShell.Panel"
+// Wrapping a Panel in our own component therefore made it invisible to Root —
+// which is why the resizable handle, root-owned expansion and the mobile tab bar
+// never engaged on ANY route. Root renders a discovered panel as-is inside
+// PanelIndexContext/PanelLayoutContext (it never clones or injects props), so
+// carrying the marker is enough: the real AppShell.Panel inside consumes that
+// context and sizes itself correctly. Root reads label/width/minWidth/flex off
+// OUR props, which is why they are forwarded above.
+(CmsPanel as any).__appShellType = "AppShell.Panel";
 
 /** Card-wrapped panel, per the recipe, for content that has no chrome of its own. */
 export function CmsCardPanel({
@@ -92,3 +114,4 @@ export function CmsCardPanel({
     </AppShell.Panel>
   );
 }
+(CmsCardPanel as any).__appShellType = "AppShell.Panel";

@@ -20,6 +20,9 @@ export function StudioPanel({ label, children }: { label: string; children: Reac
     </AppShell.Panel>
   );
 }
+// See cms-app-shell.tsx: Root discovers panels via the static __appShellType
+// marker on the component type, so a wrapper must carry it or it is invisible.
+(StudioPanel as any).__appShellType = "AppShell.Panel";
 
 /**
  * The rounded page card each studio surface declares, in one place.

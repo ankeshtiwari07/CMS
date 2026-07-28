@@ -6,6 +6,7 @@ import { CmsPanel } from "@/components/cms/cms-app-shell";
 import { StudioPageCard } from "@/components/studio/studio-app-shell";
 import StudioWorkspace from "@/components/studio/studio-workspace";
 import { type Project } from "@/components/studio/continue-creating";
+import ConsoleFrame from "@/components/studio/console-frame";
 
 export const metadata = { title: "Content Management · HUMAIN" };
 export const dynamic = "force-dynamic";
@@ -46,17 +47,19 @@ export default async function CmsPage() {
   const locale: Locale = (LOCALES.find((l) => l.code === raw)?.code || "en") as Locale;
 
   return (
-    <CmsPanel label="CMS">
-      <StudioPageCard
-        padding="72px 40px 56px"
-        background="linear-gradient(180deg, var(--mint-tint) 0%, var(--hero-mid) 7%, var(--hero-end) 16%, var(--hero-end) 100%)"
-      >
-        <StudioWorkspace
-          greeting={`${greeting(user.name, locale)} ${tr(locale, "home.q")}`}
-          projects={projects}
-          user={{ name: user.name, email: user.email, roles: user.roles }}
-        />
-      </StudioPageCard>
-    </CmsPanel>
+    <ConsoleFrame>
+      <CmsPanel label="CMS">
+        <StudioPageCard
+          padding="72px 40px 56px"
+          background="linear-gradient(180deg, var(--mint-tint) 0%, var(--hero-mid) 7%, var(--hero-end) 16%, var(--hero-end) 100%)"
+        >
+          <StudioWorkspace
+            greeting={`${greeting(user.name, locale)} ${tr(locale, "home.q")}`}
+            projects={projects}
+            user={{ name: user.name, email: user.email, roles: user.roles }}
+          />
+        </StudioPageCard>
+      </CmsPanel>
+    </ConsoleFrame>
   );
 }

@@ -1,6 +1,7 @@
 import { CmsPanel } from "@/components/cms/cms-app-shell";
 import CmsCopilot from "@/components/cms/cms-copilot";
 import ContentStudio from "@/components/studio/content-studio";
+import ConsoleFrame from "@/components/studio/console-frame";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Content Studio · HUMAIN" };
@@ -14,10 +15,14 @@ export const metadata = { title: "Content Studio · HUMAIN" };
 // someone opens it.
 export default async function ContentStudioPage({ searchParams }: { searchParams: Promise<{ id?: string }> }) {
   const { id } = await searchParams;
-  return [
-    <CmsPanel key="main" label="Content Studio">
-      <ContentStudio projectId={id ?? null} />
-    </CmsPanel>,
-    <CmsCopilot key="copilot" surface="content" />,
-  ];
+  // Both panels are direct children of the shell's AppShell.Root, which is what
+  // lets the package own the split: drag handle, expansion and mobile tabs.
+  return (
+    <ConsoleFrame>
+      <CmsPanel key="main" label="Content Studio">
+        <ContentStudio projectId={id ?? null} />
+      </CmsPanel>
+      <CmsCopilot surface="content" />
+    </ConsoleFrame>
+  );
 }

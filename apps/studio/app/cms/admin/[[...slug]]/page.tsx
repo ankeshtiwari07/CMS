@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/payload";
 import { CmsPanel } from "@/components/cms/cms-app-shell";
 import AdminFrame from "@/components/cms/admin-frame";
+import ConsoleFrame from "@/components/studio/console-frame";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "CMS Admin · HUMAIN" };
@@ -26,8 +27,10 @@ export default async function CmsAdminPage({ params }: { params: Promise<{ slug?
   const src = "/admin" + (slug?.length ? "/" + slug.join("/") : "");
 
   return (
-    <CmsPanel label={titleFor(slug)}>
-      <AdminFrame src={src} title={titleFor(slug)} />
-    </CmsPanel>
+    <ConsoleFrame>
+      <CmsPanel label={titleFor(slug)}>
+        <AdminFrame src={src} title={titleFor(slug)} />
+      </CmsPanel>
+    </ConsoleFrame>
   );
 }

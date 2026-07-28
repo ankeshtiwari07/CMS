@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/payload";
 import CmsWorkspace from "@/components/cms/cms-workspace";
 import type { Tier } from "@/components/cms/cms-preview";
+import ConsoleFrame from "@/components/studio/console-frame";
 
 export const metadata = { title: "CMS · HUMAIN" };
 export const dynamic = "force-dynamic";
@@ -31,13 +32,15 @@ export default async function CmsStudioPage() {
   // Wrapping it in another panel nested them, so the chat and preview were laid
   // out INSIDE one panel instead of being siblings the shell can size.
   return (
-    <>
-      <CmsWorkspace
-        user={{ name: user.name, email: user.email, roles }}
-        canEdit={canEdit}
-        canPublish={canPublish}
-        tier={tier}
-      />
-    </>
+    <ConsoleFrame>
+      <>
+        <CmsWorkspace
+          user={{ name: user.name, email: user.email, roles }}
+          canEdit={canEdit}
+          canPublish={canPublish}
+          tier={tier}
+        />
+      </>
+    </ConsoleFrame>
   );
 }

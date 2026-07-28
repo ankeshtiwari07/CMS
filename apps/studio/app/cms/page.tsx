@@ -1,44 +1,62 @@
 import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/payload";
-import CmsWorkspace from "@/components/cms/cms-workspace";
-import type { Tier } from "@/components/cms/cms-preview";
+import { cookies, headers } from "next/headers";
+import { getCurrentUser, payloadFetch } from "@/lib/payload";
+import { tr, LOCALES, type Locale } from "@/lib/i18n";
+import { CmsPanel } from "@/components/cms/cms-app-shell";
+import { StudioPageCard } from "@/components/studio/studio-app-shell";
+import StudioWorkspace from "@/components/studio/studio-workspace";
+import { type Project } from "@/components/studio/continue-creating";
 
 export const metadata = { title: "Content Management · HUMAIN" };
 export const dynamic = "force-dynamic";
 
-// Map the user's RBAC roles to the CMS workspace tier (gates starters/actions).
-function tierFor(roles: string[]): Tier {
-  if (roles.includes("admin") || roles.includes("siteAdmin")) return "Admin";
-  if (roles.includes("publisher") || roles.includes("reviewer") || roles.includes("compliance")) return "Editor";
-  if (roles.includes("author") || roles.includes("brand")) return "Marketer";
-  return "Standard";
+function greeting(name: string | undefined, locale: Locale) {
+  const h = new Date().getHours();
+  const part = tr(locale, h < 12 ? "greet.morning" : h < 18 ? "greet.afternoon" : "greet.evening");
+  const first = (name || "").split(" ")[0];
+  return first ? `${part} ${first}!` : `${part}!`;
+}
+
+async function recentProjects(): Promise<Project[]> {
+  try {
+    const res = await payloadFetch("/api/projects?sort=-createdAt&limit=5&depth=0");
+    if (!res.ok) return [];
+    const data = await res.json();
+    return (data.docs ?? []).map((d: any) => ({ id: d.id, title: d.title, type: d.type, updatedAt: d.updatedAt }));
+  } catch {
+    return [];
+  }
 }
 
 /**
- * The CMS landing is the agentic composer, not a tile grid.
+ * The CMS landing, matching the supplied design: the Create Studio composer —
+ * fanned preview cards, the greeting, and the prompt box — under the CMS nav
+ * item, as a single full-width panel.
  *
- * It used to be a grid of content-type tiles; those content types are still
- * reachable — Templates in the sidebar goes to /cms/manage, and every collection
- * is under the CMS row's sub-navigation and CMS Admin.
+ * It was briefly the CMS *agent* workspace (a two-panel chat + live preview).
+ * That surface is not gone: it is the "Studio" entry in the CMS section nav at
+ * /cms/studio, which is where an agentic drafting session with a live editable
+ * preview belongs. This landing is the "what do you want to create" front door.
  */
 export default async function CmsPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
-  const roles = user.roles ?? [];
-  const canEdit = roles.some((r) => ["author", "reviewer", "publisher", "brand", "siteAdmin", "admin"].includes(r));
-  const canPublish = roles.some((r) => ["publisher", "siteAdmin", "admin"].includes(r));
+  const projects = await recentProjects();
+  const raw = (await headers()).get("x-humain-locale") || (await cookies()).get("humain-locale")?.value || "en";
+  const locale: Locale = (LOCALES.find((l) => l.code === raw)?.code || "en") as Locale;
 
-  // CmsWorkspace returns the two sibling panels itself — the conversation rail
-  // and the generated-output card — which is the shape the package prescribes
-  // for a chat workspace that produces output.
   return (
-    <>
-      <CmsWorkspace
-        user={{ name: user.name, email: user.email, roles }}
-        canEdit={canEdit}
-        canPublish={canPublish}
-        tier={tierFor(roles)}
-      />
-    </>
+    <CmsPanel label="CMS">
+      <StudioPageCard
+        padding="72px 40px 56px"
+        background="linear-gradient(180deg, var(--mint-tint) 0%, var(--hero-mid) 7%, var(--hero-end) 16%, var(--hero-end) 100%)"
+      >
+        <StudioWorkspace
+          greeting={`${greeting(user.name, locale)} ${tr(locale, "home.q")}`}
+          projects={projects}
+          user={{ name: user.name, email: user.email, roles: user.roles }}
+        />
+      </StudioPageCard>
+    </CmsPanel>
   );
 }

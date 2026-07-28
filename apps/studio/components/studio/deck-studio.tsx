@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Badge, Button, Select, SelectItem } from "@humain/ui";
-import { ArrowUp } from "lucide-react";
+import { ArrowUp, Baseline, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Code2, Download, Highlighter, MoreVertical, Pencil, Play, Plus, RefreshCw, Redo2, Undo2, X } from "lucide-react";
 
 // ---------- types (mirror apps/ai-service/src/deck.ts) ----------
 type Theme = { id: string; name: string; bg: string; surface: string; fg: string; muted: string; accent: string; accent2: string; font: string; heading: string; radius: number };
@@ -499,7 +499,7 @@ export default function DeckStudio({ deckId, userName }: { deckId: string | null
                 </label>
               </div>
               <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 12 }}>
-                <button style={primaryBtn} disabled={!!busy || (!choice)} onClick={answerCurrent}>{qi >= questions.length - 1 ? "Generate outline" : "Next"}</button>
+                <Button loading={!!busy} disabled={!!busy || !choice} onClick={answerCurrent}>{qi >= questions.length - 1 ? "Generate outline" : "Next"}</Button>
               </div>
             </div>
           )}
@@ -518,7 +518,7 @@ export default function DeckStudio({ deckId, userName }: { deckId: string | null
             style={{ width: "100%", border: "1px solid var(--hairline)", borderRadius: 12, padding: "10px 12px", fontSize: 14, resize: "none", outline: "none", fontFamily: "inherit", color: "var(--ink)", background: "var(--card-bg, #fff)" }}
           />
           <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 8 }}>
-            <button style={primaryBtn} disabled={!!busy || !compose.trim()} onClick={() => { if (phase === "compose") { startFromPrompt(compose); setCompose(""); } else sendRefine(); }}>{phase === "compose" ? "Start" : "Send"}</button>
+            <Button loading={!!busy} disabled={!!busy || !compose.trim()} onClick={() => { if (phase === "compose") { startFromPrompt(compose); setCompose(""); } else sendRefine(); }}>{phase === "compose" ? "Start" : "Send"}</Button>
           </div>
         </div>
       </div>
@@ -533,11 +533,11 @@ export default function DeckStudio({ deckId, userName }: { deckId: string | null
           </div>
           <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end" }}>
             {phase === "deck" && !editing && (<>
-              <button style={btn()} onClick={enableEditing}>✎ Enable editing</button>
-              <button style={btn()} onClick={() => setPresent(true)}>▶ Present</button>
-              <button style={btn()} onClick={exportPptx}>PPTX</button>
+              <Button appearance="outline" variant="secondary" size="sm" startIcon={<Pencil className="size-4" />} onClick={enableEditing}>Enable editing</Button>
+              <Button appearance="outline" variant="secondary" size="sm" startIcon={<Play className="size-4" />} onClick={() => setPresent(true)}>Present</Button>
+              <Button appearance="outline" variant="secondary" size="sm" startIcon={<Download className="size-4" />} onClick={exportPptx}>PPTX</Button>
               <div style={{ position: "relative" }}>
-                <button style={btn()} onClick={() => { setMenuOpen((o) => !o); setLangOpen(""); }}>⋮</button>
+                <Button appearance="ghost" variant="secondary" size="icon-sm" aria-label="More deck actions" title="More" onClick={() => { setMenuOpen((o) => !o); setLangOpen(""); }}><MoreVertical className="size-4" /></Button>
                 {menuOpen && (
                   <div style={{ position: "absolute", right: 0, top: 40, zIndex: 60, background: "var(--card-bg,#fff)", border: "1px solid var(--hairline)", borderRadius: 12, boxShadow: "var(--shadow-card)", padding: 6, minWidth: 210 }}>
                     <button style={menuItem} onClick={makeCopy}>⧉ Make a copy</button>
@@ -552,20 +552,47 @@ export default function DeckStudio({ deckId, userName }: { deckId: string | null
                   </div>
                 )}
               </div>
-              <button style={primaryBtn} disabled={!!busy} onClick={save}>{savedId ? "Update" : "Save"}</button>
+              <Button size="sm" loading={!!busy} disabled={!!busy} onClick={save}>{savedId ? "Update" : "Save"}</Button>
             </>)}
             {phase === "deck" && editing && (<>
-              <button style={tb} title="Bold" onMouseDown={(e) => e.preventDefault()} onClick={() => exec("bold")}><b>B</b></button>
-              <button style={tb} title="Italic" onMouseDown={(e) => e.preventDefault()} onClick={() => exec("italic")}><i>I</i></button>
-              <button style={tb} title="Underline" onMouseDown={(e) => e.preventDefault()} onClick={() => exec("underline")}><u>U</u></button>
-              <label style={{ ...tb, position: "relative" }} title="Text color" onMouseDown={(e) => e.preventDefault()}>A<input type="color" onInput={(e) => exec("foreColor", (e.target as HTMLInputElement).value)} style={{ position: "absolute", inset: 0, opacity: 0, cursor: "pointer" }} /></label>
-              <label style={{ ...tb, position: "relative" }} title="Highlight" onMouseDown={(e) => e.preventDefault()}>🖍<input type="color" onInput={(e) => exec("hiliteColor", (e.target as HTMLInputElement).value)} style={{ position: "absolute", inset: 0, opacity: 0, cursor: "pointer" }} /></label>
-              <button style={tb} title="Undo" onMouseDown={(e) => e.preventDefault()} onClick={() => exec("undo")}>↶</button>
-              <button style={tb} title="Redo" onMouseDown={(e) => e.preventDefault()} onClick={() => exec("redo")}>↷</button>
-              <button style={btn(showSource ? { background: "var(--mint-pill)" } : {})} onClick={() => setShowSource((s) => !s)}>&lt;/&gt; Source</button>
-              <button style={btn()} onClick={() => { setEditing(false); setShowSource(false); }}>Exit edit</button>
+              <Button appearance="ghost" variant="secondary" size="icon-sm" title="Bold" aria-label="Bold" onMouseDown={(e: React.MouseEvent<HTMLButtonElement>) => e.preventDefault()} onClick={() => exec("bold")}><span className="font-bold">B</span></Button>
+              <Button appearance="ghost" variant="secondary" size="icon-sm" title="Italic" aria-label="Italic" onMouseDown={(e: React.MouseEvent<HTMLButtonElement>) => e.preventDefault()} onClick={() => exec("italic")}><span className="italic">I</span></Button>
+              <Button appearance="ghost" variant="secondary" size="icon-sm" title="Underline" aria-label="Underline" onMouseDown={(e: React.MouseEvent<HTMLButtonElement>) => e.preventDefault()} onClick={() => exec("underline")}><span className="underline">U</span></Button>
+              {/* Native colour inputs — the package ships no colour picker.
+                  They stay <label> wrappers so the swatch opens the OS picker;
+                  preventDefault on mousedown keeps the editor selection alive. */}
+              <label
+                title="Text colour"
+                onMouseDown={(e: React.MouseEvent<HTMLLabelElement>) => e.preventDefault()}
+                className="relative grid size-8 cursor-pointer place-items-center rounded-md text-sm font-semibold text-secondary-foreground hover:bg-muted"
+              >
+                <Baseline className="size-4" aria-hidden />
+                <input
+                  type="color"
+                  aria-label="Text colour"
+                  onInput={(e) => exec("foreColor", (e.target as HTMLInputElement).value)}
+                  className="absolute inset-0 cursor-pointer opacity-0"
+                />
+              </label>
+              <label
+                title="Highlight"
+                onMouseDown={(e: React.MouseEvent<HTMLLabelElement>) => e.preventDefault()}
+                className="relative grid size-8 cursor-pointer place-items-center rounded-md text-secondary-foreground hover:bg-muted"
+              >
+                <Highlighter className="size-4" aria-hidden />
+                <input
+                  type="color"
+                  aria-label="Highlight colour"
+                  onInput={(e) => exec("hiliteColor", (e.target as HTMLInputElement).value)}
+                  className="absolute inset-0 cursor-pointer opacity-0"
+                />
+              </label>
+              <Button appearance="ghost" variant="secondary" size="icon-sm" title="Undo" aria-label="Undo" onMouseDown={(e: React.MouseEvent<HTMLButtonElement>) => e.preventDefault()} onClick={() => exec("undo")}><Undo2 className="size-4" /></Button>
+              <Button appearance="ghost" variant="secondary" size="icon-sm" title="Redo" aria-label="Redo" onMouseDown={(e: React.MouseEvent<HTMLButtonElement>) => e.preventDefault()} onClick={() => exec("redo")}><Redo2 className="size-4" /></Button>
+              <Button size="sm" appearance={showSource ? "soft" : "outline"} variant={showSource ? "primary" : "secondary"} startIcon={<Code2 className="size-4" />} onClick={() => setShowSource((s) => !s)}>Source</Button>
+              <Button appearance="outline" variant="secondary" size="sm" onClick={() => { setEditing(false); setShowSource(false); }}>Exit edit</Button>
               {dirty && <span style={{ fontSize: 12, fontWeight: 700, color: "#b26a00", background: "color-mix(in srgb, var(--warning) 12%, var(--background))", padding: "4px 9px", borderRadius: 999 }}>Unsaved</span>}
-              <button style={primaryBtn} disabled={!!busy} onClick={save}>Save</button>
+              <Button size="sm" loading={!!busy} disabled={!!busy} onClick={save}>Save</Button>
             </>)}
             {!editing && setupLabel && <span style={{ fontSize: 12, fontWeight: 700, color: "var(--studio-teal-dark)", background: "var(--mint-pill)", padding: "5px 11px", borderRadius: 999 }}>{setupLabel}</span>}
           </div>
@@ -589,16 +616,16 @@ export default function DeckStudio({ deckId, userName }: { deckId: string | null
                       <span title="Drag to reorder" style={{ cursor: "grab", color: "var(--text-muted)", fontSize: 16, lineHeight: 1, userSelect: "none" }}>⠿</span>
                       <span style={{ color: "var(--studio-primary)", fontWeight: 800, minWidth: 24 }}>{String(i + 1).padStart(2, "0")}</span>
                       <input value={o.title} onChange={(e) => setOutline((os) => os.map((x, k) => k === i ? { ...x, title: e.target.value } : x))} style={{ flex: 1, border: "none", background: "transparent", fontSize: 15, fontWeight: 600, color: "var(--ink)", outline: "none" }} />
-                      <button style={btn({ padding: "4px 8px" })} onClick={() => move(i, -1)}>↑</button>
-                      <button style={btn({ padding: "4px 8px" })} onClick={() => move(i, 1)}>↓</button>
-                      <button style={btn({ padding: "4px 8px", color: "var(--destructive)" })} onClick={() => setOutline((os) => os.filter((_, k) => k !== i))}>✕</button>
+                      <Button appearance="ghost" variant="secondary" size="icon-xs" aria-label="Move slide up" title="Move up" onClick={() => move(i, -1)}><ChevronUp className="size-3.5" /></Button>
+                      <Button appearance="ghost" variant="secondary" size="icon-xs" aria-label="Move slide down" title="Move down" onClick={() => move(i, 1)}><ChevronDown className="size-3.5" /></Button>
+                      <Button appearance="ghost" variant="destructive" size="icon-xs" aria-label="Remove slide" title="Remove" onClick={() => setOutline((os) => os.filter((_, k) => k !== i))}><X className="size-3.5" /></Button>
                     </div>
                   ))}
                 </div>
-                <button style={btn({ marginTop: 10 })} onClick={() => setOutline((os) => [...os, { title: "New slide", intent: "" }])}>+ Add slide</button>
+                <Button appearance="outline" variant="secondary" size="sm" className="mt-2.5" startIcon={<Plus className="size-4" />} onClick={() => setOutline((os) => [...os, { title: "New slide", intent: "" }])}>Add slide</Button>
                 <div style={{ position: "sticky", bottom: 0, marginTop: 20, display: "flex", justifyContent: "flex-end", gap: 12 }}>
                   <span style={{ alignSelf: "center", fontSize: 13, color: "var(--text-muted)" }}>{outline.length} slides · Ready to generate</span>
-                  <button style={primaryBtn} disabled={!!busy} onClick={generateDeck}>{busy || "Generate deck →"}</button>
+                  <Button loading={!!busy} disabled={!!busy} onClick={generateDeck}>{busy || "Generate deck"}</Button>
                 </div>
               </div>
             ) : (
@@ -639,10 +666,10 @@ export default function DeckStudio({ deckId, userName }: { deckId: string | null
                   <ScaledSlide slide={slide} t={t} index={cur} total={deck.slides.length} boxW={boxW} />
                 )}
                 <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap", justifyContent: "center" }}>
-                  <button style={btn()} onClick={() => setCur((c) => Math.max(0, c - 1))}>←</button>
+                  <Button appearance="outline" variant="secondary" size="icon-sm" aria-label="Previous slide" title="Previous" onClick={() => setCur((c) => Math.max(0, c - 1))}><ChevronLeft className="size-4" /></Button>
                   <span style={{ alignSelf: "center", fontSize: 13, color: "var(--text-muted)" }}>{cur + 1} / {deck.slides.length}</span>
-                  <button style={btn()} onClick={() => setCur((c) => Math.min(deck.slides.length - 1, c + 1))}>→</button>
-                  {!editing && <button style={btn()} disabled={!!busy} onClick={() => sendRefineQuick("Improve and tighten this slide.")}>↻ Refine</button>}
+                  <Button appearance="outline" variant="secondary" size="icon-sm" aria-label="Next slide" title="Next" onClick={() => setCur((c) => Math.min(deck.slides.length - 1, c + 1))}><ChevronRight className="size-4" /></Button>
+                  {!editing && <Button appearance="outline" variant="secondary" size="sm" disabled={!!busy} startIcon={<RefreshCw className="size-4" />} onClick={() => sendRefineQuick("Improve and tighten this slide.")}>Refine</Button>}
                   {!editing && <select value={deck.theme} onChange={(e) => setDeck({ ...deck, theme: e.target.value })} style={{ ...btn(), padding: "8px 10px" }}>{themes.map((th) => <option key={th.id} value={th.id}>{th.name}</option>)}</select>}
                 </div>
               </div>
@@ -669,7 +696,7 @@ export default function DeckStudio({ deckId, userName }: { deckId: string | null
             <button style={btn()} onClick={() => setCur((c) => Math.max(0, c - 1))}>←</button>
             <span style={{ color: "var(--primary-foreground)" }}>{cur + 1} / {deck.slides.length}</span>
             <button style={btn()} onClick={() => setCur((c) => Math.min(deck.slides.length - 1, c + 1))}>→</button>
-            <button style={btn()} onClick={() => setPresent(false)}>✕ Esc</button>
+            <Button appearance="outline" variant="secondary" size="sm" startIcon={<X className="size-4" />} onClick={() => setPresent(false)}>Exit</Button>
           </div>
         </div>
       )}

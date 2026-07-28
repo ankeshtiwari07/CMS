@@ -26,8 +26,11 @@ export { default } from "@/components/studio/console-shell";
 export function CmsSectionNav() {
   const pathname = usePathname() || "";
   const router = useRouter();
+  // One line that scrolls horizontally rather than wrapping: in the two-panel
+  // surfaces this rail is only ~40% of the viewport, and flex-wrap turned it
+  // into two stacked rows.
   return (
-    <nav aria-label="CMS sections" className="mb-3 flex flex-wrap gap-1">
+    <nav aria-label="CMS sections" className="mb-3 flex shrink-0 gap-1 overflow-x-auto">
       {CMS_SECTION.map((s) => {
         const active = s.href === "/cms" ? pathname === "/cms" : pathname.startsWith(s.href);
         return (
@@ -36,6 +39,7 @@ export function CmsSectionNav() {
             size="sm"
             appearance={active ? "soft" : "ghost"}
             variant={active ? "primary" : "secondary"}
+            className="shrink-0"
             onClick={() => router.push(s.href)}
           >
             {s.label}

@@ -1,5 +1,4 @@
 import { StudioPanel, StudioPageCard } from "@/components/studio/studio-app-shell";
-import ConsoleFrame from "@/components/studio/console-frame";
 
 export const dynamic = "force-dynamic";
 
@@ -11,13 +10,11 @@ export const dynamic = "force-dynamic";
  */
 export default function SettingsLayout({ children }: { children: React.ReactNode }) {
   return (
-    <ConsoleFrame>
-      <StudioPanel label="Settings">
-        <StudioPageCard padding="36px 40px">
-          <h1 style={{ fontSize: 24, fontWeight: 700, color: "var(--ink)", margin: "0 0 18px" }}>Settings</h1>
-          {children}
-        </StudioPageCard>
-      </StudioPanel>
-    </ConsoleFrame>
+    <StudioPanel label="Settings">
+      <StudioPageCard padding="36px 40px">
+        <h1 style={{ fontSize: 24, fontWeight: 700, color: "var(--ink)", margin: "0 0 18px" }}>Settings</h1>
+        {children}
+      </StudioPageCard>
+    </StudioPanel>
   );
 }

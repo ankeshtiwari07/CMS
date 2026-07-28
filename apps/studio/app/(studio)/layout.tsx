@@ -1,14 +1,22 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/payload";
+import ConsoleShell from "@/components/studio/console-shell";
 
 /**
- * Auth gate only. The console shell moved INTO the pages
- * (components/studio/console-frame.tsx) so AppShell.Root directly parents the
- * panels — see that file for why the layout cannot host it.
+ * Create Studio routes — /studio, /design, /projects, /search, /brand, /review
+ * and /settings — share the ONE console shell with the CMS.
+ *
+ * There used to be two shells. They shared components but not composition, which
+ * is exactly how the two halves of the console kept drifting apart.
  */
 export const dynamic = "force-dynamic";
 
 export default async function StudioLayout({ children }: { children: React.ReactNode }) {
-  if (!(await getCurrentUser())) redirect("/login");
-  return <>{children}</>;
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+  return (
+    <ConsoleShell user={{ name: user.name, email: user.email, roles: user.roles }}>
+      {children}
+    </ConsoleShell>
+  );
 }

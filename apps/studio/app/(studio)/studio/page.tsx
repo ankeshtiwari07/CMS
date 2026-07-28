@@ -5,7 +5,6 @@ import { tr, LOCALES, type Locale } from "@/lib/i18n";
 import { StudioPanel, StudioPageCard } from "@/components/studio/studio-app-shell";
 import StudioWorkspace from "@/components/studio/studio-workspace";
 import { type Project } from "@/components/studio/continue-creating";
-import ConsoleFrame from "@/components/studio/console-frame";
 
 export const metadata = { title: "Create Studio · HUMAIN" };
 export const dynamic = "force-dynamic";
@@ -40,19 +39,17 @@ export default async function StudioHome() {
   const locale: Locale = (LOCALES.find((l) => l.code === raw)?.code || "en") as Locale;
 
   return (
-    <ConsoleFrame>
-      <StudioPanel label="Create">
-        <StudioPageCard
-          padding="72px 40px 56px"
-          background="linear-gradient(180deg, var(--mint-tint) 0%, var(--hero-mid) 7%, var(--hero-end) 16%, var(--hero-end) 100%)"
-        >
-          <StudioWorkspace
-            greeting={`${greeting(user.name, locale)} ${tr(locale, "home.q")}`}
-            projects={projects}
-            user={{ name: user.name, email: user.email, roles: user.roles }}
-          />
-        </StudioPageCard>
-      </StudioPanel>
-    </ConsoleFrame>
+    <StudioPanel label="Create">
+      <StudioPageCard
+        padding="72px 40px 56px"
+        background="linear-gradient(180deg, var(--mint-tint) 0%, var(--hero-mid) 7%, var(--hero-end) 16%, var(--hero-end) 100%)"
+      >
+        <StudioWorkspace
+          greeting={`${greeting(user.name, locale)} ${tr(locale, "home.q")}`}
+          projects={projects}
+          user={{ name: user.name, email: user.email, roles: user.roles }}
+        />
+      </StudioPageCard>
+    </StudioPanel>
   );
 }

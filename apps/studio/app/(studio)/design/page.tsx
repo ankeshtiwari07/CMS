@@ -3,7 +3,6 @@ import { getCurrentUser, hasRole, payloadFetch } from "@/lib/payload";
 import { StudioPanel, StudioPageCard } from "@/components/studio/studio-app-shell";
 import { HumainWordmark } from "@/components/brand";
 import ThemeBuilder, { DEFAULT_THEME, type Theme } from "@/components/design/theme-builder";
-import ConsoleFrame from "@/components/studio/console-frame";
 
 export const metadata = { title: "Design System · HUMAIN" };
 export const dynamic = "force-dynamic";
@@ -68,51 +67,49 @@ export default async function DesignPage() {
   const canSave = hasRole(user, ["publisher", "admin"]);
 
   return (
-    <ConsoleFrame>
-      <StudioPanel label="Design">
-        <StudioPageCard padding="36px 40px">
-          <h1 style={{ fontSize: 24, fontWeight: 700, color: "var(--ink)", margin: "0 0 4px" }}>Design System</h1>
-          <p style={{ color: "var(--text-muted)", fontSize: 13.5, margin: "0 0 26px" }}>Build your own theme — pick colors, type and radius, watch the live preview, and save it.</p>
+    <StudioPanel label="Design">
+      <StudioPageCard padding="36px 40px">
+        <h1 style={{ fontSize: 24, fontWeight: 700, color: "var(--ink)", margin: "0 0 4px" }}>Design System</h1>
+        <p style={{ color: "var(--text-muted)", fontSize: 13.5, margin: "0 0 26px" }}>Build your own theme — pick colors, type and radius, watch the live preview, and save it.</p>
 
-          <ThemeBuilder initial={theme} canSave={canSave} />
+        <ThemeBuilder initial={theme} canSave={canSave} />
 
-          <hr style={{ border: "none", borderTop: "1px solid var(--hairline)", margin: "34px 0 28px" }} />
+        <hr style={{ border: "none", borderTop: "1px solid var(--hairline)", margin: "34px 0 28px" }} />
 
-          <h2 style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)", margin: "0 0 4px" }}>Brand reference</h2>
-          <p style={{ color: "var(--text-muted)", fontSize: 13, margin: "0 0 22px" }}>The default HUMAIN tokens shared by both surfaces.</p>
+        <h2 style={{ fontSize: 16, fontWeight: 700, color: "var(--ink)", margin: "0 0 4px" }}>Brand reference</h2>
+        <p style={{ color: "var(--text-muted)", fontSize: 13, margin: "0 0 22px" }}>The default HUMAIN tokens shared by both surfaces.</p>
 
-          <div style={{ marginBottom: 28 }}>
-            <h3 style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", margin: "0 0 12px" }}>Logo</h3>
-            <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-              <div style={{ background: "var(--card)", border: "1px solid var(--hairline)", borderRadius: 12, padding: "22px 28px" }}><HumainWordmark size={26} /></div>
-              <div style={{ background: "var(--background)", borderRadius: 12, padding: "22px 28px" }}><HumainWordmark size={26} onDark /></div>
-            </div>
+        <div style={{ marginBottom: 28 }}>
+          <h3 style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", margin: "0 0 12px" }}>Logo</h3>
+          <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+            <div style={{ background: "var(--card)", border: "1px solid var(--hairline)", borderRadius: 12, padding: "22px 28px" }}><HumainWordmark size={26} /></div>
+            <div style={{ background: "var(--background)", borderRadius: 12, padding: "22px 28px" }}><HumainWordmark size={26} onDark /></div>
           </div>
+        </div>
 
-          <Swatches title="Create Studio — light surface" items={STUDIO} />
-          <Swatches title="Content Management — dark surface" items={CMS} />
+        <Swatches title="Create Studio — light surface" items={STUDIO} />
+        <Swatches title="Content Management — dark surface" items={CMS} />
 
-          <div style={{ marginBottom: 28 }}>
-            <h3 style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", margin: "0 0 12px" }}>Typography</h3>
-            <div style={{ display: "grid", gap: 10 }}>
-              <div style={{ fontFamily: "var(--font-ui)", fontSize: 26, fontWeight: 800, color: "var(--ink)" }}>Inter — UI / Latin <span style={{ fontSize: 13, fontWeight: 500, color: "var(--text-muted)" }}>The quick brown fox</span></div>
-              <div dir="rtl" style={{ fontFamily: "var(--font-ar)", fontSize: 26, fontWeight: 700, color: "var(--ink)" }}>IBM Plex Sans Arabic — العربية <span style={{ fontSize: 13, fontWeight: 500, color: "var(--text-muted)" }}>تجارب مدعومة بالذكاء الاصطناعي</span></div>
-            </div>
+        <div style={{ marginBottom: 28 }}>
+          <h3 style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", margin: "0 0 12px" }}>Typography</h3>
+          <div style={{ display: "grid", gap: 10 }}>
+            <div style={{ fontFamily: "var(--font-ui)", fontSize: 26, fontWeight: 800, color: "var(--ink)" }}>Inter — UI / Latin <span style={{ fontSize: 13, fontWeight: 500, color: "var(--text-muted)" }}>The quick brown fox</span></div>
+            <div dir="rtl" style={{ fontFamily: "var(--font-ar)", fontSize: 26, fontWeight: 700, color: "var(--ink)" }}>IBM Plex Sans Arabic — العربية <span style={{ fontSize: 13, fontWeight: 500, color: "var(--text-muted)" }}>تجارب مدعومة بالذكاء الاصطناعي</span></div>
           </div>
+        </div>
 
-          <div>
-            <h3 style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", margin: "0 0 12px" }}>Radii &amp; elevation</h3>
-            <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
-              {[["Input", 10], ["Card", 18], ["Pill", 999]].map(([l, r]) => (
-                <div key={l as string} style={{ textAlign: "center" }}>
-                  <div style={{ width: 96, height: 64, background: "var(--mint-pill)", border: "1px solid var(--studio-primary)", borderRadius: r as number }} />
-                  <div style={{ fontSize: 12.5, color: "var(--text-muted)", marginTop: 6 }}>{l} · {r}px</div>
-                </div>
-              ))}
-            </div>
+        <div>
+          <h3 style={{ fontSize: 14, fontWeight: 700, color: "var(--ink)", margin: "0 0 12px" }}>Radii &amp; elevation</h3>
+          <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+            {[["Input", 10], ["Card", 18], ["Pill", 999]].map(([l, r]) => (
+              <div key={l as string} style={{ textAlign: "center" }}>
+                <div style={{ width: 96, height: 64, background: "var(--mint-pill)", border: "1px solid var(--studio-primary)", borderRadius: r as number }} />
+                <div style={{ fontSize: 12.5, color: "var(--text-muted)", marginTop: 6 }}>{l} · {r}px</div>
+              </div>
+            ))}
           </div>
-        </StudioPageCard>
-      </StudioPanel>
-    </ConsoleFrame>
+        </div>
+      </StudioPageCard>
+    </StudioPanel>
   );
 }

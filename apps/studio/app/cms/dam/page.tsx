@@ -1,16 +1,15 @@
-import { CmsPanel } from "@/components/cms/cms-app-shell";
-import CmsCopilot from "@/components/cms/cms-copilot";
-import DamStudio from "@/components/studio/dam-studio";
+import { redirect } from "next/navigation";
+import { getCurrentUser } from "@/lib/payload";
+import DamRoute from "@/components/cms/dam-route";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Asset Library · HUMAIN" };
 
-// Sibling panels as an array — see app/cms/content/page.tsx for why not a fragment.
+// EXPERIMENT: this route builds its shell and panels inside a single client
+// component (DamRoute) instead of receiving them through a server boundary.
+// See components/cms/dam-route.tsx for what it is testing.
 export default async function DamPage() {
-  return [
-    <CmsPanel key="main" label="Asset Library">
-      <DamStudio />
-    </CmsPanel>,
-    <CmsCopilot key="copilot" surface="dam" />,
-  ];
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+  return <DamRoute user={{ name: user.name, email: user.email, roles: user.roles }} />;
 }

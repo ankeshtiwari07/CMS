@@ -277,9 +277,11 @@ export default function ConsoleShell({
       activePanel={activePanel}
       onActivePanelChange={setActivePanel}
     >
-      {/* The story sets an explicit width per collapse state rather than
-          leaving the sidebar to size itself. */}
-      <AppShell.Sidebar width={open ? "280px" : "64px"}>
+      {/* No explicit width. The AppShell story sets one, but that story is not
+          inside a Next layout and never goes off-canvas; pinning a width here
+          stops the shell taking the sidebar off-canvas on small screens, which
+          is a likely contributor to the mobile horizontal overflow. */}
+      <AppShell.Sidebar>
         <SidebarProvider connected open={open} onOpenChange={onOpenChange}>
           <AppSidebar
             logo={

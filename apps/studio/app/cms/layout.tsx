@@ -1,5 +1,7 @@
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { getCurrentUser } from "@/lib/payload";
+import { SIDEBAR_KEY } from "@/components/studio/use-sidebar-pref";
 import ConsoleShell from "@/components/studio/console-shell";
 
 /**
@@ -12,8 +14,10 @@ export const dynamic = "force-dynamic";
 export default async function CmsLayout({ children }: { children: React.ReactNode }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
+  // Read the collapse preference server-side so SSR paints the right state.
+  const sidebarOpen = (await cookies()).get(SIDEBAR_KEY)?.value === "expanded";
   return (
-    <ConsoleShell user={{ name: user.name, email: user.email, roles: user.roles }}>
+    <ConsoleShell user={{ name: user.name, email: user.email, roles: user.roles }} initialSidebarOpen={sidebarOpen}>
       {children}
     </ConsoleShell>
   );

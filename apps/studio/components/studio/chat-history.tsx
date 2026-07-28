@@ -22,8 +22,18 @@ type Chat = { id: string | number; title: string; mode?: string; pinned?: boolea
    The list refreshes whenever a thread is saved (humain:chatsaved).
    ============================================================================= */
 
+/**
+ * Module-level cache.
+ *
+ * Module scope survives component remounts within a page session, so when the
+ * console shell is torn down and rebuilt (which per-route shells do on every
+ * navigation) the list is there immediately and revalidates in the background
+ * instead of refetching cold and flashing empty.
+ */
+let cachedChats: Chat[] | null = null;
+
 export function useChats() {
-  const [chats, setChats] = useState<Chat[]>([]);
+  const [chats, setChats] = useState<Chat[]>(cachedChats ?? []);
   const [activeId, setActiveId] = useState<string | null>(null);
   const loaded = useRef(false);
 
@@ -34,11 +44,14 @@ export function useChats() {
       const res = await fetch("/api/conversations", { cache: "no-store" });
       if (!res.ok) return;
       const d = await res.json();
-      setChats(Array.isArray(d.conversations) ? d.conversations : []);
+      const next = Array.isArray(d.conversations) ? d.conversations : [];
+      cachedChats = next;
+      setChats(next);
     } catch { /* ignore */ }
   }
 
   useEffect(() => {
+    // Always revalidate on mount; the cache only removes the empty flash.
     if (!loaded.current) { loaded.current = true; load(); }
     const onSaved = (e: Event) => {
       const id = (e as CustomEvent).detail?.id;
@@ -110,7 +123,7 @@ export function ManageChatsDialog({
     const title = draft.trim().slice(0, 120);
     setEditing(null);
     if (!title || title === c.title) return;
-    setChats((p) => p.map((x) => (x.id === c.id ? { ...x, title } : x)));
+    setChats((p) => { const n = p.map((x) => (x.id === c.id ? { ...x, title } : x)); cachedChats = n; return n; });
     await fetch(`/api/conversations/${c.id}`, {
       method: "PATCH",
       headers: { "content-type": "application/json" },
@@ -119,7 +132,7 @@ export function ManageChatsDialog({
   }
 
   async function remove(c: Chat) {
-    setChats((p) => p.filter((x) => x.id !== c.id));
+    setChats((p) => { const n = p.filter((x) => x.id !== c.id); cachedChats = n; return n; });
     if (activeId === String(c.id)) {
       setActiveId(null);
       globalThis.dispatchEvent(new CustomEvent("humain:newchat"));

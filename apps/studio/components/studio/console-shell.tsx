@@ -230,9 +230,12 @@ function ThemeRow() {
 
 export default function ConsoleShell({
   user,
+  initialSidebarOpen = false,
   children,
 }: {
   user: ShellUser;
+  /** Read from the cookie on the server so the first paint is already correct. */
+  initialSidebarOpen?: boolean;
   children: React.ReactNode;
 }) {
   const pathname = usePathname() || "";
@@ -241,7 +244,7 @@ export default function ConsoleShell({
   const activeKey = activeKeyFor(pathname);
   const roles = user.roles ?? [];
   const isAdmin = roles.includes("admin");
-  const { open, onOpenChange } = useSidebarPref();
+  const { open, onOpenChange } = useSidebarPref(initialSidebarOpen);
 
   // Root-owned panel layout, following 4-templates-appshell--resizable-chat-and-main.
   // The Root owns the split so two-panel surfaces (the CMS agent workspace and

@@ -41,6 +41,11 @@ function ago(iso: string) {
   return `${Math.round(d / 86400)}d ago`;
 }
 
+/** Module-level cache — see chat-history.tsx. Survives shell remounts so a
+    navigation does not refetch the feed cold or reset the unread badge to 0. */
+let cachedItems: Item[] | null = null;
+let cachedUnread = 0;
+
 export default function NotificationsPanel({
   open,
   onOpenChange,
@@ -51,17 +56,20 @@ export default function NotificationsPanel({
   onUnreadChange?: (n: number) => void;
 }) {
   const router = useRouter();
-  const [items, setItems] = useState<Item[]>([]);
-  const [unread, setUnread] = useState(0);
+  const [items, setItems] = useState<Item[]>(cachedItems ?? []);
+  const [unread, setUnread] = useState(cachedUnread);
 
   async function load() {
     try {
       const r = await fetch("/api/notifications", { cache: "no-store" });
       if (!r.ok) return;
       const d = await r.json();
-      setItems(d.items || []);
-      setUnread(d.unreadCount || 0);
-      onUnreadChange?.(d.unreadCount || 0);
+      const next: Item[] = d.items || [];
+      cachedItems = next;
+      cachedUnread = d.unreadCount || 0;
+      setItems(next);
+      setUnread(cachedUnread);
+      onUnreadChange?.(cachedUnread);
     } catch {
       /* ignore */
     }
@@ -75,6 +83,8 @@ export default function NotificationsPanel({
   }, []);
 
   async function markRead() {
+    cachedUnread = 0;
+    cachedItems = (cachedItems || []).map((i) => ({ ...i, unread: false }));
     setUnread(0);
     onUnreadChange?.(0);
     setItems((p) => p.map((i) => ({ ...i, unread: false })));

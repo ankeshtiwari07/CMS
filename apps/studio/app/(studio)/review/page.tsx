@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser, hasRole } from "@/lib/payload";
-import { StudioPanel, StudioPageCard } from "@/components/studio/studio-app-shell";
+import { StudioPageCard } from "@/components/studio/studio-app-shell";
 import ReviewQueue from "@/components/review/review-queue";
+import ConsoleFrame from "@/components/studio/console-frame";
 
 export const metadata = { title: "Review Queue · HUMAIN" };
 export const dynamic = "force-dynamic";
@@ -13,14 +14,14 @@ export default async function ReviewPage() {
   if (!user) redirect("/login");
   const approver = hasRole(user, ["reviewer", "publisher", "brand", "siteAdmin", "compliance", "admin"]);
   return (
-    <StudioPanel label="Review">
-      <StudioPageCard>
-        {approver ? (
-          <ReviewQueue />
-        ) : (
-          <div style={{ padding: 40, color: "var(--text-muted)" }}>The Review Queue is for approver roles (reviewer, brand, compliance, publisher, admin).</div>
-        )}
-      </StudioPageCard>
-    </StudioPanel>
+    <ConsoleFrame label="Review" variant="studio">
+    <StudioPageCard>
+      {approver ? (
+        <ReviewQueue />
+      ) : (
+        <div style={{ padding: 40, color: "var(--text-muted)" }}>The Review Queue is for approver roles (reviewer, brand, compliance, publisher, admin).</div>
+      )}
+    </StudioPageCard>
+    </ConsoleFrame>
   );
 }

@@ -1,11 +1,12 @@
 "use client";
 import ConsoleShell from "@/components/studio/console-shell";
 import { CmsPanel } from "@/components/cms/cms-app-shell";
+import { StudioPanel } from "@/components/studio/studio-app-shell";
 import CmsCopilot, { type CopilotSurface } from "@/components/cms/cms-copilot";
 import type { ShellUser } from "@/components/studio/sidebar-account-menu";
 
 /* =============================================================================
-   The console shell for every CMS route.
+   The console shell for every route, in both halves of the console.
 
    AppShell.Root finds its panels with React.Children.forEach, matching the
    static `__appShellType` marker on each child's type. That match only works on
@@ -24,11 +25,12 @@ import type { ShellUser } from "@/components/studio/sidebar-account-menu";
    children, which may cross the boundary freely.
    ============================================================================= */
 
-export default function CmsRouteShell({
+export default function ConsoleRouteShell({
   user,
   initialSidebarOpen,
   label,
   surface,
+  variant = "cms",
   children,
 }: {
   user: ShellUser;
@@ -36,13 +38,18 @@ export default function CmsRouteShell({
   /** Omit to render children straight into the shell (a surface that supplies
       its own panels, e.g. the CmsWorkspace pair). */
   label?: string;
+  /** Which panel wrapper to use — the two halves of the console style theirs
+      differently (the CMS one carries the section nav). */
+  variant?: "cms" | "studio";
   /** Omit on surfaces that have no docked copilot — Root wants at most 2 panels. */
   surface?: CopilotSurface;
   children: React.ReactNode;
 }) {
   return (
     <ConsoleShell user={user} initialSidebarOpen={initialSidebarOpen}>
-      {label ? <CmsPanel label={label}>{children}</CmsPanel> : children}
+      {!label ? children : variant === "studio"
+        ? <StudioPanel label={label}>{children}</StudioPanel>
+        : <CmsPanel label={label}>{children}</CmsPanel>}
       {surface ? <CmsCopilot surface={surface} /> : null}
     </ConsoleShell>
   );

@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/payload";
 import { CmsPanel } from "@/components/cms/cms-app-shell";
 import DeckStudio from "@/components/studio/deck-studio";
+import ConsoleFrame from "@/components/studio/console-frame";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Deck Studio · HUMAIN" };
@@ -14,8 +15,10 @@ export default async function DeckStudioPage({ searchParams }: { searchParams: P
   if (!user) redirect("/login");
   const { id } = await searchParams;
   return (
-    <CmsPanel label="Deck Studio">
-      <DeckStudio deckId={id ?? null} userName={user.name || user.email || ""} />
-    </CmsPanel>
+    <ConsoleFrame>
+      <CmsPanel label="Deck Studio">
+        <DeckStudio deckId={id ?? null} userName={user.name || user.email || ""} />
+      </CmsPanel>
+    </ConsoleFrame>
   );
 }

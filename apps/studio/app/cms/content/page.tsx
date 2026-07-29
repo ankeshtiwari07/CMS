@@ -1,5 +1,3 @@
-import { CmsPanel } from "@/components/cms/cms-app-shell";
-import CmsCopilot from "@/components/cms/cms-copilot";
 import ConsoleFrame from "@/components/studio/console-frame";
 import ContentStudio from "@/components/studio/content-studio";
 
@@ -22,11 +20,8 @@ export const metadata = { title: "Content Studio · HUMAIN" };
 export default async function ContentStudioPage({ searchParams }: { searchParams: Promise<{ id?: string }> }) {
   const { id } = await searchParams;
   return (
-    <ConsoleFrame>
-      <CmsPanel label="Content Studio">
-        <ContentStudio projectId={id ?? null} />
-      </CmsPanel>
-      <CmsCopilot surface="content" />
+    <ConsoleFrame label="Content Studio" surface="content">
+            <ContentStudio projectId={id ?? null} />
     </ConsoleFrame>
   );
 }

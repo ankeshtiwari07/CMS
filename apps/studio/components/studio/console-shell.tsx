@@ -272,6 +272,15 @@ export default function ConsoleShell({
   return (
     <AppShell.Root
       gap={12}
+      /* Explicit, not just implied by the default. The package gates the
+         resizable pair on:
+           canUseResizablePanelPair = shouldUseResizablePanels && !connected
+             && !isMobile && panels.length === 2
+             && (resizablePanels !== undefined || !hasPanelExpansionProps)
+         We pass root-owned expansion props, which sets hasPanelExpansionProps,
+         so leaving resizablePanels undefined made that last clause false and
+         silently disabled the drag handle even once two panels were found. */
+      resizablePanels
       panelSizes={panelSizes}
       onPanelSizesChange={(s) => setPanelSizes(s as [number, number])}
       expandedPanel={expandedPanel}

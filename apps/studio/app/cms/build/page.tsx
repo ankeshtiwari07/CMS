@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/payload";
-import { CmsPanel } from "@/components/cms/cms-app-shell";
 import ComponentStudio from "@/components/cms/component-studio";
 import ConsoleFrame from "@/components/studio/console-frame";
 
@@ -16,10 +15,8 @@ export default async function CmsBuildPage() {
   if (!(user.roles ?? []).includes("admin")) redirect("/cms/studio");
   const canPublish = (user.roles ?? []).some((r) => ["publisher", "siteAdmin", "admin"].includes(r));
   return (
-    <ConsoleFrame>
-      <CmsPanel label="Component Studio">
-        <ComponentStudio user={{ name: user.name, email: user.email, roles: user.roles }} canPublish={canPublish} />
-      </CmsPanel>
+    <ConsoleFrame label="Component Studio">
+            <ComponentStudio user={{ name: user.name, email: user.email, roles: user.roles }} canPublish={canPublish} />
     </ConsoleFrame>
   );
 }

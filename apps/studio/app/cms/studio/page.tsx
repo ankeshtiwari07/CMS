@@ -27,10 +27,16 @@ export default async function CmsStudioPage() {
   const canEdit = roles.some((r) => ["author", "reviewer", "publisher", "brand", "siteAdmin", "admin"].includes(r));
   const canPublish = roles.some((r) => ["publisher", "siteAdmin", "admin"].includes(r));
 
-  // Rendered DIRECTLY, not inside CmsPanel: CmsWorkspace returns the two
-  // sibling AppShell.Panels itself (conversation rail + generated output).
-  // Wrapping it in another panel nested them, so the chat and preview were laid
-  // out INSIDE one panel instead of being siblings the shell can size.
+  // KNOWN GAP — this route does not get panel discovery yet.
+  //
+  // CmsWorkspace returns the two sibling AppShell.Panels itself, so Root sees a
+  // single child with no __appShellType marker and counts zero panels. Marking
+  // CmsWorkspace would be wrong (it is a pair, not a panel), and wrapping it in
+  // one CmsPanel nests the pair, which is worse than the current state.
+  //
+  // The fix is to split its shared chat state out so the two panels can be
+  // rendered as direct children here — tracked separately, deliberately not
+  // bundled into the shell change.
   return (
     <ConsoleFrame>
       <>

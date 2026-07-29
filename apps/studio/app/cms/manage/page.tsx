@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser, hasRole } from "@/lib/payload";
-import { CmsPanel } from "@/components/cms/cms-app-shell";
 import ContentManager from "@/components/cms/content-manager";
 import ConsoleFrame from "@/components/studio/console-frame";
 
@@ -22,10 +21,8 @@ export default async function ManagePage({
   const canEdit = hasRole(user, ["author", "reviewer", "publisher", "brand", "siteAdmin", "admin"]);
   const canPublish = hasRole(user, ["publisher", "siteAdmin", "admin"]);
   return (
-    <ConsoleFrame>
-      <CmsPanel label="Content Management">
-        <ContentManager initialType={type || "blog"} canEdit={canEdit} canPublish={canPublish} />
-      </CmsPanel>
+    <ConsoleFrame label="Content Management">
+            <ContentManager initialType={type || "blog"} canEdit={canEdit} canPublish={canPublish} />
     </ConsoleFrame>
   );
 }

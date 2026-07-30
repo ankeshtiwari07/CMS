@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
   AppShell,
@@ -230,12 +230,19 @@ function ThemeRow() {
 
 export default function ConsoleShell({
   user,
+  initialPanelSizes = [96, 4] as [number, number],
+  resizable = false,
   initialSidebarOpen = false,
   children,
 }: {
   user: ShellUser;
   /** Read from the cookie on the server so the first paint is already correct. */
   initialSidebarOpen?: boolean;
+  /** [main, secondary] split. A collapsed dock wants ~[96,4], an open one ~[72,28]. */
+  initialPanelSizes?: [number, number];
+  /** Only true when the second panel is genuinely open — a drag handle against a
+      collapsed rail is a handle for nothing. */
+  resizable?: boolean;
   children: React.ReactNode;
 }) {
   const pathname = usePathname() || "";
@@ -250,8 +257,14 @@ export default function ConsoleShell({
   // The Root owns the split so two-panel surfaces (the CMS agent workspace and
   // every copilot dock) get a real drag handle, and dragging past the threshold
   // expands that panel to full width. Single-panel surfaces ignore all of it.
-  const [panelSizes, setPanelSizes] = useState<[number, number]>([35, 65]);
+  // Defaults to a near-full main panel: a two-panel surface whose second panel
+  // is a COLLAPSED 56px rail must not hand it 65% of the width. Routes that open
+  // a dock pass their own split. Getting this wrong left ~880px of dead canvas
+  // to the right of the content on every copilot surface.
+  const [panelSizes, setPanelSizes] = useState<[number, number]>(initialPanelSizes);
   const [expandedPanel, setExpandedPanel] = useState<number | null>(null);
+  // Keep the split in step with the dock as it opens and closes.
+  useEffect(() => { setPanelSizes(initialPanelSizes); }, [initialPanelSizes[0], initialPanelSizes[1]]);
   // Mobile: two panels become swipeable tabs. Every AppShell.Panel already
   // carries a `label`, which is what the tab bar renders — the props were there,
   // the mechanism was not wired.
@@ -280,7 +293,7 @@ export default function ConsoleShell({
          We pass root-owned expansion props, which sets hasPanelExpansionProps,
          so leaving resizablePanels undefined made that last clause false and
          silently disabled the drag handle even once two panels were found. */
-      resizablePanels
+      resizablePanels={resizable}
       panelSizes={panelSizes}
       onPanelSizesChange={(s) => setPanelSizes(s as [number, number])}
       expandedPanel={expandedPanel}

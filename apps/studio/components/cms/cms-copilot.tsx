@@ -80,16 +80,26 @@ const SURFACE: Record<CopilotSurface, { label: string; context: string; suggesti
 
 type ModelOpt = { id: string; label: string; family: string; configured: boolean };
 
-/** Same key for every surface: the dock is one preference, not four. Default is
-    CLOSED, so a surface looks exactly as it did until someone opens the rail. */
-const DOCK_KEY = "humain-cms-copilot";
 const OPEN_WIDTH = 380;
 
 const clock = () => new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 
-export default function CmsCopilot({ surface }: { surface: CopilotSurface }) {
+/**
+ * Open/closed is CONTROLLED by the route shell rather than owned here, because
+ * the shell has to size the panel split from it: a collapsed 56px rail must not
+ * be handed 65% of the width. The preference itself lives in a cookie so the
+ * server renders the correct split and the layout does not jump on load.
+ */
+export default function CmsCopilot({
+  surface,
+  open,
+  onOpenChange,
+}: {
+  surface: CopilotSurface;
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+}) {
   const cfg = SURFACE[surface];
-  const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
@@ -98,18 +108,6 @@ export default function CmsCopilot({ surface }: { surface: CopilotSurface }) {
   const [modelId, setModelId] = useState("");
   const abortRef = useRef<AbortController | null>(null);
   const projectRef = useRef<string | number | null>(null);
-
-  useEffect(() => {
-    try {
-      setOpen(localStorage.getItem(DOCK_KEY) === "open");
-    } catch { /* ignore */ }
-  }, []);
-  function toggle(next: boolean) {
-    setOpen(next);
-    try {
-      localStorage.setItem(DOCK_KEY, next ? "open" : "closed");
-    } catch { /* ignore */ }
-  }
 
   // Only load the model list once the rail is actually opened — a closed dock
   // should cost nothing.
@@ -234,7 +232,7 @@ export default function CmsCopilot({ surface }: { surface: CopilotSurface }) {
             size="icon-sm"
             aria-label={`Open the ${cfg.label} copilot`}
             title={`Open the ${cfg.label} copilot`}
-            onClick={() => toggle(true)}
+            onClick={() => onOpenChange(true)}
           >
             <MessagesSquare className="size-4" />
           </Button>
@@ -274,7 +272,7 @@ export default function CmsCopilot({ surface }: { surface: CopilotSurface }) {
               size="icon-sm"
               aria-label="Close the copilot"
               title="Close"
-              onClick={() => toggle(false)}
+              onClick={() => onOpenChange(false)}
             >
               <PanelRightClose className="size-4" />
             </Button>

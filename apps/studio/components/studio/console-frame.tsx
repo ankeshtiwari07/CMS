@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { getCurrentUser } from "@/lib/payload";
 import { SIDEBAR_KEY } from "@/lib/sidebar-pref";
+import { DOCK_KEY } from "@/lib/dock-pref";
 import ConsoleRouteShell from "@/components/studio/console-route-shell";
 import type { CopilotSurface } from "@/components/cms/cms-copilot";
 
@@ -25,7 +26,9 @@ export default async function ConsoleFrame({
 }) {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
-  const sidebarOpen = (await cookies()).get(SIDEBAR_KEY)?.value === "expanded";
+  const jar = await cookies();
+  const sidebarOpen = jar.get(SIDEBAR_KEY)?.value === "expanded";
+  const dockOpen = jar.get(DOCK_KEY)?.value === "open";
   return (
     <ConsoleRouteShell
       user={{ name: user.name, email: user.email, roles: user.roles }}
@@ -33,6 +36,7 @@ export default async function ConsoleFrame({
       label={label}
       surface={surface}
       variant={variant}
+      initialDockOpen={dockOpen}
     >
       {children}
     </ConsoleRouteShell>

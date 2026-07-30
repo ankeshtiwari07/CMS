@@ -1,9 +1,11 @@
 "use client";
+import { useState } from "react";
 import ConsoleShell from "@/components/studio/console-shell";
 import { CmsPanel } from "@/components/cms/cms-app-shell";
 import { StudioPanel } from "@/components/studio/studio-app-shell";
 import CmsCopilot, { type CopilotSurface } from "@/components/cms/cms-copilot";
 import type { ShellUser } from "@/components/studio/sidebar-account-menu";
+import { DOCK_KEY } from "@/lib/dock-pref";
 
 /* =============================================================================
    The console shell for every route, in both halves of the console.
@@ -31,6 +33,7 @@ export default function ConsoleRouteShell({
   label,
   surface,
   variant = "cms",
+  initialDockOpen = false,
   children,
 }: {
   user: ShellUser;
@@ -41,16 +44,36 @@ export default function ConsoleRouteShell({
   /** Which panel wrapper to use — the two halves of the console style theirs
       differently (the CMS one carries the section nav). */
   variant?: "cms" | "studio";
+  initialDockOpen?: boolean;
   /** Omit on surfaces that have no docked copilot — Root wants at most 2 panels. */
   surface?: CopilotSurface;
   children: React.ReactNode;
 }) {
+  const [dockOpen, setDockOpen] = useState(initialDockOpen);
+
+  function toggleDock(next: boolean) {
+    setDockOpen(next);
+    try {
+      document.cookie = `${DOCK_KEY}=${next ? "open" : "closed"}; path=/; max-age=${60 * 60 * 24 * 365}; samesite=lax`;
+    } catch { /* ignore */ }
+  }
+
+  // The split follows the dock. Closed, the second panel is a 56px rail, so the
+  // main panel takes essentially everything and there is no pair to drag; open,
+  // 380px of 1440 is ~26%, and the drag handle becomes meaningful.
+  const panelSizes: [number, number] = surface && dockOpen ? [74, 26] : [96, 4];
+
   return (
-    <ConsoleShell user={user} initialSidebarOpen={initialSidebarOpen}>
+    <ConsoleShell
+      user={user}
+      initialSidebarOpen={initialSidebarOpen}
+      initialPanelSizes={panelSizes}
+      resizable={Boolean(surface) && dockOpen}
+    >
       {!label ? children : variant === "studio"
         ? <StudioPanel label={label}>{children}</StudioPanel>
         : <CmsPanel label={label}>{children}</CmsPanel>}
-      {surface ? <CmsCopilot surface={surface} /> : null}
+      {surface ? <CmsCopilot surface={surface} open={dockOpen} onOpenChange={toggleDock} /> : null}
     </ConsoleShell>
   );
 }

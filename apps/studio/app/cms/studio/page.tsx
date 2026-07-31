@@ -1,8 +1,9 @@
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { getCurrentUser } from "@/lib/payload";
-import CmsWorkspace from "@/components/cms/cms-workspace";
+import { SIDEBAR_KEY } from "@/lib/sidebar-pref";
+import CmsStudioRoute from "@/components/cms/cms-studio-route";
 import type { Tier } from "@/components/cms/cms-preview";
-import ConsoleFrame from "@/components/studio/console-frame";
 
 export const metadata = { title: "CMS · HUMAIN" };
 export const dynamic = "force-dynamic";
@@ -17,36 +18,20 @@ function tierFor(roles: string[]): Tier {
 
 // The CMS section: the native, agentic component-management surface. It runs on
 // the existing console session (no separate Payload login) and uses the HUMAIN
-// CMS design tokens. Clicking "CMS" in the sidebar lands here — a Claude-like
-// chat with a live, editable preview.
+// CMS design tokens — a Claude-like chat with a live, editable preview.
 export default async function CmsStudioPage() {
   const user = await getCurrentUser();
   if (!user) redirect("/login");
   const roles = user.roles ?? [];
-  const tier = tierFor(roles);
-  const canEdit = roles.some((r) => ["author", "reviewer", "publisher", "brand", "siteAdmin", "admin"].includes(r));
-  const canPublish = roles.some((r) => ["publisher", "siteAdmin", "admin"].includes(r));
+  const sidebarOpen = (await cookies()).get(SIDEBAR_KEY)?.value === "expanded";
 
-  // KNOWN GAP — this route does not get panel discovery yet.
-  //
-  // CmsWorkspace returns the two sibling AppShell.Panels itself, so Root sees a
-  // single child with no __appShellType marker and counts zero panels. Marking
-  // CmsWorkspace would be wrong (it is a pair, not a panel), and wrapping it in
-  // one CmsPanel nests the pair, which is worse than the current state.
-  //
-  // The fix is to split its shared chat state out so the two panels can be
-  // rendered as direct children here — tracked separately, deliberately not
-  // bundled into the shell change.
   return (
-    <ConsoleFrame>
-      <>
-        <CmsWorkspace
-          user={{ name: user.name, email: user.email, roles }}
-          canEdit={canEdit}
-          canPublish={canPublish}
-          tier={tier}
-        />
-      </>
-    </ConsoleFrame>
+    <CmsStudioRoute
+      user={{ name: user.name, email: user.email, roles }}
+      initialSidebarOpen={sidebarOpen}
+      canEdit={roles.some((r) => ["author", "reviewer", "publisher", "brand", "siteAdmin", "admin"].includes(r))}
+      canPublish={roles.some((r) => ["publisher", "siteAdmin", "admin"].includes(r))}
+      tier={tierFor(roles)}
+    />
   );
 }

@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import CmsPreview, { type Artifact, type CmsTab, type Phase } from "@/components/cms/cms-preview";
 import {
   AIContainer,
@@ -42,6 +42,8 @@ import { CmsSectionNav } from "@/components/cms/cms-app-shell";
    CmsPreview and the edit_site round-trip through siteRef.
    ============================================================================= */
 
+const WorkspaceCtx = createContext<{ left: React.ReactNode; right: React.ReactNode } | null>(null);
+
 type Turn = { role: "user" | "assistant"; text: string; streaming?: boolean; made?: string; time?: string };
 type Tier = "Standard" | "Marketer" | "Editor" | "Admin";
 type ModelOpt = { id: string; label: string; family: string; configured: boolean };
@@ -64,11 +66,12 @@ const SETUP = [
   { key: "locale", q: "Language?", opts: ["English", "Arabic", "Bilingual EN/AR"] },
 ] as const;
 
-export default function CmsWorkspace({
-  user, canEdit, canPublish, tier,
+export function CmsWorkspaceProvider({
+  user, canEdit, canPublish, tier, children,
 }: {
   user: { name?: string; email: string; roles?: string[] };
   canEdit: boolean; canPublish: boolean; tier: Tier;
+  children: React.ReactNode;
 }) {
   const [turns, setTurns] = useState<Turn[]>([]);
   const [prompt, setPrompt] = useState("");
@@ -165,10 +168,16 @@ export default function CmsWorkspace({
     />
   ));
 
-  return (
-    <>
-      {/* LEFT — conversation rail. AIContainer sits directly in the panel, per
-          references/recipes/chat.md; it is not wrapped in a card. */}
+  // The two panels are built here but handed to Root through context, because
+  // Root discovers panels by walking its DIRECT children for the __appShellType
+  // marker. Returning both from one component made it a single unmarked child,
+  // so this route got no panel layout at all — it was the last surface still
+  // reporting zero.
+  //
+  // Passing the rendered trees (rather than re-plumbing a dozen pieces of state
+  // through a value object) keeps the JSX below byte-identical to what shipped,
+  // so the split cannot change behaviour.
+  const left = (
       <AppShell.Panel minWidth={360} label="CMS agent">
         <CmsSectionNav />
         <div className="min-h-0 flex-1">
@@ -284,8 +293,9 @@ export default function CmsWorkspace({
           </AIContainer>
         </div>
       </AppShell.Panel>
+  );
 
-      {/* RIGHT — generated output, in its own card as the recipe requires. */}
+  const right = (
       <AppShell.Panel minWidth="45%" label="Preview">
         <AppShellCard bodyPadding="none">
           <AppShellCard.Header>
@@ -314,6 +324,20 @@ export default function CmsWorkspace({
           </div>
         </AppShellCard>
       </AppShell.Panel>
-    </>
   );
+
+  return <WorkspaceCtx.Provider value={{ left, right }}>{children}</WorkspaceCtx.Provider>;
 }
+
+/** Left rail — conversation. */
+export function CmsAgentPanel() {
+  return useContext(WorkspaceCtx)?.left ?? null;
+}
+(CmsAgentPanel as any).__appShellType = "AppShell.Panel";
+
+/** Right — generated output. */
+export function CmsPreviewPanel() {
+  return useContext(WorkspaceCtx)?.right ?? null;
+}
+(CmsPreviewPanel as any).__appShellType = "AppShell.Panel";
+

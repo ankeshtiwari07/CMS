@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
   AppShell,
@@ -262,9 +262,9 @@ export default function ConsoleShell({
   // a dock pass their own split. Getting this wrong left ~880px of dead canvas
   // to the right of the content on every copilot surface.
   const [panelSizes, setPanelSizes] = useState<[number, number]>(initialPanelSizes);
+  // Re-seed on prop change; the key above forces a fresh layout with these sizes.
+  const seeded = panelSizes[0] === initialPanelSizes[0] ? panelSizes : initialPanelSizes;
   const [expandedPanel, setExpandedPanel] = useState<number | null>(null);
-  // Keep the split in step with the dock as it opens and closes.
-  useEffect(() => { setPanelSizes(initialPanelSizes); }, [initialPanelSizes[0], initialPanelSizes[1]]);
   // Mobile: two panels become swipeable tabs. Every AppShell.Panel already
   // carries a `label`, which is what the tab bar renders — the props were there,
   // the mechanism was not wired.
@@ -284,6 +284,14 @@ export default function ConsoleShell({
 
   return (
     <AppShell.Root
+      /* Keyed on the split so opening the dock re-initialises the layout.
+         Syncing it through state instead loses a race: Root reports its
+         PRE-transition layout back through onPanelSizesChange immediately after
+         resizable turns on, overwriting the new split — the dock opened at the
+         collapsed 4% width and only corrected on reload. Remounting is cheap
+         here: the sidebar's chat and notification lists are module-cached and
+         its collapse state comes from a cookie, so nothing refetches or flashes. */
+      key={`${seeded[0]}-${resizable}`}
       gap={12}
       /* Explicit, not just implied by the default. The package gates the
          resizable pair on:
@@ -294,7 +302,7 @@ export default function ConsoleShell({
          so leaving resizablePanels undefined made that last clause false and
          silently disabled the drag handle even once two panels were found. */
       resizablePanels={resizable}
-      panelSizes={panelSizes}
+      panelSizes={seeded}
       onPanelSizesChange={(s) => setPanelSizes(s as [number, number])}
       expandedPanel={expandedPanel}
       onExpandedPanelChange={setExpandedPanel}

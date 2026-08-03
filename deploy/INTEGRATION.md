@@ -59,7 +59,8 @@ HTTP mode specifics:
   `Authorization: Bearer <token>`. `/health` (liveness) and `/ready` (liveness + Postgres reachable)
   are the only unauthenticated paths.
 - **Sessions** are stateful and held in-process, so `replicas: 1` unless you add a sticky LB or an
-  `EventStore`. `mcp-session-id` is returned on `initialize`; `DELETE /mcp` tears the session down.
+  `EventStore`. `mcp-session-id` is returned on `initialize`; `DELETE /mcp` tears the session down,
+  and clients that vanish without one are reaped after `MCP_SESSION_TTL_MS` (default 30 min).
 - **DNS-rebinding protection** is on whenever `MCP_ALLOWED_HOSTS` / `MCP_ALLOWED_ORIGINS` is set.
 - Manifests: `deploy/k8s/22-mcp.yaml` (reference/KSA shape) and `deploy/k8s/22-mcp.live.yaml`
   (running asia-south1 cluster). Image built from `apps/mcp-server/Dockerfile` — a filtered pnpm

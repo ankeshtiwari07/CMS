@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: mcp
-          image: asia-south1-docker.pkg.dev/project-90d788b2-28d7-4268-b3f/humain-cms/mcp-server:v2
+          image: asia-south1-docker.pkg.dev/project-90d788b2-28d7-4268-b3f/humain-cms/mcp-server:v3
           ports: [{ containerPort: 4100, name: http }]
           env:
             - { name: MCP_TRANSPORT, value: "http" }

@@ -103,7 +103,19 @@ async function runStdio() {
 
 // ----------------------------------------------------------------- http mode
 
-const sessions = new Map<string, { transport: StreamableHTTPServerTransport; server: McpServer }>();
+// `cleanup` is one-shot: closing the transport fires onclose, and closing the
+// McpServer closes its transport, so an unguarded pair recurses until the stack
+// blows. Every teardown path (DELETE, reap, shutdown) goes through it.
+type Session = { transport: StreamableHTTPServerTransport; server: McpServer; lastSeen: number; cleanup: () => Promise<void> };
+
+// Clients that vanish without DELETE would otherwise pin a session (and its
+// McpServer) forever, so idle ones are reaped.
+const sessions = new Map<string, Session>();
+
+function touch(sessionId: string) {
+  const s = sessions.get(sessionId);
+  if (s) s.lastSeen = Date.now();
+}
 
 function sendJson(res: ServerResponse, status: number, body: unknown) {
   const payload = JSON.stringify(body);
@@ -201,6 +213,7 @@ async function runHttp() {
 
         // Existing session: hand straight to its transport.
         if (sessionId && sessions.has(sessionId)) {
+          touch(sessionId);
           return sessions.get(sessionId)!.transport.handleRequest(req, res, body);
         }
         // No session: only an `initialize` may open one.
@@ -212,24 +225,29 @@ async function runHttp() {
         }
 
         const server = buildServer();
+        let torndown = false;
+        const cleanup = async () => {
+          if (torndown) return;
+          torndown = true;
+          if (transport.sessionId) sessions.delete(transport.sessionId);
+          await transport.close().catch(() => {});
+          await server.close().catch(() => {});
+        };
         const transport: StreamableHTTPServerTransport = new StreamableHTTPServerTransport({
           sessionIdGenerator: () => randomUUID(),
           enableDnsRebindingProtection: allowedHosts.length > 0 || allowedOrigins.length > 0,
           ...(allowedHosts.length ? { allowedHosts } : {}),
           ...(allowedOrigins.length ? { allowedOrigins } : {}),
           onsessioninitialized: (id) => {
-            sessions.set(id, { transport, server });
+            sessions.set(id, { transport, server, lastSeen: Date.now(), cleanup });
             console.log(`[mcp] session open ${id} (${sessions.size} active)`);
           },
           onsessionclosed: (id) => {
-            sessions.delete(id);
-            console.log(`[mcp] session closed ${id} (${sessions.size} active)`);
+            console.log(`[mcp] session closed ${id} (${sessions.size - 1} active)`);
+            void cleanup();
           },
         });
-        transport.onclose = () => {
-          if (transport.sessionId) sessions.delete(transport.sessionId);
-          server.close().catch(() => {});
-        };
+        transport.onclose = () => { void cleanup(); };
         await server.connect(transport);
         return transport.handleRequest(req, res, body);
       }
@@ -239,6 +257,7 @@ async function runHttp() {
         if (!sessionId || !sessions.has(sessionId)) {
           return rpcError(res, 404, -32001, "Unknown session");
         }
+        touch(sessionId);
         return sessions.get(sessionId)!.transport.handleRequest(req, res);
       }
 
@@ -250,13 +269,26 @@ async function runHttp() {
     }
   });
 
+  const idleTtlMs = Number(process.env.MCP_SESSION_TTL_MS || 30 * 60 * 1000);
+  const reaper = setInterval(() => {
+    const cutoff = Date.now() - idleTtlMs;
+    for (const [id, s] of sessions) {
+      if (s.lastSeen < cutoff) {
+        console.log(`[mcp] reaping idle session ${id}`);
+        void s.cleanup();
+      }
+    }
+  }, Math.min(idleTtlMs, 60_000));
+  reaper.unref();
+
   http.listen(port, "0.0.0.0", () => {
     console.log(`[mcp] streamable-http listening on :${port}/mcp (dns-rebinding-protection=${allowedHosts.length > 0 || allowedOrigins.length > 0})`);
   });
 
   const shutdown = async () => {
     console.log("[mcp] shutting down");
-    for (const { transport } of sessions.values()) await transport.close().catch(() => {});
+    clearInterval(reaper);
+    for (const s of [...sessions.values()]) await s.cleanup();
     sessions.clear();
     http.close();
     await pool.end().catch(() => {});

@@ -1,0 +1,42 @@
+# MCP server — Streamable HTTP transport, so the content tools (search / get /
+# propose-draft) are reachable by any in-cluster MCP client over a Service.
+# The same binary still serves stdio when MCP_TRANSPORT is unset, which is how
+# external clients (Claude Desktop, IDEs) spawn it.
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: mcp, namespace: humain-cms, labels: { app: mcp } }
+spec:
+  replicas: 1 # Sessions are held in-process; scale out only behind a sticky LB or an EventStore.
+  selector: { matchLabels: { app: mcp } }
+  template:
+    metadata: { labels: { app: mcp } }
+    spec:
+      containers:
+        - name: mcp
+          image: REGION-docker.pkg.dev/PROJECT/humain-cms/mcp-server:__TAG__
+          ports: [{ containerPort: 4100, name: http }]
+          env:
+            - { name: MCP_TRANSPORT, value: "http" }
+            - { name: MCP_PORT, value: "4100" }
+            - { name: MCP_ALLOWED_HOSTS, value: "mcp,mcp.humain-cms.svc.cluster.local,mcp:4100,mcp.humain-cms.svc.cluster.local:4100,localhost:4100" }
+          envFrom: [{ configMapRef: { name: cms-config } }, { secretRef: { name: cms-secrets } }]
+          readinessProbe: # /ready proves postgres is reachable — a tool call would fail without it.
+            httpGet: { path: /ready, port: 4100 }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /health, port: 4100 }
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          resources: { requests: { cpu: "100m", memory: "192Mi" }, limits: { cpu: "500m", memory: "512Mi" } }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: ["ALL"] }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: mcp, namespace: humain-cms }
+spec:
+  selector: { app: mcp }
+  ports: [{ name: http, port: 4100, targetPort: 4100 }]

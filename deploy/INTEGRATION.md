@@ -41,6 +41,34 @@ provider calls. Point `HUMAIN_GATEWAY_URL` at the gateway to activate.
 
 Region parameterised to KSA landing zone (`me-central2`) per residency; VM demo stays in `asia-south1`.
 
+## 2a. MCP server (agent-facing tool surface)
+
+`apps/mcp-server` exposes three audited tools over HUMAIN content — `content_search` (pgvector
+semantic search), `content_get`, and `content_propose` (draft-only write, never publishes). Every
+call writes an `audit_log` row under `collection_slug='mcp'`.
+
+Two transports from the same binary, selected by `MCP_TRANSPORT`:
+
+| Mode | Use | Address |
+|---|---|---|
+| `stdio` (default) | External clients that spawn the process — Claude Desktop, IDEs, agent frameworks | n/a |
+| `http` | In-cluster clients over a Service — Streamable HTTP with SSE streaming | `http://mcp:4100/mcp` |
+
+HTTP mode specifics:
+- **Auth is mandatory** — `MCP_AUTH_TOKEN` must be set or the process exits at boot; requests need
+  `Authorization: Bearer <token>`. `/health` (liveness) and `/ready` (liveness + Postgres reachable)
+  are the only unauthenticated paths.
+- **Sessions** are stateful and held in-process, so `replicas: 1` unless you add a sticky LB or an
+  `EventStore`. `mcp-session-id` is returned on `initialize`; `DELETE /mcp` tears the session down.
+- **DNS-rebinding protection** is on whenever `MCP_ALLOWED_HOSTS` / `MCP_ALLOWED_ORIGINS` is set.
+- Manifests: `deploy/k8s/22-mcp.yaml` (reference/KSA shape) and `deploy/k8s/22-mcp.live.yaml`
+  (running asia-south1 cluster). Image built from `apps/mcp-server/Dockerfile` — a filtered pnpm
+  install, so it does not carry the Next builds of the shared `stack` image.
+
+Known gap: `content_propose` needs `MCP_SERVICE_TOKEN` to hold a CMS service identity with create
+rights. Unset today, so the CMS returns 403 and the tool reports the rejection (it no longer
+returns an empty success). Reads are unaffected.
+
 ## 3. Gap closure (vs the sprint plan)
 - **OIDC/SSO** (task 28) — real Azure/Google bridge (RS256 JWKS via Node crypto, user provisioning, cookie).
 - **Signed webhook emitter** (task 21) — `lib/webhooks.ts`, wired to publish.

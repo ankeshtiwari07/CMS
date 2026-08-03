@@ -1,0 +1,43 @@
+# Live variant of 22-mcp.yaml for the running asia-south1 cluster, which projects
+# every value from the single `humain-cms-env` secret rather than the KSA
+# cms-config/cms-secrets pair used by the reference manifests.
+# Supersedes mcp-deployment.removed-2026-07-31.yaml (a stdio process that could
+# never serve a Service); this one speaks Streamable HTTP on :4100/mcp.
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: mcp, namespace: humain-cms, labels: { app: mcp } }
+spec:
+  replicas: 1 # Sessions are held in-process; scale out only behind a sticky LB or an EventStore.
+  selector: { matchLabels: { app: mcp } }
+  template:
+    metadata: { labels: { app: mcp } }
+    spec:
+      containers:
+        - name: mcp
+          image: asia-south1-docker.pkg.dev/project-90d788b2-28d7-4268-b3f/humain-cms/mcp-server:v2
+          ports: [{ containerPort: 4100, name: http }]
+          env:
+            - { name: MCP_TRANSPORT, value: "http" }
+            - { name: MCP_PORT, value: "4100" }
+            - { name: MCP_ALLOWED_HOSTS, value: "mcp,mcp.humain-cms.svc.cluster.local,mcp:4100,mcp.humain-cms.svc.cluster.local:4100,localhost:4100" }
+          envFrom: [{ secretRef: { name: humain-cms-env } }] # supplies DATABASE_URI, AI_SERVICE_URL, CMS_BASE_URL, MCP_AUTH_TOKEN
+          readinessProbe: # /ready proves postgres is reachable — a tool call would fail without it.
+            httpGet: { path: /ready, port: 4100 }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /health, port: 4100 }
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          resources: { requests: { cpu: "100m", memory: "192Mi" }, limits: { cpu: "500m", memory: "512Mi" } }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: ["ALL"] }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: mcp, namespace: humain-cms }
+spec:
+  selector: { app: mcp }
+  ports: [{ name: http, port: 4100, targetPort: 4100 }]

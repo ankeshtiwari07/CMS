@@ -60,6 +60,12 @@ jobs:
             '''your[-_].*[-_]here''',
             '''<[A-Z_]{3,}>''',
             '''dummy|placeholder|example[-_]secret''',
+            # Cryptographic algorithm names read as high-entropy to the
+            # generic-api-key rule. CRYSTALS-Dilithium-3 in a product catalog
+            # is documentation, not a credential.
+            '''CRYSTALS-[A-Za-z]+(-[0-9]+)?''',
+            '''(Kyber|Dilithium|SPHINCS\+?|FALCON|Ed25519|X25519|secp256[kr]1)([-_][0-9]+)?''',
+            '''(AES|SHA|HMAC|RSA|ECDSA)[-_]?[0-9]{3,4}''',
           ]
           TOML
 

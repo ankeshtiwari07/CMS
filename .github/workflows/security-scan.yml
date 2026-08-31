@@ -1,0 +1,102 @@
+name: Security scan
+
+# Estate-wide baseline scanning. Deliberately language-agnostic so the same
+# file works unchanged across the Python, Node, Go and mixed repos.
+#
+# Findings FAIL the job rather than uploading SARIF: code scanning on private
+# repositories needs GitHub Advanced Security, which this account does not
+# have, so a SARIF upload would silently succeed and surface nothing.
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  schedule:
+    # Monday 04:00 UTC — after the estate SonarQube run, before the week starts.
+    - cron: "0 4 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  secrets:
+    name: Secret scan (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # gitleaks needs history to scan past commits
+
+      # The gitleaks *action* calls the GitHub API to annotate PRs, which needs
+      # write permissions this workflow deliberately does not grant. Running the
+      # pinned binary keeps the token read-only.
+      - name: Run gitleaks
+        run: |
+          set -euo pipefail
+          VERSION=8.30.1
+          curl -sSL --fail \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${VERSION}/gitleaks_${VERSION}_linux_x64.tar.gz" \
+            | tar -xz gitleaks
+
+          # Committed example/template files contain deliberate placeholders.
+          # Failing on those trains people to ignore the gate, so allowlist the
+          # placeholder shapes rather than the whole file type.
+          cat > /tmp/gitleaks.toml <<'TOML'
+          [extend]
+          useDefault = true
+
+          [allowlist]
+          description = "Placeholders in committed example and template files"
+          paths = [
+            '''.*\.example\..*''',
+            '''.*example.*\.ya?ml''',
+            '''.*\.sample\..*''',
+            '''.*\.template\..*''',
+          ]
+          regexes = [
+            '''replace[-_]me''',
+            '''change[-_]?me''',
+            '''your[-_].*[-_]here''',
+            '''<[A-Z_]{3,}>''',
+            '''dummy|placeholder|example[-_]secret''',
+            # Cryptographic algorithm names read as high-entropy to the
+            # generic-api-key rule. CRYSTALS-Dilithium-3 in a product catalog
+            # is documentation, not a credential.
+            '''CRYSTALS-[A-Za-z]+(-[0-9]+)?''',
+            '''(Kyber|Dilithium|SPHINCS\+?|FALCON|Ed25519|X25519|secp256[kr]1)([-_][0-9]+)?''',
+            '''(AES|SHA|HMAC|RSA|ECDSA)[-_]?[0-9]{3,4}''',
+          ]
+          TOML
+
+          ./gitleaks detect --source . --config /tmp/gitleaks.toml \
+            --redact --verbose --exit-code 1
+
+  vulnerabilities:
+    name: Dependency and config scan (Trivy)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Trivy — dependencies and secrets
+        uses: aquasecurity/trivy-action@0.35.0
+        with:
+          scan-type: fs
+          scanners: vuln,secret
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true       # do not fail on CVEs with no fix available
+          # Report-only until the existing backlog is cleared (38 HIGH + 1
+          # CRITICAL across the estate at time of writing). A gate that is red
+          # on day one from inherited debt gets ignored rather than fixed;
+          # flip this to "1" once the backlog is down, so new dependencies
+          # cannot add to it.
+          exit-code: "0"
+          format: table
+
+      - name: Trivy — IaC and Dockerfile misconfiguration
+        uses: aquasecurity/trivy-action@0.35.0
+        with:
+          scan-type: config
+          severity: HIGH,CRITICAL
+          exit-code: "0"             # report only for now; the estate has a
+          format: table              # known backlog of container-as-root findings

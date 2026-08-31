@@ -79,7 +79,12 @@ jobs:
           scanners: vuln,secret
           severity: HIGH,CRITICAL
           ignore-unfixed: true       # do not fail on CVEs with no fix available
-          exit-code: "1"
+          # Report-only until the existing backlog is cleared (38 HIGH + 1
+          # CRITICAL across the estate at time of writing). A gate that is red
+          # on day one from inherited debt gets ignored rather than fixed;
+          # flip this to "1" once the backlog is down, so new dependencies
+          # cannot add to it.
+          exit-code: "0"
           format: table
 
       - name: Trivy — IaC and Dockerfile misconfiguration

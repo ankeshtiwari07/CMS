@@ -1,0 +1,57 @@
+name: Security scan
+
+# Estate-wide baseline scanning. Deliberately language-agnostic so the same
+# file works unchanged across the Python, Node, Go and mixed repos.
+#
+# Findings FAIL the job rather than uploading SARIF: code scanning on private
+# repositories needs GitHub Advanced Security, which this account does not
+# have, so a SARIF upload would silently succeed and surface nothing.
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  schedule:
+    # Monday 04:00 UTC — after the estate SonarQube run, before the week starts.
+    - cron: "0 4 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  secrets:
+    name: Secret scan (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # gitleaks needs history to scan past commits
+      - name: gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  vulnerabilities:
+    name: Dependency and config scan (Trivy)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Trivy — dependencies and secrets
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: fs
+          scanners: vuln,secret
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true       # do not fail on CVEs with no fix available
+          exit-code: "1"
+          format: table
+
+      - name: Trivy — IaC and Dockerfile misconfiguration
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: config
+          severity: HIGH,CRITICAL
+          exit-code: "0"             # report only for now; the estate has a
+          format: table              # known backlog of container-as-root findings

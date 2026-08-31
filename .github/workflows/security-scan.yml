@@ -38,7 +38,33 @@ jobs:
           curl -sSL --fail \
             "https://github.com/gitleaks/gitleaks/releases/download/v${VERSION}/gitleaks_${VERSION}_linux_x64.tar.gz" \
             | tar -xz gitleaks
-          ./gitleaks detect --source . --redact --verbose --exit-code 1
+
+          # Committed example/template files contain deliberate placeholders.
+          # Failing on those trains people to ignore the gate, so allowlist the
+          # placeholder shapes rather than the whole file type.
+          cat > /tmp/gitleaks.toml <<'TOML'
+          [extend]
+          useDefault = true
+
+          [allowlist]
+          description = "Placeholders in committed example and template files"
+          paths = [
+            '''.*\.example\..*''',
+            '''.*example.*\.ya?ml''',
+            '''.*\.sample\..*''',
+            '''.*\.template\..*''',
+          ]
+          regexes = [
+            '''replace[-_]me''',
+            '''change[-_]?me''',
+            '''your[-_].*[-_]here''',
+            '''<[A-Z_]{3,}>''',
+            '''dummy|placeholder|example[-_]secret''',
+          ]
+          TOML
+
+          ./gitleaks detect --source . --config /tmp/gitleaks.toml \
+            --redact --verbose --exit-code 1
 
   vulnerabilities:
     name: Dependency and config scan (Trivy)

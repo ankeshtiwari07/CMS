@@ -85,12 +85,12 @@ jobs:
           scanners: vuln,secret
           severity: HIGH,CRITICAL
           ignore-unfixed: true       # do not fail on CVEs with no fix available
-          # Report-only until the existing backlog is cleared (38 HIGH + 1
-          # CRITICAL across the estate at time of writing). A gate that is red
-          # on day one from inherited debt gets ignored rather than fixed;
-          # flip this to "1" once the backlog is down, so new dependencies
-          # cannot add to it.
-          exit-code: "0"
+          # BLOCKING as of 2026-09-01. The inherited backlog (1 CRITICAL +
+          # 37 HIGH) is cleared, so this now stops NEW vulnerable dependencies
+          # entering rather than reporting on old ones. Anything genuinely
+          # unreachable belongs in .trivyignore with a reason and an expiry,
+          # not behind a disabled gate.
+          exit-code: "1"
           format: table
 
       - name: Trivy — IaC and Dockerfile misconfiguration

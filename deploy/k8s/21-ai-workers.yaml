@@ -8,6 +8,7 @@ spec:
   template:
     metadata: { labels: { app: ai-service } }
     spec:
+      automountServiceAccountToken: false
       containers:
         - name: ai-service
           image: REGION-docker.pkg.dev/PROJECT/humain-cms/ai-service:__TAG__
@@ -33,6 +34,7 @@ spec:
   template:
     metadata: { labels: { app: workers } }
     spec:
+      automountServiceAccountToken: false
       containers:
         - name: workers
           image: REGION-docker.pkg.dev/PROJECT/humain-cms/ai-service:__TAG__

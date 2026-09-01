@@ -7,6 +7,7 @@ spec:
   template:
     metadata: { labels: { app: humain-web } }
     spec:
+      automountServiceAccountToken: false
       containers:
         - name: web
           image: "{{ .Values.image.registry }}/web:{{ .Values.image.tag }}"

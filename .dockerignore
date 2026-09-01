@@ -1,0 +1,25 @@
+# Secrets — never in an image layer.
+.env
+.env.*
+*.bak
+.bak-*
+*.bak-*
+
+# VCS history.
+.git
+.gitignore
+
+# Local noise.
+*.log
+backups
+
+# Installed inside the image by 'pnpm install --frozen-lockfile'; copying
+# the host tree over it produces a mismatched, larger image.
+node_modules
+**/node_modules
+
+# Stale build output.
+.next
+**/.next
+dist
+**/dist

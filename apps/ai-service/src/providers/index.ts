@@ -95,12 +95,12 @@ export const MODELS: ModelEntry[] = [
   { id: "minimax-m2", label: process.env.MINIMAX_LABEL || "MiniMax M2", provider: "minimax", model: process.env.MINIMAX_MODEL || "MiniMax-M2", family: "MiniMax" },
   { id: "minimax-m3", label: process.env.MINIMAX_V3_LABEL || "MiniMax M3", provider: "minimax", model: process.env.MINIMAX_MODEL_V3 || "MiniMax-M3", family: "MiniMax" },
   { id: "humain-gateway", label: process.env.HUMAIN_GATEWAY_LABEL || "HUMAIN Gateway (sovereign)", provider: "humain", model: COMPAT.humain.defaultModel, family: "HUMAIN" },
-  // Hidden (test-only): our own sovereign haow-v4 model. Usable via /studio/chat
-  // model="haow-v4" but not offered in the picker.
-  { id: "haow-v4", label: "HAOW-v4 (sovereign)", provider: "haowv4", model: COMPAT.haowv4.defaultModel, family: "HAOW", hidden: true },
+  // The sovereign default: our own haow-v4, served in-perimeter. Listed
+  // first in the picker and used unless an editor picks something else.
+  { id: "haow-v4", label: "HAOW-v4 (sovereign)", provider: "haowv4", model: COMPAT.haowv4.defaultModel, family: "HAOW" },
 ];
 
-export const DEFAULT_MODEL_ID = "claude-opus-4-8";
+export const DEFAULT_MODEL_ID = "haow-v4";
 
 export function modelById(id?: string): ModelEntry {
   return MODELS.find((m) => m.id === id) || MODELS.find((m) => m.id === DEFAULT_MODEL_ID)!;

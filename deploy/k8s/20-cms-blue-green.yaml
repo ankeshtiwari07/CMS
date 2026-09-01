@@ -10,6 +10,7 @@ spec:
   template:
     metadata: { labels: { app: cms, color: blue } }
     spec:
+      automountServiceAccountToken: false
       containers:
         - name: cms
           image: REGION-docker.pkg.dev/PROJECT/humain-cms/cms:__TAG__
@@ -28,6 +29,7 @@ spec:
   template:
     metadata: { labels: { app: cms, color: green } }
     spec:
+      automountServiceAccountToken: false
       containers:
         - name: cms
           image: REGION-docker.pkg.dev/PROJECT/humain-cms/cms:__TAG__

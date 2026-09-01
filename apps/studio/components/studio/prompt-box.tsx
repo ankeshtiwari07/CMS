@@ -90,8 +90,7 @@ const STYLES = ["No style", "Abstract", "Risograph", "Vector Art", "Photorealist
 
 type ModelOpt = { id: string; label: string; family: string; fast: boolean; configured: boolean };
 const FALLBACK_MODELS: ModelOpt[] = [
-  { id: "claude-opus-4-8", label: "Claude Opus 4.8", family: "Claude", fast: false, configured: true },
-  { id: "claude-haiku-4-5", label: "Claude Haiku 4.5", family: "Claude", fast: true, configured: true },
+  { id: "haow-v4", label: "HAOW-v4 (sovereign)", family: "HAOW", fast: false, configured: true },
 ];
 
 function fmtSize(n: number) {
@@ -135,7 +134,7 @@ export default function PromptBox({ onActive, onArtifact, seedPrompt }: {
   const [turns, setTurns] = useState<Turn[]>([]);
   const [listening, setListening] = useState(false);
   const [models, setModels] = useState<ModelOpt[]>(FALLBACK_MODELS);
-  const [modelId, setModelId] = useState("claude-opus-4-8");
+  const [modelId, setModelId] = useState("haow-v4");
   const [open, setOpen] = useState<null | "plus" | "ratio" | "style" | "model" | "suggest">(null);
 
   const current = models.find((m) => m.id === modelId) || models[0];

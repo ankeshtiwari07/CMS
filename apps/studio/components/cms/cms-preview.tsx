@@ -245,7 +245,16 @@ function HtmlPreview({ html, device, editMode, onEditHtml, onSelect }: {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   useEffect(() => {
     if (!editMode) return;
-    const onMsg = (e: MessageEvent) => { const d = e.data || {}; if (d.__cms === "edit" && typeof d.html === "string") onEditHtml(stripEdit(d.html)); else if (d.__cms === "select") onSelect({ tag: d.tag, text: d.text, src: d.src }); };
+    const onMsg = (e: MessageEvent) => {
+      // Only accept messages from our own preview iframe. It renders with srcDoc,
+      // so its origin is "null" and an origin check cannot tell it apart - window
+      // identity is the reliable test. Without this, any window holding a handle
+      // to this one could post {__cms:"edit"} and inject HTML into the editor.
+      if (e.source !== iframeRef.current?.contentWindow) return;
+      const d = e.data || {};
+      if (d.__cms === "edit" && typeof d.html === "string") onEditHtml(stripEdit(d.html));
+      else if (d.__cms === "select") onSelect({ tag: d.tag, text: d.text, src: d.src });
+    };
     window.addEventListener("message", onMsg); return () => window.removeEventListener("message", onMsg);
   }, [editMode, onEditHtml, onSelect]);
   const page = useMemo(() => parsePage(html), [html]);

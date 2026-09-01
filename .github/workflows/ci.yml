@@ -34,10 +34,7 @@ jobs:
       - name: Build production image
         run: docker build -t humain-cms-stack:ci .
 
-  security:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Trivy filesystem scan
-        uses: aquasecurity/trivy-action@0.24.0
-        with: { scan-type: fs, scan-ref: ., severity: "CRITICAL,HIGH", exit-code: "0" }
+# The Trivy filesystem scan that used to live here has moved to
+# security-scan.yml, which runs the same scan blocking (exit-code 1) plus
+# secret and IaC scanning. This job pinned trivy-action@0.24.0, a tag that no
+# longer resolves, so it had been failing on every run rather than scanning.
